@@ -43,24 +43,8 @@ eye-clinic-web/
 2. Go to SQL Editor and run the contents of `supabase/schema.sql`
 3. Get your Supabase URL and anon key
 
-### 2. Configure Environment Variables
 
-**Client** (`client/.env`):
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_API_URL=http://localhost:3001
-```
-
-**Server** (`server/.env`):
-```env
-PORT=3001
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-key
-JWT_SECRET=your-secret-key
-```
-
-### 3. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
 # Client
@@ -72,7 +56,7 @@ cd server
 npm install
 ```
 
-### 4. Run Development
+### 3. Run Development
 
 ```bash
 # Terminal 1 - Start backend
@@ -84,7 +68,7 @@ cd client
 npm run dev
 ```
 
-### 5. Build for Production
+### 4. Build for Production
 
 ```bash
 # Build client
@@ -125,21 +109,6 @@ vercel deploy --prod
 | **Doctor** | Patients, prescriptions, case notes, calendar |
 | **Assistant** | Pharmacy, prescriptions, registration |
 | **Accountant** | Revenue, reports, appointments view |
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|------------|
-| POST | /api/auth/login | Login |
-| POST | /api/auth/register | Register |
-| GET | /api/auth/me | Current user |
-| GET | /api/patients | List patients |
-| POST | /api/patients | Create patient |
-| GET | /api/appointments | List appointments |
-| POST | /api/appointments | Create appointment |
-| GET | /api/prescriptions/pending | Pending prescriptions |
-| POST | /api/pharmacy/dispense | Dispense drug |
-| GET | /api/dashboard/stats | Dashboard stats |
 
 ## Technologies Used
 
