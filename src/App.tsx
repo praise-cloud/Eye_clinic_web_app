@@ -38,14 +38,34 @@ function AuthProvider() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-        if (data) {
-          setProfile(data as Profile)
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+          if (data) {
+            setProfile(data as Profile)
+            setLoading(false)
+            navigate(`/${data.role}`, { replace: true })
+          } else {
+            // Profile missing — create it from user metadata
+            const meta = session.user.user_metadata
+            const role = meta?.role ?? 'assistant'
+            const full_name = meta?.full_name ?? session.user.email ?? 'User'
+            await supabase.from('profiles').upsert({
+              id: session.user.id,
+              full_name,
+              role,
+              is_active: true,
+            })
+            setProfile({ id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' } as Profile)
+            setLoading(false)
+            navigate(`/${role}`, { replace: true })
+          }
+        } catch {
           setLoading(false)
-          // Navigate to role dashboard after login
-          navigate(`/${data.role}`, { replace: true })
-        } else {
-          setLoading(false)
+          navigate('/login', { replace: true })
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null)

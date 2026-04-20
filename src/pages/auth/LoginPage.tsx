@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -16,28 +16,44 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export function LoginPage() {
-  const { login } = useAuth()
   const location = useLocation()
   const successMessage = (location.state as any)?.message
   const [showPassword, setShowPassword] = useState(false)
-  const [serverError, setServerError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
   const onSubmit = async (data: FormData) => {
-    setServerError('')
+    setError('')
+    setIsLoading(true)
     try {
-      await login(data.email, data.password)
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
+      if (authError) throw authError
+      // Navigation is handled by onAuthStateChange in AuthProvider
+      // Keep loading true — page will navigate away automatically
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : 'Login failed. Check your credentials.')
+      const msg = err instanceof Error ? err.message : 'Login failed'
+      if (msg.includes('Invalid login')) {
+        setError('Incorrect email or password.')
+      } else if (msg.includes('Email not confirmed')) {
+        setError('Please confirm your email before signing in.')
+      } else {
+        setError(msg)
+      }
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
+
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
@@ -60,9 +76,9 @@ export function LoginPage() {
             </div>
           )}
 
-          {serverError && (
+          {error && (
             <div className="mb-4 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-              {serverError}
+              {error}
             </div>
           )}
 
@@ -72,6 +88,7 @@ export function LoginPage() {
               type="email"
               placeholder="you@clinic.com"
               error={errors.email?.message}
+              autoComplete="email"
               {...register('email')}
             />
 
@@ -81,6 +98,7 @@ export function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 error={errors.password?.message}
+                autoComplete="current-password"
                 {...register('password')}
               />
               <button
@@ -93,17 +111,12 @@ export function LoginPage() {
               </button>
             </div>
 
-            <Button type="submit" className="w-full" loading={isSubmitting}>
-              Sign In
+            <Button type="submit" className="w-full" loading={isLoading} disabled={isLoading}>
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 
-          <p className="mt-5 text-center text-xs text-muted-foreground">
-            Role is assigned by your administrator.
-            <br />Contact Admin if you cannot access your account.
-          </p>
-
-          <p className="mt-3 text-center text-sm text-muted-foreground">
+          <p className="mt-5 text-center text-sm text-muted-foreground">
             New here?{' '}
             <Link to="/register" className="text-primary hover:underline font-medium">
               Create an account
