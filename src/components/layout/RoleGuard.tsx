@@ -1,6 +1,5 @@
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Skeleton } from '@/components/ui/skeleton'
 import type { UserRole } from '@/types'
 
 interface RoleGuardProps {
@@ -11,13 +10,13 @@ interface RoleGuardProps {
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     const { isAuthenticated, isLoading, profile } = useAuthStore()
 
+    // Show nothing while auth is resolving
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="space-y-3 w-64">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-muted-foreground">Loading...</p>
                 </div>
             </div>
         )
@@ -26,7 +25,6 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     if (!isAuthenticated) return <Navigate to="/login" replace />
 
     if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-        // Redirect to their correct dashboard
         return <Navigate to={`/${profile.role}`} replace />
     }
 

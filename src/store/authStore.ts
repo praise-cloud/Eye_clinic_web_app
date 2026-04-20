@@ -19,7 +19,7 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             user: null,
             profile: null,
-            isLoading: true,
+            isLoading: false,
             isAuthenticated: false,
             setUser: (user) => set({ user, isAuthenticated: !!user }),
             setProfile: (profile) => set({ profile }),
