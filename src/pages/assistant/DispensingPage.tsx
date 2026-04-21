@@ -72,6 +72,10 @@ export function DispensingPage() {
     const dispenseMutation = useMutation({
         mutationFn: async (data: FormData) => {
             if (!selectedDrug) throw new Error('No drug selected')
+            // Stock validation
+            if (data.quantity > selectedDrug.quantity) {
+                throw new Error(`Insufficient stock. Only ${selectedDrug.quantity} ${selectedDrug.unit}(s) available.`)
+            }
             await supabase.from('drug_dispensing').insert({
                 patient_id: data.patient_id, drug_id: data.drug_id,
                 dispensed_by: profile!.id, quantity: data.quantity,
@@ -143,6 +147,11 @@ export function DispensingPage() {
                 <ModalContent size="lg">
                     <ModalHeader><ModalTitle>Dispense Drug</ModalTitle></ModalHeader>
                     <ModalBody>
+                        {dispenseMutation.error && (
+                            <div className="mb-3 p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">
+                                {(dispenseMutation.error as Error).message}
+                            </div>
+                        )}
                         <form id="dispense-form" onSubmit={handleSubmit(d => dispenseMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
@@ -188,8 +197,7 @@ export function DispensingPage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-                        <Button type="submit" form="dispense-form" loading={isSubmitting || dispenseMutation.isPending}>Dispense</Button>
-                    </ModalFooter>
+                        <Button type="submit" form="dispense-form" loading={isSubmitting || dispenseMutation.isPending}>Dispense</Button>                    </ModalFooter>
                 </ModalContent>
             </Modal>
         </div>
