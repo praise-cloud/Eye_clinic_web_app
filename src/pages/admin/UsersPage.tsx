@@ -41,12 +41,15 @@ export function UsersPage() {
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const res = await fetch('http://localhost:3001/api/auth/register', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
+            const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+            const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
+            const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
+                body: JSON.stringify({ email: data.email, password: data.password, email_confirm: true, user_metadata: { full_name: data.full_name, role: data.role } }),
             })
             const result = await res.json()
-            if (!result.success) throw new Error(result.error)
+            if (!res.ok) throw new Error(result.msg || result.error_description || 'Failed to create user')
         },
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['staff'] }); setDrawerOpen(false); reset(); setError('') },
         onError: (e: Error) => setError(e.message),

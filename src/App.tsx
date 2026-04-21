@@ -24,13 +24,14 @@ import { DispensingPage } from './pages/assistant/DispensingPage'
 import { GlassesOrdersPage } from './pages/assistant/GlassesOrdersPage'
 import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
+import { ReportsPage } from './pages/admin/ReportsPage'
+import { AuditPage } from './pages/admin/AuditPage'
 import { PaymentsPage } from './pages/accountant/PaymentsPage'
 import { DailySummaryPage } from './pages/accountant/DailySummaryPage'
 import { SubscriptionsPage } from './pages/accountant/SubscriptionsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ChatPage } from './pages/chat/ChatPage'
 import { OutreachPage } from './pages/assistant/OutreachPage'
-import { AuditPage } from './pages/admin/AuditPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
@@ -119,7 +120,7 @@ function App() {
           <Route path="/admin/patients" element={<P roles={['admin']}><PatientsPage /></P>} />
           <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
           <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
-          <Route path="/admin/reports" element={<P roles={['admin']}><DailySummaryPage /></P>} />
+          <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
 
           {/* Accountant */}
           <Route path="/accountant" element={<P roles={['accountant']}><AccountantDashboard /></P>} />
