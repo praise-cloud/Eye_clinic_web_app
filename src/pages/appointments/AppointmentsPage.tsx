@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { formatDate } from '@/lib/utils'
 import type { Appointment, Patient, Profile } from '@/types'
 
 const schema = z.object({
@@ -27,7 +26,8 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const statusColor: Record<string, 'default' | 'warning' | 'success' | 'destructive' | 'info'> = {
-    pending: 'warning', confirmed: 'info', arrived: 'success', in_progress: 'default', completed: 'success', cancelled: 'destructive', no_show: 'destructive',
+    pending: 'warning', confirmed: 'info', arrived: 'success',
+    in_progress: 'default', completed: 'success', cancelled: 'destructive', no_show: 'destructive',
 }
 
 export function AppointmentsPage() {
@@ -41,7 +41,9 @@ export function AppointmentsPage() {
     const { data: appointments = [], isLoading } = useQuery({
         queryKey: ['appointments', search, statusFilter],
         queryFn: async () => {
-            let q = supabase.from('appointments').select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles(full_name)').order('scheduled_at', { ascending: false }).limit(100)
+            let q = supabase.from('appointments')
+                .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles(full_name)')
+                .order('scheduled_at', { ascending: false }).limit(100)
             if (statusFilter !== 'all') q = q.eq('status', statusFilter)
             if (profile?.role === 'doctor') q = q.eq('doctor_id', profile.id)
             const { data } = await q
@@ -89,25 +91,29 @@ export function AppointmentsPage() {
     })
 
     return (
-        <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div><h1 className="text-xl font-bold">Appointments</h1><p className="text-sm text-muted-foreground">{filtered.length} appointments</p></div>
-                <Button size="sm" onClick={() => { reset(); setDrawerOpen(true) }}><Plus className="w-4 h-4" />Book Appointment</Button>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-lg sm:text-xl font-bold">Appointments</h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{filtered.length} appointments</p>
+                </div>
+                <Button size="sm" onClick={() => { reset(); setDrawerOpen(true) }}>
+                    <Plus className="w-4 h-4" /><span className="hidden sm:inline">Book Appointment</span><span className="sm:hidden">Book</span>
+                </Button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1 max-w-sm">
+            <div className="flex gap-2">
+                <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input className="w-full pl-9 pr-4 h-9 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)} />
+                    <input className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-32 sm:w-40"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="all">All</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="confirmed">Confirmed</SelectItem>
                         <SelectItem value="arrived">Arrived</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
@@ -115,66 +121,61 @@ export function AppointmentsPage() {
             </div>
 
             {isLoading ? (
-                <div className="space-y-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16" />)}</div>
+                <div className="space-y-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20" />)}</div>
             ) : filtered.length === 0 ? (
-                <Card><CardContent className="text-center py-16"><Calendar className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" /><p className="text-muted-foreground">No appointments found</p></CardContent></Card>
+                <Card><CardContent className="text-center py-16">
+                    <Calendar className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+                    <p className="text-muted-foreground text-sm">No appointments found</p>
+                </CardContent></Card>
             ) : (
-                <Card><CardContent className="p-0">
-                    <div className="divide-y">
-                        {filtered.map(apt => (
-                            <div key={apt.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold flex-shrink-0">
+                <div className="space-y-2">
+                    {filtered.map(apt => (
+                        <Card key={apt.id} className="hover:shadow-sm transition-shadow">
+                            <CardContent className="p-3 sm:p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                                         {(apt.patient as any)?.first_name?.[0]}{(apt.patient as any)?.last_name?.[0]}
                                     </div>
-                                    <div>
-                                        <Link to={`/patients/${apt.patient_id}`} className="text-sm font-medium hover:text-primary">
-                                            {(apt.patient as any)?.first_name} {(apt.patient as any)?.last_name}
-                                        </Link>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <Clock className="w-3 h-3" />
-                                            {new Date(apt.scheduled_at).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}
-                                            <span>·</span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <Link to={`/patients/${apt.patient_id}`} className="text-sm font-medium hover:text-primary truncate">
+                                                {(apt.patient as any)?.first_name} {(apt.patient as any)?.last_name}
+                                            </Link>
+                                            <Badge variant={statusColor[apt.status] ?? 'default'} className="flex-shrink-0 text-xs">
+                                                {apt.status.replace('_', ' ')}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
+                                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(apt.scheduled_at).toLocaleString('en-NG', { dateStyle: 'short', timeStyle: 'short' })}</span>
                                             <span className="capitalize">{apt.appointment_type.replace('_', ' ')}</span>
-                                            <span>·</span>
-                                            <span>Dr. {(apt.doctor as any)?.full_name}</span>
+                                            <span className="hidden sm:inline">Dr. {(apt.doctor as any)?.full_name}</span>
+                                        </div>
+                                        <div className="flex gap-1.5 mt-2">
+                                            {apt.status === 'pending' && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'confirmed' })}>Confirm</Button>}
+                                            {apt.status === 'confirmed' && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'arrived' })}>Arrived</Button>}
+                                            {apt.status === 'arrived' && <Button size="sm" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'in_progress' })}>Begin</Button>}
+                                            {apt.status === 'in_progress' && <Button size="sm" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'completed' })}>Complete</Button>}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant={statusColor[apt.status] ?? 'default'}>{apt.status.replace('_', ' ')}</Badge>
-                                    {apt.status === 'pending' && (
-                                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'confirmed' })}>Confirm</Button>
-                                    )}
-                                    {apt.status === 'confirmed' && (
-                                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'arrived' })}>Arrived</Button>
-                                    )}
-                                    {apt.status === 'arrived' && (
-                                        <Button size="sm" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'in_progress' })}>Begin</Button>
-                                    )}
-                                    {apt.status === 'in_progress' && (
-                                        <Button size="sm" className="h-7 text-xs" onClick={() => updateStatus.mutate({ id: apt.id, status: 'completed' })}>Complete</Button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent></Card>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             )}
 
-            {/* Book Appointment Drawer */}
             <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
                 <DrawerContent>
                     <DrawerHeader><DrawerTitle>Book Appointment</DrawerTitle><DrawerCloseButton /></DrawerHeader>
                     <DrawerBody>
                         <form id="apt-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
                             <div>
-                                <label className="text-xs font-medium uppercase tracking-wide">Search Patient</label>
-                                <input className="mt-1.5 w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Type patient name..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
+                                <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
+                                <input className="mt-1.5 w-full h-10 px-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
                                 {patients.length > 0 && (
-                                    <div className="mt-1 border rounded-md divide-y max-h-40 overflow-y-auto">
+                                    <div className="mt-1 border rounded-lg divide-y max-h-40 overflow-y-auto bg-background shadow-sm">
                                         {patients.map(p => (
-                                            <button key={p.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                                            <button key={p.id} type="button" className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted"
                                                 onClick={() => { setValue('patient_id', p.id); setPatientSearch(`${p.first_name} ${p.last_name}`) }}>
                                                 {p.first_name} {p.last_name} <span className="text-muted-foreground">· {p.patient_number}</span>
                                             </button>
@@ -203,7 +204,7 @@ export function AppointmentsPage() {
                     </DrawerBody>
                     <DrawerFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-                        <Button type="submit" form="apt-form" loading={isSubmitting || createMutation.isPending}>Book Appointment</Button>
+                        <Button type="submit" form="apt-form" loading={isSubmitting || createMutation.isPending}>Book</Button>
                     </DrawerFooter>
                 </DrawerContent>
             </Drawer>

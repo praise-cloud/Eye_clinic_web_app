@@ -26,7 +26,8 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const typeColor: Record<string, 'default' | 'info' | 'success' | 'warning'> = {
-    consultation: 'info', drug: 'default', glasses_deposit: 'warning', glasses_balance: 'success', subscription: 'success', other: 'default',
+    consultation: 'info', drug: 'default', glasses_deposit: 'warning',
+    glasses_balance: 'success', subscription: 'success', other: 'default',
 }
 
 export function PaymentsPage() {
@@ -39,8 +40,9 @@ export function PaymentsPage() {
     const { data: payments = [], isLoading } = useQuery({
         queryKey: ['payments', search],
         queryFn: async () => {
-            let q = supabase.from('payments').select('*, patient:patients(first_name,last_name,patient_number)').order('paid_at', { ascending: false }).limit(100)
-            const { data } = await q
+            const { data } = await supabase.from('payments')
+                .select('*, patient:patients(first_name,last_name,patient_number)')
+                .order('paid_at', { ascending: false }).limit(100)
             return (data ?? []) as Payment[]
         },
     })
@@ -72,42 +74,54 @@ export function PaymentsPage() {
     const total = filtered.reduce((s, p) => s + p.amount, 0)
 
     return (
-        <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl font-bold">Payments</h1>
-                    <p className="text-sm text-muted-foreground">{filtered.length} records · Total: {formatCurrency(total)}</p>
+                    <h1 className="text-lg sm:text-xl font-bold">Payments</h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{filtered.length} records · {formatCurrency(total)}</p>
                 </div>
-                <Button size="sm" onClick={() => { reset(); setDrawerOpen(true) }}><Plus className="w-4 h-4" />Record Payment</Button>
+                <Button size="sm" onClick={() => { reset(); setDrawerOpen(true) }}>
+                    <Plus className="w-4 h-4" /><span className="hidden sm:inline">Record Payment</span><span className="sm:hidden">Add</span>
+                </Button>
             </div>
 
-            <div className="relative max-w-sm">
+            <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input className="w-full pl-9 pr-4 h-9 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient or receipt..." value={search} onChange={e => setSearch(e.target.value)} />
+                <input className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient or receipt..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
-            {isLoading ? <Skeleton className="h-64" /> : filtered.length === 0 ? (
-                <Card><CardContent className="text-center py-16"><DollarSign className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" /><p className="text-muted-foreground">No payments found</p></CardContent></Card>
-            ) : (
-                <Card><CardContent className="p-0">
-                    <table className="w-full text-sm">
-                        <thead className="border-b bg-muted/30">
-                            <tr>{['Receipt', 'Patient', 'Type', 'Method', 'Amount', 'Date'].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">{h}</th>)}</tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {filtered.map(p => (
-                                <tr key={p.id} className="hover:bg-muted/20">
-                                    <td className="px-4 py-2.5 font-mono text-xs">{p.receipt_number}</td>
-                                    <td className="px-4 py-2.5"><p className="font-medium">{(p.patient as any)?.first_name} {(p.patient as any)?.last_name}</p><p className="text-xs text-muted-foreground">{(p.patient as any)?.patient_number}</p></td>
-                                    <td className="px-4 py-2.5"><Badge variant={typeColor[p.payment_type] ?? 'default'} className="capitalize">{p.payment_type.replace('_', ' ')}</Badge></td>
-                                    <td className="px-4 py-2.5 capitalize text-muted-foreground">{p.payment_method || '—'}</td>
-                                    <td className="px-4 py-2.5 font-semibold text-emerald-600">{formatCurrency(p.amount)}</td>
-                                    <td className="px-4 py-2.5 text-muted-foreground">{formatDate(p.paid_at)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            {isLoading ? (
+                <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}</div>
+            ) : filtered.length === 0 ? (
+                <Card><CardContent className="text-center py-16">
+                    <DollarSign className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+                    <p className="text-muted-foreground text-sm">No payments found</p>
                 </CardContent></Card>
+            ) : (
+                <div className="space-y-2">
+                    {filtered.map(p => (
+                        <Card key={p.id}>
+                            <CardContent className="p-3 sm:p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="text-sm font-medium truncate">{(p.patient as any)?.first_name} {(p.patient as any)?.last_name}</p>
+                                            <Badge variant={typeColor[p.payment_type] ?? 'default'} className="text-xs capitalize">{p.payment_type.replace('_', ' ')}</Badge>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                            <span className="font-mono">{p.receipt_number}</span>
+                                            <span>·</span>
+                                            <span className="capitalize">{p.payment_method}</span>
+                                            <span>·</span>
+                                            <span>{formatDate(p.paid_at)}</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-base font-bold text-emerald-600 flex-shrink-0">{formatCurrency(p.amount)}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             )}
 
             <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -117,11 +131,11 @@ export function PaymentsPage() {
                         <form id="payment-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
-                                <input className="mt-1.5 w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
+                                <input className="mt-1.5 w-full h-10 px-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
                                 {patients.length > 0 && (
-                                    <div className="mt-1 border rounded-md divide-y max-h-40 overflow-y-auto">
+                                    <div className="mt-1 border rounded-lg divide-y max-h-40 overflow-y-auto bg-background shadow-sm">
                                         {patients.map(p => (
-                                            <button key={p.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                                            <button key={p.id} type="button" className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted"
                                                 onClick={() => { setValue('patient_id', p.id); setPatientSearch(`${p.first_name} ${p.last_name}`) }}>
                                                 {p.first_name} {p.last_name} · {p.patient_number}
                                             </button>

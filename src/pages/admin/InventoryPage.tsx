@@ -107,28 +107,30 @@ export function InventoryPage() {
             {activeTab === 'drugs' && (
                 drugsLoading ? <Skeleton className="h-64" /> : (
                     <Card><CardContent className="p-0">
-                        <table className="w-full text-sm">
-                            <thead className="border-b bg-muted/30">
-                                <tr>{['Drug Name', 'Category', 'Stock', 'Unit', 'Price', 'Expiry', ''].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">{h}</th>)}</tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {drugs.map(d => (
-                                    <tr key={d.id} className="hover:bg-muted/20">
-                                        <td className="px-4 py-2.5"><p className="font-medium">{d.name}</p>{d.generic_name && <p className="text-xs text-muted-foreground">{d.generic_name}</p>}</td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">{d.category || '—'}</td>
-                                        <td className="px-4 py-2.5">
-                                            <span className={d.quantity <= d.reorder_level ? 'text-amber-600 font-medium' : ''}>{d.quantity}</span>
-                                            {d.quantity <= d.reorder_level && <Badge variant="warning" className="ml-2 text-xs">Low</Badge>}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">{d.unit}</td>
-                                        <td className="px-4 py-2.5">{formatCurrency(d.selling_price)}</td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">{d.expiry_date || '—'}</td>
-                                        <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditDrug(d)}>Edit</Button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {drugs.length === 0 && <p className="text-center py-10 text-muted-foreground">No drugs in inventory</p>}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[560px]">
+                                <thead className="border-b bg-muted/30">
+                                    <tr>{['Drug Name', 'Category', 'Stock', 'Unit', 'Price', 'Expiry', ''].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">{h}</th>)}</tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {drugs.map(d => (
+                                        <tr key={d.id} className="hover:bg-muted/20">
+                                            <td className="px-4 py-2.5"><p className="font-medium">{d.name}</p>{d.generic_name && <p className="text-xs text-muted-foreground">{d.generic_name}</p>}</td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">{d.category || '—'}</td>
+                                            <td className="px-4 py-2.5">
+                                                <span className={d.quantity <= d.reorder_level ? 'text-amber-600 font-medium' : ''}>{d.quantity}</span>
+                                                {d.quantity <= d.reorder_level && <Badge variant="warning" className="ml-2 text-xs">Low</Badge>}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">{d.unit}</td>
+                                            <td className="px-4 py-2.5">{formatCurrency(d.selling_price)}</td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">{d.expiry_date || '—'}</td>
+                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditDrug(d)}>Edit</Button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {drugs.length === 0 && <p className="text-center py-10 text-muted-foreground">No drugs in inventory</p>}
+                        </div>
                     </CardContent></Card>
                 )
             )}
@@ -136,27 +138,29 @@ export function InventoryPage() {
             {activeTab === 'glasses' && (
                 framesLoading ? <Skeleton className="h-64" /> : (
                     <Card><CardContent className="p-0">
-                        <table className="w-full text-sm">
-                            <thead className="border-b bg-muted/30">
-                                <tr>{['Frame', 'Brand', 'Code', 'Stock', 'Price', ''].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">{h}</th>)}</tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {frames.map(f => (
-                                    <tr key={f.id} className="hover:bg-muted/20">
-                                        <td className="px-4 py-2.5 font-medium">{f.frame_name}</td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">{f.frame_brand || '—'}</td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">{f.frame_code || '—'}</td>
-                                        <td className="px-4 py-2.5">
-                                            <span className={f.quantity <= f.reorder_level ? 'text-amber-600 font-medium' : ''}>{f.quantity}</span>
-                                            {f.quantity <= f.reorder_level && <Badge variant="warning" className="ml-2 text-xs">Low</Badge>}
-                                        </td>
-                                        <td className="px-4 py-2.5">{formatCurrency(f.selling_price)}</td>
-                                        <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditFrame(f); frameForm.reset({ frame_name: f.frame_name, frame_brand: f.frame_brand, frame_code: f.frame_code, color: f.color, material: f.material, gender: f.gender, quantity: f.quantity, reorder_level: f.reorder_level, purchase_price: f.purchase_price, selling_price: f.selling_price }); setFrameDrawer(true) }}>Edit</Button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {frames.length === 0 && <p className="text-center py-10 text-muted-foreground">No frames in inventory</p>}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[480px]">
+                                <thead className="border-b bg-muted/30">
+                                    <tr>{['Frame', 'Brand', 'Code', 'Stock', 'Price', ''].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">{h}</th>)}</tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {frames.map(f => (
+                                        <tr key={f.id} className="hover:bg-muted/20">
+                                            <td className="px-4 py-2.5 font-medium">{f.frame_name}</td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">{f.frame_brand || '—'}</td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">{f.frame_code || '—'}</td>
+                                            <td className="px-4 py-2.5">
+                                                <span className={f.quantity <= f.reorder_level ? 'text-amber-600 font-medium' : ''}>{f.quantity}</span>
+                                                {f.quantity <= f.reorder_level && <Badge variant="warning" className="ml-2 text-xs">Low</Badge>}
+                                            </td>
+                                            <td className="px-4 py-2.5">{formatCurrency(f.selling_price)}</td>
+                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditFrame(f); frameForm.reset({ frame_name: f.frame_name, frame_brand: f.frame_brand, frame_code: f.frame_code, color: f.color, material: f.material, gender: f.gender, quantity: f.quantity, reorder_level: f.reorder_level, purchase_price: f.purchase_price, selling_price: f.selling_price }); setFrameDrawer(true) }}>Edit</Button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {frames.length === 0 && <p className="text-center py-10 text-muted-foreground">No frames in inventory</p>}
+                        </div>
                     </CardContent></Card>
                 )
             )}

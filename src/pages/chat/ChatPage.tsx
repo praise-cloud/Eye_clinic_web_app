@@ -90,7 +90,7 @@ export function ChatPage() {
         new Date(ts).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })
 
     return (
-        <div className="flex h-[calc(100vh-56px)] -m-4 md:-m-5 overflow-hidden">
+        <div className="flex h-[calc(100vh-56px-80px)] lg:h-[calc(100vh-56px)] -m-4 md:-m-5 overflow-hidden">
 
             {/* Contacts sidebar */}
             <div className={`${activeUser ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-72 border-r bg-card flex-shrink-0`}>
@@ -199,8 +199,8 @@ export function ChatPage() {
                                                     <div className={`max-w-[75%] md:max-w-[60%] group`}>
                                                         <div
                                                             className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isOwn
-                                                                    ? 'text-white rounded-br-sm'
-                                                                    : 'bg-card border rounded-bl-sm text-foreground'
+                                                                ? 'text-white rounded-br-sm'
+                                                                : 'bg-card border rounded-bl-sm text-foreground'
                                                                 }`}
                                                             style={isOwn ? { backgroundColor: accent } : {}}
                                                         >

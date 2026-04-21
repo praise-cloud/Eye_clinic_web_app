@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Calendar, FileText, Pill, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,13 +11,13 @@ import { formatDate } from '@/lib/utils'
 export function DoctorDashboard() {
     const { profile } = useAuthStore()
 
-    const { data: appointments, isLoading } = useQuery({
+    const { data: appointments = [], isLoading } = useQuery({
         queryKey: ['appointments', 'today', profile?.id],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
             const { data } = await supabase
                 .from('appointments')
-                .select('*, patient:patients(first_name, last_name, patient_number)')
+                .select('*, patient:patients(first_name,last_name,patient_number)')
                 .eq('doctor_id', profile!.id)
                 .gte('scheduled_at', `${today}T00:00:00`)
                 .lte('scheduled_at', `${today}T23:59:59`)
@@ -31,71 +32,71 @@ export function DoctorDashboard() {
         in_progress: 'default', completed: 'success', cancelled: 'destructive', no_show: 'destructive',
     }
 
+    const stats = [
+        { label: "Today's Appts", value: appointments.length, icon: Calendar, color: 'text-blue-600 bg-blue-50' },
+        { label: 'Awaiting', value: appointments.filter(a => a.status === 'arrived').length, icon: Users, color: 'text-amber-600 bg-amber-50' },
+        { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, icon: FileText, color: 'text-emerald-600 bg-emerald-50' },
+        { label: 'Pending Notes', value: 0, icon: Pill, color: 'text-purple-600 bg-purple-50' },
+    ]
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             <div>
-                <h2 className="text-xl font-bold">Good morning, Dr. {profile?.full_name?.split(' ')[0]} 👋</h2>
-                <p className="text-muted-foreground text-sm mt-0.5">{formatDate(new Date())}</p>
+                <h2 className="text-lg sm:text-xl font-bold">Good morning, Dr. {profile?.full_name?.split(' ').slice(-1)[0]} 👋</h2>
+                <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">{formatDate(new Date())}</p>
             </div>
 
-            {/* Stat Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { label: "Today's Appointments", value: appointments?.length ?? 0, icon: Calendar, color: 'text-blue-600 bg-blue-50' },
-                    { label: 'Awaiting', value: appointments?.filter(a => a.status === 'arrived').length ?? 0, icon: Users, color: 'text-amber-600 bg-amber-50' },
-                    { label: 'Completed', value: appointments?.filter(a => a.status === 'completed').length ?? 0, icon: FileText, color: 'text-emerald-600 bg-emerald-50' },
-                    { label: 'Pending Notes', value: 0, icon: Pill, color: 'text-purple-600 bg-purple-50' },
-                ].map((stat) => (
+            <div className="grid grid-cols-2 gap-3">
+                {stats.map(stat => (
                     <Card key={stat.label}>
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <div className={`p-2.5 rounded-lg ${stat.color}`}>
-                                <stat.icon className="w-5 h-5" />
+                        <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+                            <div className={`p-2 sm:p-2.5 rounded-lg flex-shrink-0 ${stat.color}`}>
+                                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                             </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                                <p className="text-2xl font-bold">{isLoading ? '—' : stat.value}</p>
+                            <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
+                                <p className="text-xl sm:text-2xl font-bold">{isLoading ? '—' : stat.value}</p>
                             </div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
 
-            {/* Today's Queue */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Today's Patient Queue</CardTitle>
+                <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm sm:text-base">Today's Queue</CardTitle>
+                        <Link to="/doctor/appointments" className="text-xs text-primary hover:underline">View all</Link>
+                    </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     {isLoading ? (
-                        <div className="p-5 space-y-3">
-                            {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
-                        </div>
-                    ) : appointments?.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p>No appointments scheduled for today</p>
+                        <div className="p-4 space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14" />)}</div>
+                    ) : appointments.length === 0 ? (
+                        <div className="text-center py-10 text-muted-foreground">
+                            <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">No appointments today</p>
                         </div>
                     ) : (
                         <div className="divide-y">
-                            {appointments?.map((apt) => (
-                                <div key={apt.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
+                            {appointments.map(apt => (
+                                <Link key={apt.id} to={`/patients/${apt.patient_id}`}
+                                    className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
                                             {(apt.patient as any)?.first_name?.[0]}
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium">
-                                                {(apt.patient as any)?.first_name} {(apt.patient as any)?.last_name}
-                                            </p>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium truncate">{(apt.patient as any)?.first_name} {(apt.patient as any)?.last_name}</p>
                                             <p className="text-xs text-muted-foreground">
-                                                {new Date(apt.scheduled_at).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })} · {apt.appointment_type.replace('_', ' ')}
+                                                {new Date(apt.scheduled_at).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })} · <span className="capitalize">{apt.appointment_type.replace('_', ' ')}</span>
                                             </p>
                                         </div>
                                     </div>
-                                    <Badge variant={statusColor[apt.status] ?? 'default'}>
+                                    <Badge variant={statusColor[apt.status] ?? 'default'} className="flex-shrink-0 text-xs">
                                         {apt.status.replace('_', ' ')}
                                     </Badge>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}

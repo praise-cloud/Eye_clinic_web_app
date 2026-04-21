@@ -58,11 +58,8 @@ export function PatientsPage() {
 
     const saveMutation = useMutation({
         mutationFn: async (data: PatientForm) => {
-            if (editPatient) {
-                await supabase.from('patients').update(data).eq('id', editPatient.id)
-            } else {
-                await supabase.from('patients').insert({ ...data, registered_by: profile?.id })
-            }
+            if (editPatient) await supabase.from('patients').update(data).eq('id', editPatient.id)
+            else await supabase.from('patients').insert({ ...data, registered_by: profile?.id })
         },
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['patients'] }); setDrawerOpen(false); reset() },
     })
@@ -84,52 +81,74 @@ export function PatientsPage() {
     const subBadge: Record<string, 'default' | 'info' | 'warning' | 'success'> = { none: 'default', basic: 'info', standard: 'warning', premium: 'success' }
 
     return (
-        <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div><h1 className="text-xl font-bold">Patients</h1><p className="text-sm text-muted-foreground">{patients.length} records</p></div>
+        <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-lg sm:text-xl font-bold">Patients</h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{patients.length} records</p>
+                </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-4 h-4" />Export</Button>
-                    {canWrite && <Button size="sm" onClick={openNew}><Plus className="w-4 h-4" />Register Patient</Button>}
+                    <Button variant="outline" size="sm" onClick={exportCSV} className="hidden sm:flex">
+                        <Download className="w-4 h-4" />Export
+                    </Button>
+                    {canWrite && (
+                        <Button size="sm" onClick={openNew}>
+                            <Plus className="w-4 h-4" />
+                            <span className="hidden sm:inline">Register Patient</span>
+                            <span className="sm:hidden">Add</span>
+                        </Button>
+                    )}
                 </div>
             </div>
 
-            <div className="relative max-w-sm">
+            {/* Search */}
+            <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input className="w-full pl-9 pr-4 h-9 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search name, number, phone..." value={search} onChange={e => setSearch(e.target.value)} />
+                <input
+                    className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="Search name, number, phone..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
             </div>
 
+            {/* Patient list */}
             {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-36" />)}
-                </div>
+                <div className="space-y-3">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20" />)}</div>
             ) : patients.length === 0 ? (
-                <Card><CardContent className="text-center py-16"><User className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" /><p className="text-muted-foreground">No patients found</p>{canWrite && <Button className="mt-4" onClick={openNew}><Plus className="w-4 h-4" />Register First Patient</Button>}</CardContent></Card>
+                <Card><CardContent className="text-center py-16">
+                    <User className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+                    <p className="text-muted-foreground text-sm">No patients found</p>
+                    {canWrite && <Button className="mt-4" size="sm" onClick={openNew}><Plus className="w-4 h-4" />Register First Patient</Button>}
+                </CardContent></Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
                     {patients.map(p => (
-                        <Card key={p.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-4 space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
-                                            {p.first_name[0]}{p.last_name[0]}
+                        <Card key={p.id} className="hover:shadow-sm transition-shadow">
+                            <CardContent className="p-3 sm:p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                        {p.first_name[0]}{p.last_name[0]}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <Link to={`/patients/${p.id}`} className="font-semibold text-sm hover:text-primary truncate">
+                                                {p.first_name} {p.last_name}
+                                            </Link>
+                                            <Badge variant={subBadge[p.subscription_type ?? 'none']} className="flex-shrink-0 text-xs">
+                                                {p.subscription_type ?? 'none'}
+                                            </Badge>
                                         </div>
-                                        <div>
-                                            <Link to={`/patients/${p.id}`} className="font-semibold text-sm hover:text-primary">{p.first_name} {p.last_name}</Link>
-                                            <p className="text-xs text-muted-foreground">{p.patient_number}</p>
+                                        <p className="text-xs text-muted-foreground">{p.patient_number}</p>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            {p.phone && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="w-3 h-3" />{p.phone}</span>}
+                                            {p.email && <span className="flex items-center gap-1 text-xs text-muted-foreground truncate"><Mail className="w-3 h-3" /><span className="truncate max-w-[120px]">{p.email}</span></span>}
                                         </div>
                                     </div>
-                                    <Badge variant={subBadge[p.subscription_type ?? 'none']}>{p.subscription_type ?? 'none'}</Badge>
-                                </div>
-                                <div className="space-y-1 text-xs text-muted-foreground">
-                                    {p.phone && <div className="flex items-center gap-2"><Phone className="w-3 h-3" />{p.phone}</div>}
-                                    {p.email && <div className="flex items-center gap-2"><Mail className="w-3 h-3" /><span className="truncate">{p.email}</span></div>}
-                                </div>
-                                <div className="flex items-center justify-between pt-1 border-t">
-                                    <span className="text-xs text-muted-foreground">{formatDate(p.created_at)}</span>
-                                    <div className="flex gap-2">
-                                        <Link to={`/patients/${p.id}`}><Button variant="ghost" size="sm" className="h-7 text-xs">View</Button></Link>
-                                        {canWrite && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(p)}>Edit</Button>}
+                                    <div className="flex flex-col gap-1 flex-shrink-0">
+                                        <Link to={`/patients/${p.id}`}><Button variant="ghost" size="sm" className="h-7 text-xs px-2">View</Button></Link>
+                                        {canWrite && <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => openEdit(p)}>Edit</Button>}
                                     </div>
                                 </div>
                             </CardContent>
@@ -158,7 +177,7 @@ export function PatientsPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <Input label="Date of Birth" type="date" {...register('date_of_birth')} />
                                 <Select onValueChange={v => setValue('gender', v as any)}>
-                                    <SelectTrigger label="Gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                                    <SelectTrigger label="Gender"><SelectValue placeholder="Select" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="male">Male</SelectItem>
                                         <SelectItem value="female">Female</SelectItem>
@@ -169,8 +188,8 @@ export function PatientsPage() {
                             <Input label="Address" {...register('address')} />
                             <Input label="Occupation" {...register('occupation')} />
                             <div className="grid grid-cols-2 gap-3">
-                                <Input label="Next of Kin Name" {...register('next_of_kin_name')} />
-                                <Input label="Next of Kin Phone" {...register('next_of_kin_phone')} />
+                                <Input label="Next of Kin" {...register('next_of_kin_name')} />
+                                <Input label="Kin Phone" {...register('next_of_kin_phone')} />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <Input label="Blood Group" placeholder="e.g. O+" {...register('blood_group')} />
@@ -184,7 +203,7 @@ export function PatientsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Input label="Allergies" placeholder="List any known allergies" {...register('allergies')} />
+                            <Input label="Allergies" {...register('allergies')} />
                         </form>
                     </DrawerBody>
                     <DrawerFooter>

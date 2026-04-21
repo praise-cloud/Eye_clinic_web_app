@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, UserCog } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { getRoleColor, formatDate } from '@/lib/utils'
+import { getRoleColor, getRoleAccent, getInitials, formatDate } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 const schema = z.object({
@@ -42,8 +42,7 @@ export function UsersPage() {
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
             const res = await fetch('http://localhost:3001/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
             })
             const result = await res.json()
@@ -61,42 +60,47 @@ export function UsersPage() {
     })
 
     return (
-        <div className="space-y-5">
-            <div className="flex items-center justify-between">
-                <div><h1 className="text-xl font-bold">User Management</h1><p className="text-sm text-muted-foreground">{users.length} staff members</p></div>
-                <Button size="sm" onClick={() => { reset(); setError(''); setDrawerOpen(true) }}><Plus className="w-4 h-4" />Add Staff</Button>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-lg sm:text-xl font-bold">User Management</h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{users.length} staff members</p>
+                </div>
+                <Button size="sm" onClick={() => { reset(); setError(''); setDrawerOpen(true) }}>
+                    <Plus className="w-4 h-4" /><span className="hidden sm:inline">Add Staff</span><span className="sm:hidden">Add</span>
+                </Button>
             </div>
 
-            {isLoading ? <Skeleton className="h-64" /> : (
-                <Card><CardContent className="p-0">
-                    <table className="w-full text-sm">
-                        <thead className="border-b bg-muted/30">
-                            <tr>{['Name', 'Role', 'Phone', 'Status', 'Joined', ''].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">{h}</th>)}</tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {users.map(u => (
-                                <tr key={u.id} className="hover:bg-muted/20">
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{u.full_name[0]}</div>
-                                            <div><p className="font-medium">{u.full_name}</p></div>
+            {isLoading ? (
+                <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}</div>
+            ) : (
+                <div className="space-y-2">
+                    {users.map(u => (
+                        <Card key={u.id}>
+                            <CardContent className="p-3 sm:p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                                        style={{ backgroundColor: getRoleAccent(u.role) }}>
+                                        {getInitials(u.full_name)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="text-sm font-medium truncate">{u.full_name}</p>
+                                            <span className={`text-xs capitalize px-1.5 py-0.5 rounded-full font-medium ${getRoleColor(u.role)}`}>{u.role}</span>
+                                            <Badge variant={u.is_active ? 'success' : 'destructive'} className="text-xs">{u.is_active ? 'Active' : 'Inactive'}</Badge>
                                         </div>
-                                    </td>
-                                    <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${getRoleColor(u.role)}`}>{u.role}</span></td>
-                                    <td className="px-4 py-3 text-muted-foreground">{u.phone || '—'}</td>
-                                    <td className="px-4 py-3"><Badge variant={u.is_active ? 'success' : 'destructive'}>{u.is_active ? 'Active' : 'Inactive'}</Badge></td>
-                                    <td className="px-4 py-3 text-muted-foreground">{formatDate(u.created_at)}</td>
-                                    <td className="px-4 py-3">
-                                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => toggleActive.mutate({ id: u.id, is_active: !u.is_active })}>
-                                            {u.is_active ? 'Deactivate' : 'Activate'}
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {users.length === 0 && <p className="text-center py-10 text-muted-foreground">No staff members</p>}
-                </CardContent></Card>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{u.phone || 'No phone'} · Joined {formatDate(u.created_at)}</p>
+                                    </div>
+                                    <Button variant="ghost" size="sm" className="h-8 text-xs flex-shrink-0"
+                                        onClick={() => toggleActive.mutate({ id: u.id, is_active: !u.is_active })}>
+                                        {u.is_active ? 'Deactivate' : 'Activate'}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    {users.length === 0 && <Card><CardContent className="text-center py-10 text-muted-foreground text-sm">No staff members</CardContent></Card>}
+                </div>
             )}
 
             <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
