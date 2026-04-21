@@ -26,7 +26,11 @@ import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { PaymentsPage } from './pages/accountant/PaymentsPage'
 import { DailySummaryPage } from './pages/accountant/DailySummaryPage'
+import { SubscriptionsPage } from './pages/accountant/SubscriptionsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
+import { ChatPage } from './pages/chat/ChatPage'
+import { OutreachPage } from './pages/assistant/OutreachPage'
+import { AuditPage } from './pages/admin/AuditPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
@@ -121,6 +125,16 @@ function App() {
           <Route path="/accountant" element={<P roles={['accountant']}><AccountantDashboard /></P>} />
           <Route path="/accountant/payments" element={<P roles={['accountant']}><PaymentsPage /></P>} />
           <Route path="/accountant/summary" element={<P roles={['accountant']}><DailySummaryPage /></P>} />
+          <Route path="/accountant/subscriptions" element={<P roles={['accountant']}><SubscriptionsPage /></P>} />
+
+          {/* Admin extras */}
+          <Route path="/admin/audit" element={<P roles={['admin']}><AuditPage /></P>} />
+
+          {/* Assistant extras */}
+          <Route path="/assistant/outreach" element={<P roles={['assistant']}><OutreachPage /></P>} />
+
+          {/* Shared chat */}
+          <Route path="/chat" element={<P><ChatPage /></P>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
