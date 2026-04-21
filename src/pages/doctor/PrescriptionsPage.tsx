@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
+import { notify } from '@/store/notificationStore'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
@@ -62,7 +63,12 @@ export function PrescriptionsPage() {
                 pd: toNum(data.pd), lens_type: data.lens_type, notes: data.notes,
             })
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['prescriptions'] }); setDrawerOpen(false); reset() },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['prescriptions'] })
+            setDrawerOpen(false)
+            reset()
+            notify({ type: 'prescription', title: 'Prescription Created', message: 'A new glasses prescription has been saved.', link: '/doctor/prescriptions' })
+        },
     })
 
     return (

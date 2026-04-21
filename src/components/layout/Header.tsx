@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, Menu, LogOut, Settings, ChevronDown } from 'lucide-react'
+import { Menu, LogOut, Settings, ChevronDown } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useAuth } from '@/hooks/useAuth'
 import { getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
+import { NotificationBell } from './NotificationBell'
 
 interface HeaderProps {
   title: string
@@ -59,10 +60,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
 
       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         {/* Notifications */}
-        <button className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
-        </button>
+        <NotificationBell />
 
         {/* User menu */}
         <div className="relative" ref={menuRef}>

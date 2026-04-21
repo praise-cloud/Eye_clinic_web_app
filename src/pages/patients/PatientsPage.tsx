@@ -16,6 +16,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { formatDate } from '@/lib/utils'
 import type { Patient } from '@/types'
+import { notify } from '@/store/notificationStore'
 
 const schema = z.object({
     first_name: z.string().min(1, 'Required'),
@@ -63,7 +64,19 @@ export function PatientsPage() {
             if (editPatient) await supabase.from('patients').update(data).eq('id', editPatient.id)
             else await supabase.from('patients').insert({ ...data, registered_by: profile?.id })
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['patients'] }); setOpen(false); reset() },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['patients'] })
+            setOpen(false)
+            reset()
+            notify({
+                type: 'patient',
+                title: editPatient ? 'Patient Updated' : 'Patient Registered',
+                message: editPatient
+                    ? `${editPatient.first_name} ${editPatient.last_name}'s record has been updated.`
+                    : 'A new patient has been registered successfully.',
+                link: '/patients',
+            })
+        },
     })
 
     const openNew = () => { setEditPatient(null); reset(); setOpen(true) }

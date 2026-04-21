@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { notify } from '@/store/notificationStore'
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
@@ -83,7 +84,14 @@ export function GlassesOrdersPage() {
                 notes: data.notes, created_by: profile!.id,
             })
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['glasses-orders'] }); setDrawerOpen(false); reset(); setSelectedFrame(null); setPatientSearch('') },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['glasses-orders'] })
+            setDrawerOpen(false)
+            reset()
+            setSelectedFrame(null)
+            setPatientSearch('')
+            notify({ type: 'glasses', title: 'Glasses Order Created', message: 'A new glasses order has been placed.', link: '/assistant/glasses-orders' })
+        },
     })
 
     const advanceMutation = useMutation({
@@ -92,7 +100,10 @@ export function GlassesOrdersPage() {
             if (status === 'dispensed') { update.dispensed_by = profile!.id; update.dispensed_at = new Date().toISOString() }
             await supabase.from('glasses_orders').update(update).eq('id', id)
         },
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['glasses-orders'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['glasses-orders'] })
+            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order status has been updated.', link: '/assistant/glasses-orders' })
+        },
     })
 
     return (

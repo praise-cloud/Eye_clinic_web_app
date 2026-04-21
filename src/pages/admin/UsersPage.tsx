@@ -1,4 +1,4 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, UserCheck, UserX } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -14,6 +14,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getRoleColor, getRoleAccent, getInitials, formatDate } from '@/lib/utils'
 import type { Profile } from '@/types'
+import { notify } from '@/store/notificationStore'
 
 const schema = z.object({
     full_name: z.string().min(2, 'Required'),
@@ -51,7 +52,13 @@ export function UsersPage() {
             const result = await res.json()
             if (!res.ok) throw new Error(result.msg || result.error_description || 'Failed to create user')
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['staff'] }); setOpen(false); reset(); setError('') },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['staff'] })
+            setOpen(false)
+            reset()
+            setError('')
+            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created successfully.', link: '/admin/users' })
+        },
         onError: (e: Error) => setError(e.message),
     })
 
@@ -59,7 +66,10 @@ export function UsersPage() {
         mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
             await supabase.from('profiles').update({ is_active }).eq('id', id)
         },
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['staff'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['staff'] })
+            notify({ type: 'system', title: 'Staff Status Updated', message: 'Staff member status has been changed.' })
+        },
     })
 
     return (

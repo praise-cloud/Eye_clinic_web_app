@@ -15,6 +15,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Drug, Patient, DrugDispensing } from '@/types'
+import { notify } from '@/store/notificationStore'
 
 const schema = z.object({
     patient_id: z.string().min(1, 'Required'),
@@ -83,7 +84,16 @@ export function DispensingPage() {
                 prescription_note: data.prescription_note,
             })
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['dispensing'] }); qc.invalidateQueries({ queryKey: ['low-stock-drugs'] }); setDrawerOpen(false); reset(); setSelectedDrug(null); setPatientSearch(''); setDrugSearch('') },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['dispensing'] })
+            qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
+            setDrawerOpen(false)
+            reset()
+            setSelectedDrug(null)
+            setPatientSearch('')
+            setDrugSearch('')
+            notify({ type: 'dispensing', title: 'Drug Dispensed', message: `${selectedDrug?.name} has been dispensed successfully.`, link: '/assistant/dispensing' })
+        },
     })
 
     return (

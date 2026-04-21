@@ -14,6 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { formatDate } from '@/lib/utils'
 import { encryptText, decryptText } from '@/lib/crypto'
 import type { CaseNote, Patient } from '@/types'
+import { notify } from '@/store/notificationStore'
 
 const schema = z.object({
     patient_id: z.string().min(1, 'Select a patient'),
@@ -143,14 +144,20 @@ export function CaseNotesPage() {
                 is_encrypted: true,
             })
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['case-notes'] }); setOpen(false); reset(); setPatientSearch('') },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['case-notes'] })
+            setOpen(false)
+            reset()
+            setPatientSearch('')
+            notify({ type: 'prescription', title: 'Case Note Saved', message: 'A new case note has been created and encrypted.', link: '/doctor/case-notes' })
+        },
     })
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
             await supabase.from('case_notes').delete().eq('id', id)
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['case-notes'] }); setDeleteId(null) },
+        onSuccess: () => { qc.invalidateQueries({ queryKey: ['case-notes'] }); setDeleteId(null); notify({ type: 'system', title: 'Case Note Deleted', message: 'The case note has been permanently deleted.' }) },
     })
 
     const filtered = notes.filter(n => {

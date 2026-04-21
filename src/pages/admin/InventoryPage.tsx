@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
+import { notify } from '@/store/notificationStore'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -69,7 +70,12 @@ export function InventoryPage() {
             if (editDrug) await supabase.from('drugs').update(data).eq('id', editDrug.id)
             else await supabase.from('drugs').insert(data)
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['drugs'] }); setDrugDrawer(false); drugForm.reset() },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['drugs'] })
+            setDrugDrawer(false)
+            drugForm.reset()
+            notify({ type: 'low_stock', title: editDrug ? 'Drug Updated' : 'Drug Added', message: editDrug ? 'Drug inventory item has been updated.' : 'A new drug has been added to inventory.', link: '/admin/inventory' })
+        },
     })
 
     const saveFrame = useMutation({
@@ -77,7 +83,12 @@ export function InventoryPage() {
             if (editFrame) await supabase.from('glasses_inventory').update(data).eq('id', editFrame.id)
             else await supabase.from('glasses_inventory').insert(data)
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['glasses-inventory'] }); setFrameDrawer(false); frameForm.reset() },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
+            setFrameDrawer(false)
+            frameForm.reset()
+            notify({ type: 'glasses', title: editFrame ? 'Frame Updated' : 'Frame Added', message: editFrame ? 'Glasses frame has been updated.' : 'A new frame has been added to inventory.', link: '/admin/inventory' })
+        },
     })
 
     const openEditDrug = (d: Drug) => {

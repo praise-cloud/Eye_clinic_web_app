@@ -6,6 +6,7 @@ import { useAuthStore } from './store/authStore'
 import { RoleGuard } from './components/layout/RoleGuard'
 import { AppShell } from './components/layout/AppShell'
 import type { Profile } from './types'
+import { useRealtimeNotifications } from './hooks/useRealtimeNotifications'
 
 // Pages
 import { SplashScreen } from './pages/SplashScreen'
@@ -42,47 +43,72 @@ function AuthProvider() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Check existing session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user)
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-        setProfile(data as Profile)
+        const { data } = await supabase
+          .from('profiles').select('*').eq('id', session.user.id).single()
+        if (data) setProfile(data as Profile)
       }
       setLoading(false)
     })
 
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
         try {
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          const { data } = await supabase
+            .from('profiles').select('*').eq('id', session.user.id).single()
           if (data) {
-            setProfile(data as Profile); setLoading(false)
+            setProfile(data as Profile)
+            setLoading(false)
             navigate(`/${data.role}`, { replace: true })
           } else {
+            // Profile missing — create from metadata
             const meta = session.user.user_metadata
             const role = meta?.role ?? 'assistant'
             const full_name = meta?.full_name ?? session.user.email ?? 'User'
-            await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true })
-            setProfile({ id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' } as Profile)
+            await supabase.from('profiles').upsert({
+              id: session.user.id, full_name, role, is_active: true,
+            })
+            const newProfile = { id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' } as Profile
+            setProfile(newProfile)
             setLoading(false)
             navigate(`/${role}`, { replace: true })
           }
-        } catch { setLoading(false); navigate('/login', { replace: true }) }
+        } catch (e) {
+          console.error('Profile fetch error:', e)
+          setLoading(false)
+          navigate('/login', { replace: true })
+        }
       } else if (event === 'SIGNED_OUT') {
-        setUser(null); setProfile(null); signOut()
+        setUser(null)
+        setProfile(null)
+        signOut()
         navigate('/login', { replace: true })
       }
     })
+
     return () => subscription.unsubscribe()
   }, [])
 
   return null
 }
 
+// Realtime notifications — only active when authenticated
+function RealtimeProvider() {
+  useRealtimeNotifications()
+  return null
+}
+
 // Wrap a page in AppShell with role guard
 const P = ({ roles, children }: { roles?: Profile['role'][]; children: React.ReactNode }) => (
-  <RoleGuard allowedRoles={roles}><AppShell>{children}</AppShell></RoleGuard>
+  <RoleGuard allowedRoles={roles}>
+    <RealtimeProvider />
+    <AppShell>{children}</AppShell>
+  </RoleGuard>
 )
 
 function App() {

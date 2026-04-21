@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { notify } from '@/store/notificationStore'
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
@@ -62,7 +63,13 @@ export function PaymentsPage() {
         mutationFn: async (data: FormData) => {
             await supabase.from('payments').insert({ ...data, received_by: profile!.id })
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['payments'] }); setDrawerOpen(false); reset(); setPatientSearch('') },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['payments'] })
+            setDrawerOpen(false)
+            reset()
+            setPatientSearch('')
+            notify({ type: 'payment', title: 'Payment Recorded', message: 'A new payment has been recorded successfully.', link: '/accountant/payments' })
+        },
     })
 
     const filtered = payments.filter(p => {

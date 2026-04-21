@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { Appointment, Patient, Profile } from '@/types'
+import { notify } from '@/store/notificationStore'
 
 const schema = z.object({
     patient_id: z.string().min(1, 'Select a patient'),
@@ -79,14 +80,28 @@ export function AppointmentsPage() {
         mutationFn: async (data: FormData) => {
             await supabase.from('appointments').insert({ ...data, requested_by: profile?.id })
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); setOpen(false); reset(); setPatientSearch('') },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['appointments'] })
+            setOpen(false)
+            reset()
+            setPatientSearch('')
+            notify({ type: 'appointment', title: 'Appointment Booked', message: 'A new appointment has been scheduled.', link: '/appointments' })
+        },
     })
 
     const updateStatus = useMutation({
         mutationFn: async ({ id, status }: { id: string; status: string }) => {
             await supabase.from('appointments').update({ status }).eq('id', id)
         },
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['appointments'] })
+            notify({
+                type: 'appointment',
+                title: 'Appointment Status Updated',
+                message: `Appointment marked as updated.`,
+                link: '/appointments',
+            })
+        },
     })
 
     const filtered = appointments.filter(a => {
