@@ -2,17 +2,13 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Calendar, FileText, Pill,
   Package, DollarSign, MessageSquare, Settings, LogOut,
-  ClipboardList, UserCog, BarChart3, Send
+  ClipboardList, UserCog, BarChart3, Send, ChevronRight
 } from 'lucide-react'
-import { cn, getInitials, getRoleAccent } from '@/lib/utils'
+import { cn, getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import type { UserRole } from '@/types'
 
-interface NavItem {
-  label: string
-  href: string
-  icon: React.ElementType
-}
+interface NavItem { label: string; href: string; icon: React.ElementType; badge?: number }
 
 const navByRole: Record<UserRole, NavItem[]> = {
   doctor: [
@@ -21,7 +17,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Appointments', href: '/doctor/appointments', icon: Calendar },
     { label: 'Case Notes', href: '/doctor/case-notes', icon: FileText },
     { label: 'Prescriptions', href: '/doctor/prescriptions', icon: ClipboardList },
-    { label: 'Chat', href: '/chat', icon: MessageSquare },
+    { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
   assistant: [
@@ -31,7 +27,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Drug Dispensing', href: '/assistant/dispensing', icon: Pill },
     { label: 'Glasses Orders', href: '/assistant/glasses-orders', icon: Package },
     { label: 'Outreach', href: '/assistant/outreach', icon: Send },
-    { label: 'Chat', href: '/chat', icon: MessageSquare },
+    { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
   admin: [
@@ -39,9 +35,9 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Patients', href: '/admin/patients', icon: Users },
     { label: 'Inventory', href: '/admin/inventory', icon: Package },
     { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
-    { label: 'User Management', href: '/admin/users', icon: UserCog },
+    { label: 'Staff', href: '/admin/users', icon: UserCog },
     { label: 'Audit Logs', href: '/admin/audit', icon: FileText },
-    { label: 'Chat', href: '/chat', icon: MessageSquare },
+    { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
   accountant: [
@@ -49,14 +45,12 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Payments', href: '/accountant/payments', icon: DollarSign },
     { label: 'Daily Summary', href: '/accountant/summary', icon: BarChart3 },
     { label: 'Subscriptions', href: '/accountant/subscriptions', icon: ClipboardList },
-    { label: 'Chat', href: '/chat', icon: MessageSquare },
+    { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
 }
 
-interface SidebarProps {
-  onLogout: () => void
-}
+interface SidebarProps { onLogout: () => void }
 
 export function Sidebar({ onLogout }: SidebarProps) {
   const { profile } = useAuthStore()
@@ -65,63 +59,70 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const items = navByRole[role] ?? navByRole.assistant
 
   return (
-    <aside className="flex flex-col w-60 h-screen bg-slate-900 text-slate-300 flex-shrink-0">
+    <aside className="flex flex-col w-64 h-screen bg-white border-r border-slate-100 flex-shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent }}>
+      <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-100 flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"
+          style={{ backgroundColor: accent }}>
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-white">Eye Clinic</p>
-          <p className="text-xs capitalize" style={{ color: accent }}>{role}</p>
+          <p className="text-sm font-bold text-slate-900 leading-none">KORENE</p>
+          <p className="text-xs text-slate-400 mt-0.5">Eye Clinic</p>
         </div>
       </div>
 
+      {/* Role badge */}
+      <div className="px-4 py-3 border-b border-slate-100">
+        <span className={`text-xs font-semibold capitalize px-2.5 py-1 rounded-full ${getRoleColor(role)}`}>
+          {role} Portal
+        </span>
+      </div>
+
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
-        {items.map((item) => (
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto scrollbar-thin">
+        {items.map(item => (
           <NavLink
             key={item.href}
             to={item.href}
             end={item.href.split('/').length <= 2}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              )
-            }
-            style={({ isActive }) => isActive ? { backgroundColor: `${accent}20`, color: accent, borderLeft: `3px solid ${accent}` } : {}}
+            className={({ isActive }) => cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
+              isActive
+                ? 'text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+            )}
+            style={({ isActive }) => isActive ? { backgroundColor: accent } : {}}
           >
-            <item.icon className="w-4 h-4 flex-shrink-0" />
-            {item.label}
+            {({ isActive }) => (
+              <>
+                <item.icon className={cn('w-4 h-4 flex-shrink-0', isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600')} />
+                <span className="flex-1 truncate">{item.label}</span>
+                {isActive && <ChevronRight className="w-3 h-3 text-white/60 flex-shrink-0" />}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* User + Logout */}
-      <div className="border-t border-slate-800 p-3 space-y-1">
-        <div className="flex items-center gap-3 px-3 py-2">
+      {/* User */}
+      <div className="border-t border-slate-100 p-3 flex-shrink-0">
+        <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
             style={{ backgroundColor: accent }}>
             {getInitials(profile?.full_name ?? 'U')}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{profile?.full_name}</p>
+            <p className="text-xs font-semibold text-slate-900 truncate">{profile?.full_name}</p>
             <p className="text-xs text-slate-400 capitalize">{role}</p>
           </div>
+          <button onClick={onLogout} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Sign out">
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </button>
       </div>
     </aside>
   )
