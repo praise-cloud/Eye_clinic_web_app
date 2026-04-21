@@ -45,7 +45,8 @@ export function PatientsPage() {
     const [search, setSearch] = useState('')
     const [open, setOpen] = useState(false)
     const [editPatient, setEditPatient] = useState<Patient | null>(null)
-    const canWrite = ['assistant', 'admin'].includes(profile?.role ?? '')
+    // Only assistants can register/edit patients — admin is read-only
+    const canWrite = profile?.role === 'assistant'
 
     const { data: patients = [], isLoading } = useQuery({
         queryKey: ['patients', search],

@@ -147,10 +147,7 @@ export function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-500">
-            New staff member?{' '}
-            <Link to="/register" className="text-blue-600 hover:underline font-medium">
-              Create account
-            </Link>
+            Don't have an account? Contact your administrator.
           </p>
 
           <p className="mt-8 text-center text-xs text-slate-400">

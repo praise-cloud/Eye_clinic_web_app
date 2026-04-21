@@ -11,7 +11,6 @@ import { useRealtimeNotifications } from './hooks/useRealtimeNotifications'
 // Pages
 import { SplashScreen } from './pages/SplashScreen'
 import { LoginPage } from './pages/auth/LoginPage'
-import { RegisterPage } from './pages/auth/RegisterPage'
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard'
 import { AssistantDashboard } from './pages/assistant/AssistantDashboard'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
@@ -97,7 +96,7 @@ function AuthProvider() {
   return null
 }
 
-// Realtime notifications — only active when authenticated
+// Realtime notifications — mounts once after auth resolves
 function RealtimeProvider() {
   useRealtimeNotifications()
   return null
@@ -106,7 +105,6 @@ function RealtimeProvider() {
 // Wrap a page in AppShell with role guard
 const P = ({ roles, children }: { roles?: Profile['role'][]; children: React.ReactNode }) => (
   <RoleGuard allowedRoles={roles}>
-    <RealtimeProvider />
     <AppShell>{children}</AppShell>
   </RoleGuard>
 )
@@ -116,11 +114,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider />
+        <RealtimeProvider />
         <Routes>
           {/* Public */}
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
 
           {/* Shared protected */}
           <Route path="/patients" element={<P><PatientsPage /></P>} />

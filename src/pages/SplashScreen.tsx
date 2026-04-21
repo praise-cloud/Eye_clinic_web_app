@@ -48,12 +48,8 @@ export function SplashScreen() {
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => navigate('/login')}
-                        className="px-3 sm:px-5 py-2 rounded-lg border border-white/15 text-white/80 text-sm hover:bg-white/5 transition-colors">
-                        Sign In
-                    </button>
-                    <button onClick={() => navigate('/register')}
                         className="px-3 sm:px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors">
-                        Get Started
+                        Sign In
                     </button>
                 </div>
             </nav>
@@ -72,13 +68,9 @@ export function SplashScreen() {
                     A complete PWA for KORENE Eye Clinic — patients, appointments, prescriptions, pharmacy, and finances in one place.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <button onClick={() => navigate('/register')}
-                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-500 text-white font-semibold text-base hover:bg-blue-600 transition-colors">
-                        Create Account <ArrowRight size={16} />
-                    </button>
                     <button onClick={() => navigate('/login')}
-                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/15 text-white/80 text-base hover:bg-white/5 transition-colors">
-                        Sign In
+                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-500 text-white font-semibold text-base hover:bg-blue-600 transition-colors">
+                        Sign In <ArrowRight size={16} />
                     </button>
                 </div>
             </section>
@@ -127,14 +119,13 @@ export function SplashScreen() {
             {/* CTA */}
             <section className="text-center px-4 py-12 border-t border-white/5">
                 <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ready to get started?</h2>
-                <p className="text-white/40 text-sm mb-7">Create your account and access your dashboard in seconds.</p>
-                <button onClick={() => navigate('/register')}
+                <p className="text-white/40 text-sm mb-7">Sign in to access your dashboard.</p>
+                <button onClick={() => navigate('/login')}
                     className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-500 text-white font-semibold text-base hover:bg-blue-600 transition-colors">
-                    Create Account <ArrowRight size={16} />
+                    Sign In <ArrowRight size={16} />
                 </button>
                 <p className="mt-4 text-xs text-white/30">
-                    Already have an account?{' '}
-                    <span onClick={() => navigate('/login')} className="text-blue-400 cursor-pointer hover:underline">Sign in</span>
+                    Contact your administrator if you don't have an account.
                 </p>
             </section>
 
