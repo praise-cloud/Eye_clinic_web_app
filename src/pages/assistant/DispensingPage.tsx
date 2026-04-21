@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter, DrawerCloseButton } from '@/components/ui/drawer'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -139,10 +139,10 @@ export function DispensingPage() {
                 </Card>
             </div>
 
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <DrawerContent>
-                    <DrawerHeader><DrawerTitle>Dispense Drug</DrawerTitle><DrawerCloseButton /></DrawerHeader>
-                    <DrawerBody>
+            <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>Dispense Drug</ModalTitle></ModalHeader>
+                    <ModalBody>
                         <form id="dispense-form" onSubmit={handleSubmit(d => dispenseMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
@@ -185,13 +185,13 @@ export function DispensingPage() {
                             <Input label="Quantity" type="number" min={1} {...register('quantity', { valueAsNumber: true, onChange: e => setQty(parseInt(e.target.value) || 0) })} />
                             <Input label="Prescription Note (optional)" {...register('prescription_note')} />
                         </form>
-                    </DrawerBody>
-                    <DrawerFooter>
+                    </ModalBody>
+                    <ModalFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
                         <Button type="submit" form="dispense-form" loading={isSubmitting || dispenseMutation.isPending}>Dispense</Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }

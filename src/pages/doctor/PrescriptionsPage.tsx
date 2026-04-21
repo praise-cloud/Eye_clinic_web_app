@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter, DrawerCloseButton } from '@/components/ui/drawer'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
@@ -114,10 +114,10 @@ export function PrescriptionsPage() {
                 </div>
             )}
 
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <DrawerContent>
-                    <DrawerHeader><DrawerTitle>New Glasses Prescription</DrawerTitle><DrawerCloseButton /></DrawerHeader>
-                    <DrawerBody>
+            <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>New Glasses Prescription</ModalTitle></ModalHeader>
+                    <ModalBody>
                         <form id="rx-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-5">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
@@ -169,13 +169,13 @@ export function PrescriptionsPage() {
                             </div>
                             <Input label="Notes" {...register('notes')} />
                         </form>
-                    </DrawerBody>
-                    <DrawerFooter>
+                    </ModalBody>
+                    <ModalFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
                         <Button type="submit" form="rx-form" loading={isSubmitting || createMutation.isPending}>Save Prescription</Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }

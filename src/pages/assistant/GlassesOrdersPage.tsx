@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter, DrawerCloseButton } from '@/components/ui/drawer'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -134,10 +134,10 @@ export function GlassesOrdersPage() {
                 </CardContent></Card>
             )}
 
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <DrawerContent>
-                    <DrawerHeader><DrawerTitle>New Glasses Order</DrawerTitle><DrawerCloseButton /></DrawerHeader>
-                    <DrawerBody>
+            <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>New Glasses Order</ModalTitle></ModalHeader>
+                    <ModalBody>
                         <form id="order-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
@@ -169,13 +169,13 @@ export function GlassesOrdersPage() {
                             <Input label="Estimated Ready Date" type="date" {...register('estimated_ready')} />
                             <Input label="Notes" {...register('notes')} />
                         </form>
-                    </DrawerBody>
-                    <DrawerFooter>
+                    </ModalBody>
+                    <ModalFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
                         <Button type="submit" form="order-form" loading={isSubmitting || createMutation.isPending}>Create Order</Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }

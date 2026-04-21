@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter, DrawerCloseButton } from '@/components/ui/drawer'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -124,10 +124,10 @@ export function PaymentsPage() {
                 </div>
             )}
 
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <DrawerContent>
-                    <DrawerHeader><DrawerTitle>Record Payment</DrawerTitle><DrawerCloseButton /></DrawerHeader>
-                    <DrawerBody>
+            <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>Record Payment</ModalTitle></ModalHeader>
+                    <ModalBody>
                         <form id="payment-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
@@ -167,13 +167,13 @@ export function PaymentsPage() {
                             </Select>
                             <Input label="Notes" {...register('notes')} />
                         </form>
-                    </DrawerBody>
-                    <DrawerFooter>
+                    </ModalBody>
+                    <ModalFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
                         <Button type="submit" form="payment-form" loading={isSubmitting || createMutation.isPending}>Record Payment</Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }

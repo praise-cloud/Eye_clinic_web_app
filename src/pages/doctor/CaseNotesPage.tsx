@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter, DrawerCloseButton } from '@/components/ui/drawer'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -113,10 +113,10 @@ export function CaseNotesPage() {
                 </div>
             )}
 
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <DrawerContent>
-                    <DrawerHeader><DrawerTitle>New Case Note</DrawerTitle><DrawerCloseButton /></DrawerHeader>
-                    <DrawerBody>
+            <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>New Case Note</ModalTitle></ModalHeader>
+                    <ModalBody>
                         <form id="note-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
@@ -152,13 +152,13 @@ export function CaseNotesPage() {
                             </div>
                             <Input label="Follow-up Date" type="date" {...register('follow_up_date')} />
                         </form>
-                    </DrawerBody>
-                    <DrawerFooter>
+                    </ModalBody>
+                    <ModalFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
                         <Button type="submit" form="note-form" loading={isSubmitting || createMutation.isPending}>Save Note</Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }

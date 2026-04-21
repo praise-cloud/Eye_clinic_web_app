@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter, DrawerCloseButton } from '@/components/ui/drawer'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -166,10 +166,10 @@ export function InventoryPage() {
             )}
 
             {/* Drug Drawer */}
-            <Drawer open={drugDrawer} onOpenChange={setDrugDrawer}>
-                <DrawerContent>
-                    <DrawerHeader><DrawerTitle>{editDrug ? 'Edit Drug' : 'Add Drug'}</DrawerTitle><DrawerCloseButton /></DrawerHeader>
-                    <DrawerBody>
+            <Modal open={drugDrawer} onOpenChange={setDrugDrawer}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>{editDrug ? 'Edit Drug' : 'Add Drug'}</ModalTitle></ModalHeader>
+                    <ModalBody>
                         <form id="drug-form" onSubmit={drugForm.handleSubmit(d => saveDrug.mutate(d))} className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
                                 <Input label="Drug Name *" error={drugForm.formState.errors.name?.message} {...drugForm.register('name')} />
@@ -190,19 +190,19 @@ export function InventoryPage() {
                             <Input label="Supplier" {...drugForm.register('supplier')} />
                             <Input label="Expiry Date" type="date" {...drugForm.register('expiry_date')} />
                         </form>
-                    </DrawerBody>
-                    <DrawerFooter>
+                    </ModalBody>
+                    <ModalFooter>
                         <Button variant="outline" onClick={() => setDrugDrawer(false)}>Cancel</Button>
                         <Button type="submit" form="drug-form" loading={saveDrug.isPending}>{editDrug ? 'Save Changes' : 'Add Drug'}</Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
 
             {/* Frame Drawer */}
-            <Drawer open={frameDrawer} onOpenChange={setFrameDrawer}>
-                <DrawerContent>
-                    <DrawerHeader><DrawerTitle>{editFrame ? 'Edit Frame' : 'Add Frame'}</DrawerTitle><DrawerCloseButton /></DrawerHeader>
-                    <DrawerBody>
+            <Modal open={frameDrawer} onOpenChange={setFrameDrawer}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>{editFrame ? 'Edit Frame' : 'Add Frame'}</ModalTitle></ModalHeader>
+                    <ModalBody>
                         <form id="frame-form" onSubmit={frameForm.handleSubmit(d => saveFrame.mutate(d))} className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
                                 <Input label="Frame Name *" error={frameForm.formState.errors.frame_name?.message} {...frameForm.register('frame_name')} />
@@ -228,13 +228,13 @@ export function InventoryPage() {
                                 <Input label="Selling Price (₦) *" type="number" error={frameForm.formState.errors.selling_price?.message} {...frameForm.register('selling_price', { valueAsNumber: true })} />
                             </div>
                         </form>
-                    </DrawerBody>
-                    <DrawerFooter>
+                    </ModalBody>
+                    <ModalFooter>
                         <Button variant="outline" onClick={() => setFrameDrawer(false)}>Cancel</Button>
                         <Button type="submit" form="frame-form" loading={saveFrame.isPending}>{editFrame ? 'Save Changes' : 'Add Frame'}</Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }
