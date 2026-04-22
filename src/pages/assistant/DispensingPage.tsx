@@ -38,7 +38,7 @@ export function DispensingPage() {
         queryKey: ['dispensing', 'recent'],
         queryFn: async () => {
             const { data } = await supabase.from('drug_dispensing')
-                .select('id, patient_id, drug_id, quantity, unit_price, total_price, dispensed_at, prescription_note, patient:patients(first_name,last_name), drug:drugs(name,unit)')
+                .select('*, patient:patients(first_name,last_name), drug:drugs(name,unit)')
                 .order('dispensed_at', { ascending: false }).limit(30)
             return (data ?? []) as DrugDispensing[]
         },
