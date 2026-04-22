@@ -193,7 +193,11 @@ export function AppointmentsPage() {
             setOpen(false)
             reset()
             setPatientSearch('')
-            notify({ type: 'appointment', title: 'Appointment Booked', message: 'A new appointment has been scheduled.', link: '/appointments' })
+            // Use role-specific link so routing works correctly
+            const link = profile?.role === 'doctor' ? '/doctor/appointments'
+                : profile?.role === 'assistant' ? '/assistant/appointments'
+                    : '/admin/patients'
+            notify({ type: 'appointment', title: 'Appointment Booked', message: 'A new appointment has been scheduled.', link })
         },
     })
 
@@ -204,7 +208,6 @@ export function AppointmentsPage() {
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['appointments'] })
-            notify({ type: 'appointment', title: 'Appointment Updated', message: 'Appointment status has been updated.', link: '/appointments' })
         },
     })
 

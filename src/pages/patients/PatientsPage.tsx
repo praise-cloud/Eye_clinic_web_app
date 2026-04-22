@@ -83,7 +83,19 @@ export function PatientsPage() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            await supabase.from('patients').delete().eq('id', id)
+            const { error } = await supabase.from('patients').delete().eq('id', id)
+            if (error) throw error
+        },
+        onMutate: async (id: string) => {
+            // Optimistically remove from list immediately
+            await qc.cancelQueries({ queryKey: ['patients', search] })
+            const previous = qc.getQueryData(['patients', search])
+            qc.setQueryData(['patients', search], (old: Patient[] = []) => old.filter(p => p.id !== id))
+            return { previous }
+        },
+        onError: (_err, _id, context: any) => {
+            // Rollback on error
+            if (context?.previous) qc.setQueryData(['patients', search], context.previous)
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['patients'] })
@@ -262,9 +274,16 @@ export function PatientsPage() {
                             <Trash2 className="w-5 h-5" />Delete Patient
                         </ModalTitle>
                         <ModalDescription>
-                            Permanently delete <strong>{deleteTarget?.first_name} {deleteTarget?.last_name}</strong> ({deleteTarget?.patient_number})? This will remove all their records including appointments, case notes, and payments. This cannot be undone.
+                            Permanently delete <strong>{deleteTarget?.first_name} {deleteTarget?.last_name}</strong> ({deleteTarget?.patient_number})? This will remove all their records. This cannot be undone.
                         </ModalDescription>
                     </ModalHeader>
+                    {deleteMutation.isError && (
+                        <div className="px-6 pb-2">
+                            <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg">
+                                {(deleteMutation.error as Error)?.message || 'Delete failed. Check RLS policies in Supabase.'}
+                            </p>
+                        </div>
+                    )}
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
                         <Button variant="destructive" loading={deleteMutation.isPending}
