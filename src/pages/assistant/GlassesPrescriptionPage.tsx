@@ -7,20 +7,20 @@ import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
-import { PatientSearchField } from '@/components/patients/PatientSearchField'
-import { notify } from '@/store/notificationStore'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PatientSearchField } from '@/components/patients/PatientSearchField'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { formatDate } from '@/lib/utils'
-import { PatientSearchField } from '@/components/patients/PatientSearchField'
-import type { Prescription, Patient } from '@/types'
+import { notify } from '@/store/notificationStore'
+import type { Prescription } from '@/types'
 
 const schema = z.object({
-    patient_id: z.string().min(1, 'Required'),
+    patient_id: z.string().min(1, 'Select a patient'),
+    doctor_id: z.string().min(1, 'Select the prescribing doctor'),
     re_sphere: z.string().optional(), re_cylinder: z.string().optional(), re_axis: z.string().optional(), re_add: z.string().optional(), re_va: z.string().optional(),
     le_sphere: z.string().optional(), le_cylinder: z.string().optional(), le_axis: z.string().optional(), le_add: z.string().optional(), le_va: z.string().optional(),
     pd: z.string().optional(),
@@ -29,28 +29,28 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-export function PrescriptionsPage() {
+export function GlassesPrescriptionPage() {
     const { profile } = useAuthStore()
     const qc = useQueryClient()
-    const [drawerOpen, setDrawerOpen] = useState(false)
-    const [patientSearch, setPatientSearch] = useState('')
+    const [open, setOpen] = useState(false)
+    const [patientDisplay, setPatientDisplay] = useState('')
 
     const { data: prescriptions = [], isLoading } = useQuery({
-        queryKey: ['prescriptions', profile?.id],
+        queryKey: ['prescriptions-all'],
         queryFn: async () => {
-            const { data } = await supabase.from('prescriptions').select('*, patient:patients(first_name,last_name,patient_number)').eq('doctor_id', profile!.id).order('created_at', { ascending: false })
+            const { data } = await supabase.from('prescriptions')
+                .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles(full_name)')
+                .order('created_at', { ascending: false })
             return (data ?? []) as Prescription[]
         },
-        enabled: !!profile,
     })
 
-    const { data: patients = [] } = useQuery({
-        queryKey: ['patients-search', patientSearch],
+    const { data: doctors = [] } = useQuery({
+        queryKey: ['doctors'],
         queryFn: async () => {
-            const { data } = await supabase.from('patients').select('id,first_name,last_name,patient_number').ilike('first_name', `%${patientSearch}%`).limit(10)
-            return (data ?? []) as Patient[]
+            const { data } = await supabase.from('profiles').select('id,full_name').eq('role', 'doctor').eq('is_active', true)
+            return data ?? []
         },
-        enabled: patientSearch.length > 1,
     })
 
     const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
@@ -58,94 +58,106 @@ export function PrescriptionsPage() {
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
             const toNum = (v?: string) => v ? parseFloat(v) : undefined
-            await supabase.from('prescriptions').insert({
-                patient_id: data.patient_id, doctor_id: profile!.id,
+            const { error } = await supabase.from('prescriptions').insert({
+                patient_id: data.patient_id,
+                doctor_id: data.doctor_id,
                 re_sphere: toNum(data.re_sphere), re_cylinder: toNum(data.re_cylinder), re_axis: toNum(data.re_axis), re_add: toNum(data.re_add), re_va: data.re_va,
                 le_sphere: toNum(data.le_sphere), le_cylinder: toNum(data.le_cylinder), le_axis: toNum(data.le_axis), le_add: toNum(data.le_add), le_va: data.le_va,
                 pd: toNum(data.pd), lens_type: data.lens_type, notes: data.notes,
             })
+            if (error) throw error
         },
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['prescriptions'] })
-            setDrawerOpen(false)
-            reset()
-            notify({ type: 'prescription', title: 'Prescription Created', message: 'A new glasses prescription has been saved.', link: '/doctor/prescriptions' })
+            qc.invalidateQueries({ queryKey: ['prescriptions-all'] })
+            setOpen(false); reset(); setPatientDisplay('')
+            notify({ type: 'prescription', title: 'Prescription Recorded', message: 'Glasses prescription has been saved.', link: '/assistant/prescriptions' })
         },
     })
 
     return (
         <div className="space-y-5">
-            <div className="flex items-center justify-between">
-                <div><h1 className="text-xl font-bold">Prescriptions</h1><p className="text-sm text-muted-foreground">{prescriptions.length} prescriptions</p></div>
-                <Button size="sm" onClick={() => { reset(); setDrawerOpen(true) }}><Plus className="w-4 h-4" />New Prescription</Button>
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-xl font-bold text-slate-900">Glasses Prescriptions</h1>
+                    <p className="text-sm text-slate-500">{prescriptions.length} prescriptions</p>
+                </div>
+                <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
+                    <Plus className="w-3.5 h-3.5" />New Prescription
+                </Button>
             </div>
 
-            {isLoading ? <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-28" />)}</div> : prescriptions.length === 0 ? (
-                <Card><CardContent className="text-center py-16"><Glasses className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" /><p className="text-muted-foreground">No prescriptions yet</p></CardContent></Card>
+            {isLoading ? (
+                <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}</div>
+            ) : prescriptions.length === 0 ? (
+                <div className="text-center py-20">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><Glasses className="w-8 h-8 text-slate-300" /></div>
+                    <p className="text-slate-500 font-medium">No prescriptions yet</p>
+                    <Button className="mt-5 gap-1.5" size="sm" onClick={() => { reset(); setOpen(true) }}><Plus className="w-4 h-4" />New Prescription</Button>
+                </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                     {prescriptions.map(rx => (
-                        <Card key={rx.id}>
+                        <Card key={rx.id} className="hover:shadow-card-md transition-all">
                             <CardContent className="p-4">
                                 <div className="flex items-start justify-between mb-3">
                                     <div>
-                                        <Link to={`/patients/${rx.patient_id}`} className="font-medium text-sm hover:text-primary">
+                                        <Link to={`/patients/${rx.patient_id}`} className="font-semibold text-sm text-slate-900 hover:text-primary transition-colors">
                                             {(rx.patient as any)?.first_name} {(rx.patient as any)?.last_name}
                                         </Link>
-                                        <p className="text-xs text-muted-foreground">{(rx.patient as any)?.patient_number} · {formatDate(rx.created_at)}</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">
+                                            {(rx.patient as any)?.patient_number} · Dr. {(rx.doctor as any)?.full_name} · {formatDate(rx.created_at)}
+                                        </p>
                                     </div>
-                                    {rx.lens_type && <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">{rx.lens_type.replace('_', ' ')}</span>}
+                                    {rx.lens_type && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg capitalize font-medium">{rx.lens_type.replace('_', ' ')}</span>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-xs">
                                     <div className="space-y-1">
-                                        <p className="font-semibold text-muted-foreground">RIGHT EYE (OD)</p>
+                                        <p className="font-semibold text-slate-500 uppercase tracking-wide text-[10px]">Right Eye (OD)</p>
                                         <div className="grid grid-cols-4 gap-1 text-center">
-                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-muted-foreground">{l}</p>)}
+                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-slate-400 text-[10px]">{l}</p>)}
                                             <p>{rx.re_sphere ?? '—'}</p><p>{rx.re_cylinder ?? '—'}</p><p>{rx.re_axis ?? '—'}</p><p>{rx.re_add ?? '—'}</p>
                                         </div>
-                                        {rx.re_va && <p>VA: {rx.re_va}</p>}
+                                        {rx.re_va && <p className="text-slate-500">VA: {rx.re_va}</p>}
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="font-semibold text-muted-foreground">LEFT EYE (OS)</p>
+                                        <p className="font-semibold text-slate-500 uppercase tracking-wide text-[10px]">Left Eye (OS)</p>
                                         <div className="grid grid-cols-4 gap-1 text-center">
-                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-muted-foreground">{l}</p>)}
+                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-slate-400 text-[10px]">{l}</p>)}
                                             <p>{rx.le_sphere ?? '—'}</p><p>{rx.le_cylinder ?? '—'}</p><p>{rx.le_axis ?? '—'}</p><p>{rx.le_add ?? '—'}</p>
                                         </div>
-                                        {rx.le_va && <p>VA: {rx.le_va}</p>}
+                                        {rx.le_va && <p className="text-slate-500">VA: {rx.le_va}</p>}
                                     </div>
                                 </div>
-                                {rx.pd && <p className="text-xs mt-2 text-muted-foreground">PD: {rx.pd}mm</p>}
-                                {rx.notes && <p className="text-xs mt-1 text-muted-foreground">{rx.notes}</p>}
+                                {rx.pd && <p className="text-xs mt-2 text-slate-400">PD: {rx.pd}mm</p>}
+                                {rx.notes && <p className="text-xs mt-1 text-slate-400">{rx.notes}</p>}
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             )}
 
-            <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <Modal open={open} onOpenChange={setOpen}>
                 <ModalContent size="lg">
-                    <ModalHeader><ModalTitle>New Glasses Prescription</ModalTitle></ModalHeader>
+                    <ModalHeader>
+                        <ModalTitle>New Glasses Prescription</ModalTitle>
+                        <ModalDescription>Record a glasses prescription for a patient</ModalDescription>
+                    </ModalHeader>
                     <ModalBody>
                         <form id="rx-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-5">
-                            <div>
-                                <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
-                                <input className="mt-1.5 w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
-                                {patients.length > 0 && (
-                                    <div className="mt-1 border rounded-md divide-y max-h-40 overflow-y-auto">
-                                        {patients.map(p => (
-                                            <button key={p.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
-                                                onClick={() => { setValue('patient_id', p.id); setPatientSearch(`${p.first_name} ${p.last_name}`) }}>
-                                                {p.first_name} {p.last_name} · {p.patient_number}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {errors.patient_id && <p className="text-xs text-destructive mt-1">{errors.patient_id.message}</p>}
-                            </div>
+                            <PatientSearchField
+                                label="Patient" required
+                                value={patientDisplay}
+                                error={errors.patient_id?.message}
+                                onSelect={p => { setValue('patient_id', p.id, { shouldValidate: true }); setPatientDisplay(`${p.first_name} ${p.last_name} (${p.patient_number})`) }}
+                                onClear={() => { setValue('patient_id', ''); setPatientDisplay('') }}
+                            />
+                            <Select onValueChange={v => setValue('doctor_id', v)}>
+                                <SelectTrigger label="Prescribing Doctor *" error={errors.doctor_id?.message}><SelectValue placeholder="Select doctor" /></SelectTrigger>
+                                <SelectContent>{(doctors as any[]).map(d => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
+                            </Select>
 
-                            {/* Right Eye */}
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide mb-2">Right Eye (OD)</p>
+                                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Right Eye (OD)</p>
                                 <div className="grid grid-cols-5 gap-2">
                                     {[['re_sphere', 'Sph'], ['re_cylinder', 'Cyl'], ['re_axis', 'Axis'], ['re_add', 'Add'], ['re_va', 'VA']].map(([f, l]) => (
                                         <Input key={f} label={l} placeholder="—" {...register(f as any)} />
@@ -153,9 +165,8 @@ export function PrescriptionsPage() {
                                 </div>
                             </div>
 
-                            {/* Left Eye */}
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide mb-2">Left Eye (OS)</p>
+                                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Left Eye (OS)</p>
                                 <div className="grid grid-cols-5 gap-2">
                                     {[['le_sphere', 'Sph'], ['le_cylinder', 'Cyl'], ['le_axis', 'Axis'], ['le_add', 'Add'], ['le_va', 'VA']].map(([f, l]) => (
                                         <Input key={f} label={l} placeholder="—" {...register(f as any)} />
@@ -179,7 +190,7 @@ export function PrescriptionsPage() {
                         </form>
                     </ModalBody>
                     <ModalFooter>
-                        <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" form="rx-form" loading={isSubmitting || createMutation.isPending}>Save Prescription</Button>
                     </ModalFooter>
                 </ModalContent>

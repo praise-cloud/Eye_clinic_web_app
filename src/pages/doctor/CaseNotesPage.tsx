@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
+import { PatientSearchField } from '@/components/patients/PatientSearchField'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { formatDate } from '@/lib/utils'
 import { encryptText, decryptText } from '@/lib/crypto'
-import type { CaseNote, Patient } from '@/types'
+import type { CaseNote } from '@/types'
 import { notify } from '@/store/notificationStore'
 
 const schema = z.object({
@@ -112,7 +113,7 @@ export function CaseNotesPage() {
     const qc = useQueryClient()
     const [open, setOpen] = useState(false)
     const [deleteId, setDeleteId] = useState<string | null>(null)
-    const [patientSearch, setPatientSearch] = useState('')
+    const [patientDisplay, setPatientDisplay] = useState('')
     const [search, setSearch] = useState('')
 
     const { data: notes = [], isLoading } = useQuery({
@@ -127,24 +128,23 @@ export function CaseNotesPage() {
         enabled: !!profile,
     })
 
-    const { data: patients = [] } = useQuery({
-        queryKey: ['patients-search', patientSearch],
-        queryFn: async () => {
-            const { data } = await supabase.from('patients').select('id,first_name,last_name,patient_number').ilike('first_name', `%${patientSearch}%`).limit(8)
-            return (data ?? []) as Patient[]
-        },
-        enabled: patientSearch.length > 1,
-    })
-
     const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
+            const clinicalData = []
+            if (data.va_od || data.va_os) clinicalData.push(`VA: OD ${data.va_od || '—'} | OS ${data.va_os || '—'}`)
+            if (data.iop_od || data.iop_os) clinicalData.push(`IOP: OD ${data.iop_od || '—'} | OS ${data.iop_os || '—'}`)
+            if (data.cvf_od || data.cvf_os) clinicalData.push(`CVF: OD ${data.cvf_od || '—'} | OS ${data.cvf_os || '—'}`)
+            const examinationText = [data.examination, ...clinicalData].filter(Boolean).join('\n')
             await supabase.from('case_notes').insert({
-                ...data,
+                patient_id: data.patient_id,
+                chief_complaint: data.chief_complaint,
                 history: data.history ? await encryptText(data.history) : undefined,
-                examination: data.examination ? await encryptText(data.examination) : undefined,
+                examination: examinationText ? await encryptText(examinationText) : undefined,
                 diagnosis: data.diagnosis ? await encryptText(data.diagnosis) : undefined,
+                treatment_plan: data.treatment_plan,
+                follow_up_date: data.follow_up_date || undefined,
                 doctor_id: profile!.id,
                 is_encrypted: true,
             })
@@ -153,7 +153,7 @@ export function CaseNotesPage() {
             qc.invalidateQueries({ queryKey: ['case-notes'] })
             setOpen(false)
             reset()
-            setPatientSearch('')
+            setPatientDisplay('')
             notify({ type: 'prescription', title: 'Case Note Saved', message: 'A new case note has been created and encrypted.', link: '/doctor/case-notes' })
         },
     })
@@ -178,7 +178,7 @@ export function CaseNotesPage() {
                     <h1 className="text-xl font-bold text-slate-900">Case Notes</h1>
                     <p className="text-sm text-slate-500">{notes.length} notes</p>
                 </div>
-                <Button size="sm" onClick={() => { reset(); setPatientSearch(''); setOpen(true) }} className="gap-1.5">
+                <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
                     <Plus className="w-3.5 h-3.5" />New Note
                 </Button>
             </div>
@@ -215,22 +215,14 @@ export function CaseNotesPage() {
                     </ModalHeader>
                     <ModalBody>
                         <form id="note-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
-                            <div>
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Patient</label>
-                                <input className="mt-1.5 w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
-                                {patients.length > 0 && (
-                                    <div className="mt-1 border border-slate-100 rounded-xl divide-y max-h-40 overflow-y-auto bg-white shadow-card-md">
-                                        {patients.map(p => (
-                                            <button key={p.id} type="button" className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors"
-                                                onClick={() => { setValue('patient_id', p.id); setPatientSearch(`${p.first_name} ${p.last_name}`) }}>
-                                                <span className="font-medium">{p.first_name} {p.last_name}</span>
-                                                <span className="text-slate-400 ml-2 font-mono text-xs">{p.patient_number}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {errors.patient_id && <p className="text-xs text-destructive mt-1">{errors.patient_id.message}</p>}
-                            </div>
+                            <PatientSearchField
+                                label="Patient"
+                                required
+                                value={patientDisplay}
+                                error={errors.patient_id?.message}
+                                onSelect={p => { setValue('patient_id', p.id, { shouldValidate: true }); setPatientDisplay(`${p.first_name} ${p.last_name} (${p.patient_number})`) }}
+                                onClear={() => { setValue('patient_id', ''); setPatientDisplay('') }}
+                            />
                             <Input label="Chief Complaint *" error={errors.chief_complaint?.message} {...register('chief_complaint')} />
                             {[['history', 'History'], ['examination', 'Examination Findings'], ['diagnosis', 'Diagnosis'], ['treatment_plan', 'Treatment Plan']].map(([f, l]) => (
                                 <div key={f} className="space-y-1.5">

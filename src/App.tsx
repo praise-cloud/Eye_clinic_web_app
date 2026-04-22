@@ -19,9 +19,9 @@ import { PatientsPage } from './pages/patients/PatientsPage'
 import { PatientDetailPage } from './pages/patients/PatientDetailPage'
 import { AppointmentsPage } from './pages/appointments/AppointmentsPage'
 import { CaseNotesPage } from './pages/doctor/CaseNotesPage'
-import { PrescriptionsPage } from './pages/doctor/PrescriptionsPage'
 import { DispensingPage } from './pages/assistant/DispensingPage'
 import { GlassesOrdersPage } from './pages/assistant/GlassesOrdersPage'
+import { GlassesPrescriptionPage } from './pages/assistant/GlassesPrescriptionPage'
 import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
@@ -136,12 +136,11 @@ function App() {
           <Route path="/patients/:id" element={<P><PatientDetailPage /></P>} />
           <Route path="/settings" element={<P><SettingsPage /></P>} />
 
-          {/* Doctor */}
+          {/* Doctor — no prescriptions, doctor only writes case notes */}
           <Route path="/doctor" element={<P roles={['doctor']}><DoctorDashboard /></P>} />
           <Route path="/doctor/patients" element={<P roles={['doctor']}><PatientsPage /></P>} />
           <Route path="/doctor/appointments" element={<P roles={['doctor']}><AppointmentsPage /></P>} />
           <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
-          <Route path="/doctor/prescriptions" element={<P roles={['doctor']}><PrescriptionsPage /></P>} />
 
           {/* Assistant */}
           <Route path="/assistant" element={<P roles={['assistant']}><AssistantDashboard /></P>} />
@@ -169,6 +168,7 @@ function App() {
           {/* Assistant extras */}
           <Route path="/assistant/outreach" element={<P roles={['assistant']}><OutreachPage /></P>} />
           <Route path="/assistant/inventory" element={<P roles={['assistant']}><InventoryPage /></P>} />
+          <Route path="/assistant/prescriptions" element={<P roles={['assistant']}><GlassesPrescriptionPage /></P>} />
 
           {/* Shared chat */}
           <Route path="/chat" element={<P><ChatPage /></P>} />

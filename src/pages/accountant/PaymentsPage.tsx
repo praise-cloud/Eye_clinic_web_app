@@ -8,14 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { notify } from '@/store/notificationStore'
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PatientSearchField } from '@/components/patients/PatientSearchField'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import type { Payment, Patient } from '@/types'
+import { notify } from '@/store/notificationStore'
+import type { Payment } from '@/types'
 
 const schema = z.object({
     patient_id: z.string().min(1, 'Required'),
@@ -34,12 +35,12 @@ const typeColor: Record<string, 'default' | 'info' | 'success' | 'warning'> = {
 export function PaymentsPage() {
     const { profile } = useAuthStore()
     const qc = useQueryClient()
-    const [drawerOpen, setDrawerOpen] = useState(false)
+    const [open, setOpen] = useState(false)
     const [search, setSearch] = useState('')
-    const [patientSearch, setPatientSearch] = useState('')
+    const [patientDisplay, setPatientDisplay] = useState('')
 
     const { data: payments = [], isLoading } = useQuery({
-        queryKey: ['payments', search],
+        queryKey: ['payments'],
         queryFn: async () => {
             const { data } = await supabase.from('payments')
                 .select('*, patient:patients(first_name,last_name,patient_number)')
@@ -48,27 +49,17 @@ export function PaymentsPage() {
         },
     })
 
-    const { data: patients = [] } = useQuery({
-        queryKey: ['patients-search', patientSearch],
-        queryFn: async () => {
-            const { data } = await supabase.from('patients').select('id,first_name,last_name,patient_number').ilike('first_name', `%${patientSearch}%`).limit(10)
-            return (data ?? []) as Patient[]
-        },
-        enabled: patientSearch.length > 1,
-    })
-
     const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            await supabase.from('payments').insert({ ...data, received_by: profile!.id })
+            const { error } = await supabase.from('payments').insert({ ...data, received_by: profile!.id })
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['payments'] })
-            setDrawerOpen(false)
-            reset()
-            setPatientSearch('')
-            notify({ type: 'payment', title: 'Payment Recorded', message: 'A new payment has been recorded successfully.', link: '/accountant/payments' })
+            setOpen(false); reset(); setPatientDisplay('')
+            notify({ type: 'payment', title: 'Payment Recorded', message: 'A new payment has been recorded.', link: '/accountant/payments' })
         },
     })
 
@@ -81,46 +72,44 @@ export function PaymentsPage() {
     const total = filtered.reduce((s, p) => s + p.amount, 0)
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-lg sm:text-xl font-bold">Payments</h1>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{filtered.length} records · {formatCurrency(total)}</p>
+                    <h1 className="text-xl font-bold text-slate-900">Payments</h1>
+                    <p className="text-sm text-slate-500">{filtered.length} records · {formatCurrency(total)}</p>
                 </div>
-                <Button size="sm" onClick={() => { reset(); setDrawerOpen(true) }}>
-                    <Plus className="w-4 h-4" /><span className="hidden sm:inline">Record Payment</span><span className="sm:hidden">Add</span>
+                <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
+                    <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Record Payment</span><span className="sm:hidden">Add</span>
                 </Button>
             </div>
 
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient or receipt..." value={search} onChange={e => setSearch(e.target.value)} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient or receipt..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
             {isLoading ? (
-                <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}</div>
+                <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-2xl" />)}</div>
             ) : filtered.length === 0 ? (
-                <Card><CardContent className="text-center py-16">
-                    <DollarSign className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-muted-foreground text-sm">No payments found</p>
-                </CardContent></Card>
+                <div className="text-center py-16">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><DollarSign className="w-8 h-8 text-slate-300" /></div>
+                    <p className="text-slate-500 font-medium">No payments found</p>
+                </div>
             ) : (
                 <div className="space-y-2">
                     {filtered.map(p => (
-                        <Card key={p.id}>
+                        <Card key={p.id} className="hover:shadow-card-md transition-all">
                             <CardContent className="p-3 sm:p-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <p className="text-sm font-medium truncate">{(p.patient as any)?.first_name} {(p.patient as any)?.last_name}</p>
+                                            <p className="text-sm font-semibold text-slate-900 truncate">{(p.patient as any)?.first_name} {(p.patient as any)?.last_name}</p>
                                             <Badge variant={typeColor[p.payment_type] ?? 'default'} className="text-xs capitalize">{p.payment_type.replace('_', ' ')}</Badge>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
                                             <span className="font-mono">{p.receipt_number}</span>
-                                            <span>·</span>
-                                            <span className="capitalize">{p.payment_method}</span>
-                                            <span>·</span>
-                                            <span>{formatDate(p.paid_at)}</span>
+                                            <span>·</span><span className="capitalize">{p.payment_method}</span>
+                                            <span>·</span><span>{formatDate(p.paid_at)}</span>
                                         </div>
                                     </div>
                                     <p className="text-base font-bold text-emerald-600 flex-shrink-0">{formatCurrency(p.amount)}</p>
@@ -131,26 +120,18 @@ export function PaymentsPage() {
                 </div>
             )}
 
-            <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <ModalContent size="lg">
+            <Modal open={open} onOpenChange={setOpen}>
+                <ModalContent size="md">
                     <ModalHeader><ModalTitle>Record Payment</ModalTitle></ModalHeader>
                     <ModalBody>
                         <form id="payment-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
-                            <div>
-                                <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
-                                <input className="mt-1.5 w-full h-10 px-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
-                                {patients.length > 0 && (
-                                    <div className="mt-1 border rounded-lg divide-y max-h-40 overflow-y-auto bg-background shadow-sm">
-                                        {patients.map(p => (
-                                            <button key={p.id} type="button" className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted"
-                                                onClick={() => { setValue('patient_id', p.id); setPatientSearch(`${p.first_name} ${p.last_name}`) }}>
-                                                {p.first_name} {p.last_name} · {p.patient_number}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {errors.patient_id && <p className="text-xs text-destructive mt-1">{errors.patient_id.message}</p>}
-                            </div>
+                            <PatientSearchField
+                                label="Patient" required
+                                value={patientDisplay}
+                                error={errors.patient_id?.message}
+                                onSelect={p => { setValue('patient_id', p.id, { shouldValidate: true }); setPatientDisplay(`${p.first_name} ${p.last_name} (${p.patient_number})`) }}
+                                onClear={() => { setValue('patient_id', ''); setPatientDisplay('') }}
+                            />
                             <Select onValueChange={v => setValue('payment_type', v as any)}>
                                 <SelectTrigger label="Payment Type *" error={errors.payment_type?.message}><SelectValue placeholder="Select type" /></SelectTrigger>
                                 <SelectContent>
@@ -176,7 +157,7 @@ export function PaymentsPage() {
                         </form>
                     </ModalBody>
                     <ModalFooter>
-                        <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" form="payment-form" loading={isSubmitting || createMutation.isPending}>Record Payment</Button>
                     </ModalFooter>
                 </ModalContent>
