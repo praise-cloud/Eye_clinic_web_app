@@ -124,11 +124,30 @@ CREATE POLICY "authenticated_all_glasses_orders"
 -- Fix drugs
 DROP POLICY IF EXISTS "All staff view drugs" ON public.drugs;
 DROP POLICY IF EXISTS "Assistant/admin manage drugs" ON public.drugs;
-DROP POLICY IF EXISTS "Authenticated users can view pharmacy" ON public.pharmacy_drugs;
-DROP POLICY IF EXISTS "Admin can manage pharmacy" ON public.pharmacy_drugs;
 
 CREATE POLICY "authenticated_all_drugs"
   ON public.drugs FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
+
+-- Fix messages (chat)
+DROP POLICY IF EXISTS "Users can view their own messages" ON public.messages;
+DROP POLICY IF EXISTS "Authenticated users can send messages" ON public.messages;
+DROP POLICY IF EXISTS "Own messages" ON public.messages;
+DROP POLICY IF EXISTS "Send messages" ON public.messages;
+
+CREATE POLICY "authenticated_read_messages"
+  ON public.messages FOR SELECT
+  TO authenticated
+  USING (sender_id = auth.uid() OR receiver_id = auth.uid());
+
+CREATE POLICY "authenticated_send_messages"
+  ON public.messages FOR INSERT
+  TO authenticated
+  WITH CHECK (sender_id = auth.uid());
+
+CREATE POLICY "authenticated_delete_own_messages"
+  ON public.messages FOR DELETE
+  TO authenticated
+  USING (sender_id = auth.uid());
