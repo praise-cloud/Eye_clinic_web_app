@@ -97,9 +97,8 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
                                     <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Treatment Plan</p><p className="text-sm text-slate-700">{note.treatment_plan}</p></div>
                                 )}
                                 {note.follow_up_date && (
-                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Follow-up</p><p className="text-sm text-slate-700">{formatDate(note.follow_up_date)}</p></div>
-                                )}
-                            </>
+                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Follow-up Date</p><p className="text-sm text-slate-700">{formatDate(note.follow_up_date)}</p></div>
+                                )}                            </>
                         )}
                     </div>
                 )}

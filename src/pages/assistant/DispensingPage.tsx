@@ -37,7 +37,9 @@ export function DispensingPage() {
     const { data: recentDispensing = [], isLoading } = useQuery({
         queryKey: ['dispensing', 'recent'],
         queryFn: async () => {
-            const { data } = await supabase.from('drug_dispensing').select('*, patient:patients(first_name,last_name), drug:drugs(name,unit)').order('dispensed_at', { ascending: false }).limit(30)
+            const { data } = await supabase.from('drug_dispensing')
+                .select('id, patient_id, drug_id, quantity, unit_price, total_price, dispensed_at, prescription_note, patient:patients(first_name,last_name), drug:drugs(name,unit)')
+                .order('dispensed_at', { ascending: false }).limit(30)
             return (data ?? []) as DrugDispensing[]
         },
     })
@@ -131,12 +133,15 @@ export function DispensingPage() {
                             ) : (
                                 <div className="divide-y">
                                     {recentDispensing.map(d => (
-                                        <div key={d.id} className="flex items-center justify-between px-5 py-3">
+                                        <div key={d.id} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors">
                                             <div>
-                                                <p className="text-sm font-medium">{(d.patient as any)?.first_name} {(d.patient as any)?.last_name}</p>
-                                                <p className="text-xs text-muted-foreground">{(d.drug as any)?.name} × {d.quantity} {(d.drug as any)?.unit} · {formatDate(d.dispensed_at)}</p>
+                                                <p className="text-sm font-medium text-slate-900">{(d.patient as any)?.first_name} {(d.patient as any)?.last_name}</p>
+                                                <p className="text-xs text-slate-400">{(d.drug as any)?.name} × {d.quantity} {(d.drug as any)?.unit} · {formatDate(d.dispensed_at)}</p>
                                             </div>
-                                            <p className="text-sm font-semibold text-emerald-600">{formatCurrency(d.total_price)}</p>
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-emerald-600">{formatCurrency(d.total_price ?? (d.unit_price * d.quantity))}</p>
+                                                <p className="text-xs text-slate-400">@ {formatCurrency(d.unit_price)}/{(d.drug as any)?.unit}</p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
