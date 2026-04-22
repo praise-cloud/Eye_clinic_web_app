@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Search, Plus, Download, User, Phone, Mail, ChevronRight } from 'lucide-react'
+import { Search, Plus, Download, User, Phone, Mail, ChevronRight, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -45,7 +45,8 @@ export function PatientsPage() {
     const [search, setSearch] = useState('')
     const [open, setOpen] = useState(false)
     const [editPatient, setEditPatient] = useState<Patient | null>(null)
-    // Only assistants can register/edit patients — admin is read-only
+    const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
+    // Only assistants can register/edit/delete patients — admin is read-only
     const canWrite = profile?.role === 'assistant'
 
     const { data: patients = [], isLoading } = useQuery({
@@ -77,6 +78,17 @@ export function PatientsPage() {
                     : 'A new patient has been registered successfully.',
                 link: '/patients',
             })
+        },
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await supabase.from('patients').delete().eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['patients'] })
+            setDeleteTarget(null)
+            notify({ type: 'patient', title: 'Patient Deleted', message: 'Patient record has been permanently deleted.' })
         },
     })
 
@@ -165,6 +177,11 @@ export function PatientsPage() {
                                             Edit
                                         </Button>
                                     )}
+                                    {canWrite && (
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(p)}>
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                    )}
                                     <Link to={`/patients/${p.id}`}>
                                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -232,6 +249,27 @@ export function PatientsPage() {
                         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" form="patient-form" loading={isSubmitting || saveMutation.isPending}>
                             {editPatient ? 'Save Changes' : 'Register Patient'}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Delete Patient Confirm */}
+            <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+                <ModalContent size="sm">
+                    <ModalHeader>
+                        <ModalTitle className="text-red-600 flex items-center gap-2">
+                            <Trash2 className="w-5 h-5" />Delete Patient
+                        </ModalTitle>
+                        <ModalDescription>
+                            Permanently delete <strong>{deleteTarget?.first_name} {deleteTarget?.last_name}</strong> ({deleteTarget?.patient_number})? This will remove all their records including appointments, case notes, and payments. This cannot be undone.
+                        </ModalDescription>
+                    </ModalHeader>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+                        <Button variant="destructive" loading={deleteMutation.isPending}
+                            onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
+                            Delete Patient
                         </Button>
                     </ModalFooter>
                 </ModalContent>

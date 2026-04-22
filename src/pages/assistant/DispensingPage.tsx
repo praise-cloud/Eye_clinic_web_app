@@ -83,6 +83,16 @@ export function DispensingPage() {
                 unit_price: selectedDrug.selling_price,
                 prescription_note: data.prescription_note,
             })
+            // Auto-create payment record so revenue reflects immediately
+            const totalAmount = selectedDrug.selling_price * data.quantity
+            await supabase.from('payments').insert({
+                patient_id: data.patient_id,
+                payment_type: 'drug',
+                amount: totalAmount,
+                payment_method: 'cash',
+                received_by: profile!.id,
+                notes: `Drug dispensed: ${selectedDrug.name} × ${data.quantity}`,
+            })
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['dispensing'] })

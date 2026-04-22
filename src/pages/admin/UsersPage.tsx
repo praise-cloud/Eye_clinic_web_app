@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, UserCheck, UserX } from 'lucide-react'
+import { Plus, UserCheck, UserX, Trash2, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -13,8 +12,8 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getRoleColor, getRoleAccent, getInitials, formatDate } from '@/lib/utils'
-import type { Profile } from '@/types'
 import { notify } from '@/store/notificationStore'
+import type { Profile } from '@/types'
 
 const schema = z.object({
     full_name: z.string().min(2, 'Required'),
@@ -28,6 +27,7 @@ type FormData = z.infer<typeof schema>
 export function UsersPage() {
     const qc = useQueryClient()
     const [open, setOpen] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
     const [error, setError] = useState('')
 
     const { data: users = [], isLoading } = useQuery({
@@ -47,17 +47,15 @@ export function UsersPage() {
             const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
-                body: JSON.stringify({ email: data.email, password: data.password, email_confirm: true, user_metadata: { full_name: data.full_name, role: data.role } }),
+                body: JSON.stringify({ email: data.email, password: data.password, email_confirm: true, user_metadata: { full_name: data.full_name, role: data.role, phone: data.phone } }),
             })
             const result = await res.json()
             if (!res.ok) throw new Error(result.msg || result.error_description || 'Failed to create user')
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
-            setOpen(false)
-            reset()
-            setError('')
-            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created successfully.', link: '/admin/users' })
+            setOpen(false); reset(); setError('')
+            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/admin/users' })
         },
         onError: (e: Error) => setError(e.message),
     })
@@ -69,6 +67,27 @@ export function UsersPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             notify({ type: 'system', title: 'Staff Status Updated', message: 'Staff member status has been changed.' })
+        },
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: async (userId: string) => {
+            const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+            const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
+            // Delete from auth (cascades to profiles via FK)
+            const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
+            })
+            if (!res.ok) {
+                // If auth delete fails, at least deactivate the profile
+                await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
+            }
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['staff'] })
+            setDeleteTarget(null)
+            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted.' })
         },
     })
 
@@ -103,21 +122,26 @@ export function UsersPage() {
                                     </div>
                                     <p className="text-xs text-slate-400 mt-0.5">{u.phone || 'No phone'} · Joined {formatDate(u.created_at)}</p>
                                 </div>
-                                <Button
-                                    variant="ghost" size="sm"
-                                    className={`h-8 text-xs rounded-lg flex-shrink-0 gap-1.5 ${u.is_active ? 'text-red-500 hover:bg-red-50 hover:text-red-600' : 'text-emerald-600 hover:bg-emerald-50'}`}
-                                    onClick={() => toggleActive.mutate({ id: u.id, is_active: !u.is_active })}>
-                                    {u.is_active ? <><UserX className="w-3.5 h-3.5" /><span className="hidden sm:inline">Deactivate</span></> : <><UserCheck className="w-3.5 h-3.5" /><span className="hidden sm:inline">Activate</span></>}
-                                </Button>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                    <Button variant="ghost" size="sm"
+                                        className={`h-8 text-xs rounded-lg gap-1 ${u.is_active ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                                        onClick={() => toggleActive.mutate({ id: u.id, is_active: !u.is_active })}>
+                                        {u.is_active ? <><UserX className="w-3.5 h-3.5" /><span className="hidden sm:inline">Disable</span></> : <><UserCheck className="w-3.5 h-3.5" /><span className="hidden sm:inline">Enable</span></>}
+                                    </Button>
+                                    <Button variant="ghost" size="sm"
+                                        className="h-8 text-xs rounded-lg gap-1 text-red-500 hover:bg-red-50"
+                                        onClick={() => setDeleteTarget(u)}>
+                                        <Trash2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Delete</span>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     ))}
-                    {users.length === 0 && (
-                        <div className="text-center py-16 text-slate-400">No staff members yet</div>
-                    )}
+                    {users.length === 0 && <div className="text-center py-16 text-slate-400">No staff members yet</div>}
                 </div>
             )}
 
+            {/* Create Modal */}
             <Modal open={open} onOpenChange={setOpen}>
                 <ModalContent size="sm">
                     <ModalHeader>
@@ -144,6 +168,27 @@ export function UsersPage() {
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" form="user-form" loading={isSubmitting || createMutation.isPending}>Create Account</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Delete Confirm Modal */}
+            <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+                <ModalContent size="sm">
+                    <ModalHeader>
+                        <ModalTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="w-5 h-5" />Delete Account
+                        </ModalTitle>
+                        <ModalDescription>
+                            This will permanently delete <strong>{deleteTarget?.full_name}</strong>'s account and all associated data. This cannot be undone.
+                        </ModalDescription>
+                    </ModalHeader>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+                        <Button variant="destructive" loading={deleteMutation.isPending}
+                            onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
+                            Delete Permanently
+                        </Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

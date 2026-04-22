@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, User, Stethoscope, FileText } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -14,8 +13,9 @@ import { Input } from '@/components/ui/input'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { Appointment, Patient, Profile } from '@/types'
+import { formatDateTime, formatDate } from '@/lib/utils'
 import { notify } from '@/store/notificationStore'
+import type { Appointment, Patient, Profile } from '@/types'
 
 const schema = z.object({
     patient_id: z.string().min(1, 'Select a patient'),
@@ -36,6 +36,107 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'warnin
     no_show: { label: 'No Show', variant: 'destructive', dot: 'bg-red-400' },
 }
 
+function AppointmentCard({ apt, onStatusUpdate }: { apt: Appointment; onStatusUpdate: (id: string, status: string) => void }) {
+    const [expanded, setExpanded] = useState(false)
+    const cfg = statusConfig[apt.status] ?? statusConfig.pending
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-card hover:shadow-card-md transition-all">
+            <div className="p-4">
+                <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        {(apt.patient as any)?.first_name?.[0]}{(apt.patient as any)?.last_name?.[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                            <Link to={`/patients/${apt.patient_id}`} className="font-semibold text-sm text-slate-900 hover:text-primary transition-colors">
+                                {(apt.patient as any)?.first_name} {(apt.patient as any)?.last_name}
+                            </Link>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                <Badge variant={cfg.variant} className="text-xs">{cfg.label}</Badge>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-slate-400">
+                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDateTime(apt.scheduled_at)}</span>
+                            <span className="capitalize">{apt.appointment_type.replace('_', ' ')}</span>
+                        </div>
+                    </div>
+                    <button onClick={() => setExpanded(!expanded)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 flex-shrink-0">
+                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                </div>
+
+                {/* Expanded details */}
+                {expanded && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <p className="text-xs text-slate-400 mb-0.5">Doctor</p>
+                                <p className="font-medium text-slate-700 flex items-center gap-1.5">
+                                    <Stethoscope className="w-3.5 h-3.5 text-blue-500" />
+                                    Dr. {(apt.doctor as any)?.full_name ?? '—'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400 mb-0.5">Patient ID</p>
+                                <p className="font-medium text-slate-700 font-mono text-xs">{(apt.patient as any)?.patient_number ?? '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400 mb-0.5">Type</p>
+                                <p className="font-medium text-slate-700 capitalize">{apt.appointment_type.replace('_', ' ')}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400 mb-0.5">Scheduled</p>
+                                <p className="font-medium text-slate-700">{formatDateTime(apt.scheduled_at)}</p>
+                            </div>
+                        </div>
+                        {apt.notes && (
+                            <div>
+                                <p className="text-xs text-slate-400 mb-0.5">Notes</p>
+                                <p className="text-sm text-slate-700 bg-slate-50 rounded-xl p-3">{apt.notes}</p>
+                            </div>
+                        )}
+                        {/* Action buttons */}
+                        <div className="flex flex-wrap gap-2 pt-1">
+                            {apt.status === 'pending' && (
+                                <Button size="sm" variant="outline" className="h-8 text-xs rounded-xl" onClick={() => onStatusUpdate(apt.id, 'confirmed')}>
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />Confirm
+                                </Button>
+                            )}
+                            {apt.status === 'confirmed' && (
+                                <Button size="sm" variant="outline" className="h-8 text-xs rounded-xl" onClick={() => onStatusUpdate(apt.id, 'arrived')}>
+                                    <User className="w-3.5 h-3.5 mr-1" />Mark Arrived
+                                </Button>
+                            )}
+                            {apt.status === 'arrived' && (
+                                <Button size="sm" className="h-8 text-xs rounded-xl" onClick={() => onStatusUpdate(apt.id, 'in_progress')}>
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />Begin
+                                </Button>
+                            )}
+                            {apt.status === 'in_progress' && (
+                                <Button size="sm" className="h-8 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700" onClick={() => onStatusUpdate(apt.id, 'completed')}>
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />Complete
+                                </Button>
+                            )}
+                            {['pending', 'confirmed'].includes(apt.status) && (
+                                <Button size="sm" variant="ghost" className="h-8 text-xs rounded-xl text-red-500 hover:bg-red-50" onClick={() => onStatusUpdate(apt.id, 'cancelled')}>
+                                    <XCircle className="w-3.5 h-3.5 mr-1" />Cancel
+                                </Button>
+                            )}
+                            <Link to={`/patients/${apt.patient_id}`}>
+                                <Button size="sm" variant="ghost" className="h-8 text-xs rounded-xl text-blue-600 hover:bg-blue-50">
+                                    <FileText className="w-3.5 h-3.5 mr-1" />View Patient
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
 export function AppointmentsPage() {
     const { profile } = useAuthStore()
     const qc = useQueryClient()
@@ -49,18 +150,24 @@ export function AppointmentsPage() {
         queryFn: async () => {
             let q = supabase.from('appointments')
                 .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles(full_name)')
-                .order('scheduled_at', { ascending: false }).limit(100)
+                .order('scheduled_at', { ascending: false })
+                .limit(200)
             if (statusFilter !== 'all') q = q.eq('status', statusFilter)
             if (profile?.role === 'doctor') q = q.eq('doctor_id', profile.id)
-            const { data } = await q
+            const { data, error } = await q
+            if (error) throw error
             return (data ?? []) as Appointment[]
         },
+        refetchInterval: 10000, // refresh every 10s
+        staleTime: 0,
     })
 
     const { data: patients = [] } = useQuery({
         queryKey: ['patients-search', patientSearch],
         queryFn: async () => {
-            const { data } = await supabase.from('patients').select('id,first_name,last_name,patient_number').ilike('first_name', `%${patientSearch}%`).limit(8)
+            const { data } = await supabase.from('patients').select('id,first_name,last_name,patient_number')
+                .or(`first_name.ilike.%${patientSearch}%,last_name.ilike.%${patientSearch}%,patient_number.ilike.%${patientSearch}%`)
+                .limit(8)
             return (data ?? []) as Patient[]
         },
         enabled: patientSearch.length > 1,
@@ -78,7 +185,8 @@ export function AppointmentsPage() {
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            await supabase.from('appointments').insert({ ...data, requested_by: profile?.id })
+            const { error } = await supabase.from('appointments').insert({ ...data, requested_by: profile?.id })
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['appointments'] })
@@ -91,22 +199,18 @@ export function AppointmentsPage() {
 
     const updateStatus = useMutation({
         mutationFn: async ({ id, status }: { id: string; status: string }) => {
-            await supabase.from('appointments').update({ status }).eq('id', id)
+            const { error } = await supabase.from('appointments').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['appointments'] })
-            notify({
-                type: 'appointment',
-                title: 'Appointment Status Updated',
-                message: `Appointment marked as updated.`,
-                link: '/appointments',
-            })
+            notify({ type: 'appointment', title: 'Appointment Updated', message: 'Appointment status has been updated.', link: '/appointments' })
         },
     })
 
     const filtered = appointments.filter(a => {
         if (!search) return true
-        const name = `${(a.patient as any)?.first_name} ${(a.patient as any)?.last_name}`.toLowerCase()
+        const name = `${(a.patient as any)?.first_name} ${(a.patient as any)?.last_name} ${(a.patient as any)?.patient_number}`.toLowerCase()
         return name.includes(search.toLowerCase())
     })
 
@@ -125,7 +229,7 @@ export function AppointmentsPage() {
             <div className="flex gap-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)} />
+                    <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient name or ID..." value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-32 sm:w-40 rounded-xl border-slate-200 shadow-sm"><SelectValue /></SelectTrigger>
@@ -144,47 +248,18 @@ export function AppointmentsPage() {
                         <Calendar className="w-8 h-8 text-slate-300" />
                     </div>
                     <p className="text-slate-500 font-medium">No appointments found</p>
+                    <p className="text-slate-400 text-sm mt-1">Book the first appointment to get started</p>
+                    <Button className="mt-5 gap-1.5" size="sm" onClick={() => { reset(); setOpen(true) }}><Plus className="w-4 h-4" />Book Appointment</Button>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {filtered.map(apt => {
-                        const cfg = statusConfig[apt.status] ?? statusConfig.pending
-                        return (
-                            <div key={apt.id} className="bg-white rounded-2xl border border-slate-100 shadow-card hover:shadow-card-md transition-all p-4">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
-                                        {(apt.patient as any)?.first_name?.[0]}{(apt.patient as any)?.last_name?.[0]}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <Link to={`/patients/${apt.patient_id}`} className="font-semibold text-sm text-slate-900 hover:text-primary transition-colors">
-                                                {(apt.patient as any)?.first_name} {(apt.patient as any)?.last_name}
-                                            </Link>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                                <Badge variant={cfg.variant} className="text-xs">{cfg.label}</Badge>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-slate-400">
-                                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(apt.scheduled_at).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-                                            <span className="capitalize">{apt.appointment_type.replace('_', ' ')}</span>
-                                            <span className="hidden sm:inline">Dr. {(apt.doctor as any)?.full_name}</span>
-                                        </div>
-                                        <div className="flex gap-1.5 mt-2.5">
-                                            {apt.status === 'pending' && <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg" onClick={() => updateStatus.mutate({ id: apt.id, status: 'confirmed' })}>Confirm</Button>}
-                                            {apt.status === 'confirmed' && <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg" onClick={() => updateStatus.mutate({ id: apt.id, status: 'arrived' })}>Mark Arrived</Button>}
-                                            {apt.status === 'arrived' && <Button size="sm" className="h-7 text-xs rounded-lg gap-1" onClick={() => updateStatus.mutate({ id: apt.id, status: 'in_progress' })}><CheckCircle2 className="w-3 h-3" />Begin</Button>}
-                                            {apt.status === 'in_progress' && <Button size="sm" className="h-7 text-xs rounded-lg gap-1" onClick={() => updateStatus.mutate({ id: apt.id, status: 'completed' })}><CheckCircle2 className="w-3 h-3" />Complete</Button>}
-                                            {['pending', 'confirmed'].includes(apt.status) && <Button size="sm" variant="ghost" className="h-7 text-xs rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => updateStatus.mutate({ id: apt.id, status: 'cancelled' })}><XCircle className="w-3 h-3" /></Button>}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })}
+                    {filtered.map(apt => (
+                        <AppointmentCard key={apt.id} apt={apt} onStatusUpdate={(id, status) => updateStatus.mutate({ id, status })} />
+                    ))}
                 </div>
             )}
 
+            {/* Book Appointment Modal */}
             <Modal open={open} onOpenChange={setOpen}>
                 <ModalContent size="md">
                     <ModalHeader>
@@ -195,12 +270,12 @@ export function AppointmentsPage() {
                         <form id="apt-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Patient</label>
-                                <input className="mt-1.5 w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search patient name..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
+                                <input className="mt-1.5 w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search by name or patient ID..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
                                 {patients.length > 0 && (
-                                    <div className="mt-1 border border-slate-100 rounded-xl divide-y divide-slate-50 max-h-40 overflow-y-auto bg-white shadow-card-md">
+                                    <div className="mt-1 border border-slate-100 rounded-xl divide-y max-h-40 overflow-y-auto bg-white shadow-card-md">
                                         {patients.map(p => (
                                             <button key={p.id} type="button" className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors"
-                                                onClick={() => { setValue('patient_id', p.id); setPatientSearch(`${p.first_name} ${p.last_name}`) }}>
+                                                onClick={() => { setValue('patient_id', p.id); setPatientSearch(`${p.first_name} ${p.last_name} (${p.patient_number})`) }}>
                                                 <span className="font-medium">{p.first_name} {p.last_name}</span>
                                                 <span className="text-slate-400 ml-2 font-mono text-xs">{p.patient_number}</span>
                                             </button>

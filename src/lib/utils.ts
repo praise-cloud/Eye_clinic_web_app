@@ -9,12 +9,29 @@ export function formatCurrency(amount: number): string {
     return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// Use browser's local timezone for all date/time formatting
+const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone
+
 export function formatDate(date: string | Date): string {
     return new Date(date).toLocaleDateString('en-NG', {
-        day: 'numeric', month: 'short', year: 'numeric'
+        day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ,
     })
 }
 
+export function formatDateTime(date: string | Date): string {
+    return new Date(date).toLocaleString('en-NG', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZone: TZ,
+    })
+}
+
+export function formatTimeFromDate(date: string | Date): string {
+    return new Date(date).toLocaleTimeString('en-NG', {
+        hour: '2-digit', minute: '2-digit', timeZone: TZ,
+    })
+}
+
+// Legacy — kept for compatibility
 export function formatTime(time: string): string {
     const [h, m] = time.split(':')
     const hour = parseInt(h)

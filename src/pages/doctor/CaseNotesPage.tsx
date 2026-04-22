@@ -24,6 +24,12 @@ const schema = z.object({
     diagnosis: z.string().optional(),
     treatment_plan: z.string().optional(),
     follow_up_date: z.string().optional(),
+    va_od: z.string().optional(),
+    va_os: z.string().optional(),
+    iop_od: z.string().optional(),
+    iop_os: z.string().optional(),
+    cvf_od: z.string().optional(),
+    cvf_os: z.string().optional(),
 })
 type FormData = z.infer<typeof schema>
 
@@ -234,6 +240,40 @@ export function CaseNotesPage() {
                                 </div>
                             ))}
                             <Input label="Follow-up Date" type="date" {...register('follow_up_date')} />
+
+                            {/* Clinical Measurements */}
+                            <div className="pt-2 border-t border-slate-100">
+                                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Clinical Measurements</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-2 font-medium">Visual Acuity (VA)</p>
+                                        <div className="space-y-2">
+                                            <Input label="Right Eye (OD)" placeholder="e.g. 6/6" {...register('va_od')} />
+                                            <Input label="Left Eye (OS)" placeholder="e.g. 6/9" {...register('va_os')} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-2 font-medium">Intraocular Pressure (IOP)</p>
+                                        <div className="space-y-2">
+                                            <Input label="Right Eye (OD)" placeholder="e.g. 14 mmHg" {...register('iop_od')} />
+                                            <Input label="Left Eye (OS)" placeholder="e.g. 16 mmHg" {...register('iop_os')} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-3">
+                                    <p className="text-xs text-slate-500 mb-2 font-medium">CVF Analysis (Confrontation Visual Field)</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Right Eye (OD)</label>
+                                            <textarea className="w-full min-h-[60px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" placeholder="e.g. Full to confrontation" {...register('cvf_od')} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Left Eye (OS)</label>
+                                            <textarea className="w-full min-h-[60px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" placeholder="e.g. Inferior defect" {...register('cvf_os')} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </form>
                     </ModalBody>
                     <ModalFooter>

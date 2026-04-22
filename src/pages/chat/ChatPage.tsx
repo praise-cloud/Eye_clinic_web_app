@@ -124,7 +124,10 @@ export function ChatPage() {
     const accent = getRoleAccent(profile?.role ?? 'assistant')
 
     const formatTime = (ts: string) =>
-        new Date(ts).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })
+        new Date(ts).toLocaleTimeString('en-NG', {
+            hour: '2-digit', minute: '2-digit',
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        })
 
     const formatDateLabel = (ts: string) => {
         const d = new Date(ts)
@@ -259,8 +262,8 @@ export function ChatPage() {
                                                     <div className="max-w-[78%] sm:max-w-[65%]">
                                                         <div
                                                             className={`px-3.5 py-2.5 text-sm leading-relaxed break-words ${isOwn
-                                                                    ? 'text-white rounded-2xl rounded-br-md shadow-sm'
-                                                                    : 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-md shadow-sm'
+                                                                ? 'text-white rounded-2xl rounded-br-md shadow-sm'
+                                                                : 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-md shadow-sm'
                                                                 }`}
                                                             style={isOwn ? { backgroundColor: accent } : {}}
                                                         >

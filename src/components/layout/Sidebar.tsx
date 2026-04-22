@@ -26,6 +26,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Appointments', href: '/assistant/appointments', icon: Calendar },
     { label: 'Drug Dispensing', href: '/assistant/dispensing', icon: Pill },
     { label: 'Glasses Orders', href: '/assistant/glasses-orders', icon: Package },
+    { label: 'Inventory', href: '/assistant/inventory', icon: Package },
     { label: 'Outreach', href: '/assistant/outreach', icon: Send },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },

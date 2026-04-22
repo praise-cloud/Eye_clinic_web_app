@@ -48,7 +48,18 @@ function AuthProvider() {
         setUser(session.user)
         const { data } = await supabase
           .from('profiles').select('*').eq('id', session.user.id).single()
-        if (data) setProfile(data as Profile)
+        if (data) {
+          setProfile(data as Profile)
+        } else {
+          // Auto-create profile if missing
+          const meta = session.user.user_metadata
+          const role = (meta?.role ?? 'assistant') as Profile['role']
+          const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
+          const { data: newProfile } = await supabase.from('profiles').upsert({
+            id: session.user.id, full_name, role, is_active: true,
+          }, { onConflict: 'id' }).select().single()
+          if (newProfile) setProfile(newProfile as Profile)
+        }
       }
       setLoading(false)
     })
@@ -67,13 +78,13 @@ function AuthProvider() {
           } else {
             // Profile missing — create from metadata
             const meta = session.user.user_metadata
-            const role = meta?.role ?? 'assistant'
-            const full_name = meta?.full_name ?? session.user.email ?? 'User'
-            await supabase.from('profiles').upsert({
-              id: session.user.id, full_name, role, is_active: true,
-            })
-            const newProfile = { id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' } as Profile
-            setProfile(newProfile)
+            const role = (meta?.role ?? 'assistant') as Profile['role']
+            const full_name = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0] ?? 'User'
+            const phone = meta?.phone ?? undefined
+            const { data: newProfile } = await supabase.from('profiles').upsert({
+              id: session.user.id, full_name, role, is_active: true, phone,
+            }, { onConflict: 'id' }).select().single()
+            setProfile((newProfile ?? { id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' }) as Profile)
             setLoading(false)
             navigate(`/${role}`, { replace: true })
           }
@@ -157,6 +168,7 @@ function App() {
 
           {/* Assistant extras */}
           <Route path="/assistant/outreach" element={<P roles={['assistant']}><OutreachPage /></P>} />
+          <Route path="/assistant/inventory" element={<P roles={['assistant']}><InventoryPage /></P>} />
 
           {/* Shared chat */}
           <Route path="/chat" element={<P><ChatPage /></P>} />
