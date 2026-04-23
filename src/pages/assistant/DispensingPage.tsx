@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Pill, AlertTriangle } from 'lucide-react'
+import { Pill, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -91,6 +91,17 @@ export function DispensingPage() {
         },
     })
 
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await supabase.from('drug_dispensing').delete().eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['dispensing'] })
+            qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
+            notify({ type: 'system', title: 'Record Deleted', message: 'Dispensing record has been removed.' })
+        },
+    })
+
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
@@ -120,14 +131,23 @@ export function DispensingPage() {
                                     : (
                                         <div className="divide-y divide-slate-50">
                                             {recentDispensing.map(d => (
-                                                <div key={d.id} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors">
+                                                <div key={d.id} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors group">
                                                     <div>
                                                         <p className="text-sm font-semibold text-slate-900">{(d.patient as any)?.first_name} {(d.patient as any)?.last_name}</p>
                                                         <p className="text-xs text-slate-400">{(d.drug as any)?.name} × {d.quantity} {(d.drug as any)?.unit} · {formatDate(d.dispensed_at)}</p>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="text-sm font-bold text-emerald-600">{formatCurrency(d.total_price ?? (d.unit_price * d.quantity))}</p>
-                                                        <p className="text-xs text-slate-400">@ {formatCurrency(d.unit_price)}/{(d.drug as any)?.unit}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-bold text-emerald-600">{formatCurrency(d.total_price ?? (d.unit_price * d.quantity))}</p>
+                                                            <p className="text-xs text-slate-400">@ {formatCurrency(d.unit_price)}/{(d.drug as any)?.unit}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => deleteMutation.mutate(d.id)}
+                                                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all"
+                                                            title="Delete record"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
                                                     </div>
                                                 </div>
                                             ))}

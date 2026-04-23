@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Package, Glasses } from 'lucide-react'
+import { Plus, Package, Glasses, MoreHorizontal, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -46,9 +46,10 @@ type FrameForm = z.infer<typeof frameSchema>
 
 export function InventoryPage() {
     const qc = useQueryClient()
-    const [activeTab, setActiveTab] = useState<'drugs' | 'glasses'>('drugs')
+    const [activeTab, setActiveTab] = useState<'drugs' | 'glasses' | 'others'>('drugs')
     const [drugDrawer, setDrugDrawer] = useState(false)
     const [frameDrawer, setFrameDrawer] = useState(false)
+    const [othersDrawer, setOthersDrawer] = useState(false)
     const [editDrug, setEditDrug] = useState<Drug | null>(null)
     const [editFrame, setEditFrame] = useState<GlassesInventory | null>(null)
 
@@ -60,6 +61,11 @@ export function InventoryPage() {
     const { data: frames = [], isLoading: framesLoading } = useQuery({
         queryKey: ['glasses-inventory'],
         queryFn: async () => { const { data } = await supabase.from('glasses_inventory').select('*').order('frame_name'); return (data ?? []) as GlassesInventory[] },
+    })
+
+    const { data: others = [], isLoading: othersLoading } = useQuery({
+        queryKey: ['others-inventory'],
+        queryFn: async () => { const { data } = await supabase.from('inventory_others').select('*').order('name'); return (data ?? []) as any[] },
     })
 
     const drugForm = useForm<DrugForm>({ resolver: zodResolver(drugSchema), defaultValues: { quantity: 0, reorder_level: 10, selling_price: 0 } })
@@ -107,10 +113,10 @@ export function InventoryPage() {
             </div>
 
             <div className="flex gap-1 border-b">
-                {(['drugs', 'glasses'] as const).map(t => (
+                {(['drugs', 'glasses', 'others'] as const).map(t => (
                     <button key={t} onClick={() => setActiveTab(t)}
                         className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px capitalize transition-colors ${activeTab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-                        {t === 'drugs' ? <Package className="w-3.5 h-3.5" /> : <Glasses className="w-3.5 h-3.5" />}{t}
+                        {t === 'drugs' ? <Package className="w-3.5 h-3.5" /> : t === 'glasses' ? <Glasses className="w-3.5 h-3.5" /> : <MoreHorizontal className="w-3.5 h-3.5" />}{t}
                     </button>
                 ))}
             </div>
@@ -171,6 +177,36 @@ export function InventoryPage() {
                                 </tbody>
                             </table>
                             {frames.length === 0 && <p className="text-center py-10 text-muted-foreground">No frames in inventory</p>}
+                        </div>
+                    </CardContent></Card>
+                )
+            )}
+
+            {activeTab === 'others' && (
+                othersLoading ? <Skeleton className="h-64" /> : (
+                    <Card><CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[480px]">
+                                <thead className="border-b bg-muted/30">
+                                    <tr>{['Item Name', 'Category', 'Stock', 'Unit', 'Price', ''].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">{h}</th>)}</tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {others.map(o => (
+                                        <tr key={o.id} className="hover:bg-muted/20">
+                                            <td className="px-4 py-2.5 font-medium">{o.name}</td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">{o.category || '—'}</td>
+                                            <td className="px-4 py-2.5">
+                                                <span className={o.quantity <= o.reorder_level ? 'text-amber-600 font-medium' : ''}>{o.quantity}</span>
+                                                {o.quantity <= o.reorder_level && <Badge variant="warning" className="ml-2 text-xs">Low</Badge>}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">{o.unit}</td>
+                                            <td className="px-4 py-2.5">{formatCurrency(o.selling_price)}</td>
+                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setOthersDrawer(true) }}>Edit</Button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {others.length === 0 && <p className="text-center py-10 text-muted-foreground">No items in others inventory</p>}
                         </div>
                     </CardContent></Card>
                 )

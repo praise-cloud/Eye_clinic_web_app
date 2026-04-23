@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, FileText, Search, Trash2, Eye, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, FileText, Search, Trash2, Eye, ChevronDown, ChevronUp, Upload, X, File } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/button'
@@ -99,6 +99,15 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
                                 )}
                                 {note.follow_up_date && (
                                     <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Follow-up Date</p><p className="text-sm text-slate-700">{formatDate(note.follow_up_date)}</p></div>
+                                )}
+                                {note.cvf_attachment_url && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">CVF Attachment</p>
+                                        <a href={note.cvf_attachment_url} target="_blank" rel="noopener noreferrer" 
+                                           className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                                            <File className="w-4 h-4" />View Attachment
+                                        </a>
+                                    </div>
                                 )}                            </>
                         )}
                     </div>
@@ -115,6 +124,7 @@ export function CaseNotesPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null)
     const [patientDisplay, setPatientDisplay] = useState('')
     const [search, setSearch] = useState('')
+    const [cvfFile, setCvfFile] = useState<File | null>(null)
 
     const { data: notes = [], isLoading } = useQuery({
         queryKey: ['case-notes', profile?.id],
@@ -130,8 +140,28 @@ export function CaseNotesPage() {
 
     const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
+    const uploadCvfFile = async (file: File, patientId: string): Promise<string | null> => {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${patientId}/${Date.now()}.${fileExt}`
+        const { error: uploadError } = await supabase.storage
+            .from('cvf-attachments')
+            .upload(fileName, file)
+        if (uploadError) {
+            console.error('CVF upload error:', uploadError)
+            return null
+        }
+        const { data } = supabase.storage.from('cvf-attachments').getPublicUrl(fileName)
+        return data.publicUrl
+    }
+
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
+            let cvfAttachmentUrl: string | null = null
+            
+            if (cvfFile) {
+                cvfAttachmentUrl = await uploadCvfFile(cvfFile, data.patient_id)
+            }
+
             const clinicalData = []
             if (data.va_od || data.va_os) clinicalData.push(`VA: OD ${data.va_od || '—'} | OS ${data.va_os || '—'}`)
             if (data.iop_od || data.iop_os) clinicalData.push(`IOP: OD ${data.iop_od || '—'} | OS ${data.iop_os || '—'}`)
@@ -147,6 +177,7 @@ export function CaseNotesPage() {
                 follow_up_date: data.follow_up_date || undefined,
                 doctor_id: profile!.id,
                 is_encrypted: true,
+                cvf_attachment_url: cvfAttachmentUrl,
             })
         },
         onSuccess: () => {
@@ -154,6 +185,7 @@ export function CaseNotesPage() {
             setOpen(false)
             reset()
             setPatientDisplay('')
+            setCvfFile(null)
             notify({ type: 'prescription', title: 'Case Note Saved', message: 'A new case note has been created and encrypted.', link: '/doctor/case-notes' })
         },
     })
@@ -262,6 +294,37 @@ export function CaseNotesPage() {
                                             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Left Eye (OS)</label>
                                             <textarea className="w-full min-h-[60px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" placeholder="e.g. Inferior defect" {...register('cvf_os')} />
                                         </div>
+                                    </div>
+                                </div>
+                                
+                                {/* CVF Attachment */}
+                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">CVF Document Attachment (optional)</p>
+                                    <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-primary/50 transition-colors">
+                                        {cvfFile ? (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <File className="w-5 h-5 text-blue-500" />
+                                                <span className="text-sm font-medium text-slate-700">{cvfFile.name}</span>
+                                                <button type="button" onClick={() => setCvfFile(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+                                                    <X className="w-4 h-4 text-slate-400" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <label className="cursor-pointer">
+                                                <Upload className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                                <p className="text-sm text-slate-500">Click to upload CVF document</p>
+                                                <p className="text-xs text-slate-400 mt-1">JPG, PNG, WebP, PDF (max 10MB)</p>
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (file) setCvfFile(file)
+                                                    }}
+                                                />
+                                            </label>
+                                        )}
                                     </div>
                                 </div>
                             </div>

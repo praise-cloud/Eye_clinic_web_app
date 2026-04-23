@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Package } from 'lucide-react'
+import { Plus, Package, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -115,12 +115,41 @@ export function GlassesOrdersPage() {
                             .eq('id', order.frame_id)
                     }
                 }
+
+                // Create payment record for the glasses
+                if (order) {
+                    const remainingBalance = (order.total_price ?? 0) - (order.deposit_paid ?? 0)
+                    const totalAmount = order.deposit_paid ?? 0
+                    
+                    if (totalAmount > 0) {
+                        await supabase.from('payments').insert({
+                            patient_id: order.patient_id,
+                            payment_type: remainingBalance > 0 ? 'glasses_balance' : 'glasses_deposit',
+                            amount: totalAmount,
+                            payment_method: 'cash',
+                            received_by: profile!.id,
+                            notes: `Glasses order ${order.order_number} - dispensed`,
+                        })
+                    }
+                }
             }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-orders'] })
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
-            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order status has been updated.', link: '/assistant/glasses-orders' })
+            qc.invalidateQueries({ queryKey: ['payments'] })
+            qc.invalidateQueries({ queryKey: ['daily-summary'] })
+            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order has been dispensed and payment recorded.', link: '/assistant/glasses-orders' })
+        },
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await supabase.from('glasses_orders').delete().eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['glasses-orders'] })
+            notify({ type: 'system', title: 'Order Deleted', message: 'Glasses order has been removed.' })
         },
     })
 
@@ -137,7 +166,7 @@ export function GlassesOrdersPage() {
                 <Card><CardContent className="p-0">
                     <div className="divide-y">
                         {orders.map(o => (
-                            <div key={o.id} className="flex items-center justify-between px-5 py-3">
+                            <div key={o.id} className="flex items-center justify-between px-5 py-3 group">
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <p className="text-sm font-medium">{(o.patient as any)?.first_name} {(o.patient as any)?.last_name}</p>
@@ -155,6 +184,15 @@ export function GlassesOrdersPage() {
                                             onClick={() => advanceMutation.mutate({ id: o.id, status: nextStatus[o.status] })}>
                                             {nextLabel[o.status]}
                                         </Button>
+                                    )}
+                                    {o.status !== 'dispensed' && (
+                                        <button
+                                            onClick={() => deleteMutation.mutate(o.id)}
+                                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all"
+                                            title="Delete order"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     )}
                                 </div>
                             </div>

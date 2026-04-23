@@ -62,6 +62,7 @@ export interface CaseNote {
   treatment_plan?: string
   follow_up_date?: string
   is_encrypted: boolean
+  cvf_attachment_url?: string
   created_at: string
   updated_at: string
   patient?: Patient

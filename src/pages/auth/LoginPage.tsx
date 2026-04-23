@@ -45,27 +45,17 @@ export function LoginPage() {
         return
       }
 
-      if (!authData?.user) {
-        setError('Login failed — no user returned. Contact your administrator.')
-        setIsLoading(false)
-        return
-      }
-
-      const userId = authData.user.id
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', userId).single()
-
-      const role = profile?.role ?? authData.user.user_metadata?.role ?? 'assistant'
-
+      // Navigation will be handled by onAuthStateChange in App.tsx
+      // Just show success state - user will be redirected automatically
       setIsLoading(false)
-
-      window.location.href = `/${role}`
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed'
       if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
         setError('Incorrect email or password.')
       } else if (msg.toLowerCase().includes('email not confirmed')) {
         setError('Email not confirmed. Contact your administrator.')
+      } else if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
+        setError('Network error. Please check your connection and try again.')
       } else {
         setError(msg)
       }

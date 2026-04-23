@@ -19,5 +19,13 @@ export const supabase = createClient(
         realtime: {
             params: { eventsPerSecond: 10 },
         },
+        global: {
+            fetch: (url, options) => {
+                return fetch(url, {
+                    ...options,
+                    signal: AbortSignal.timeout(30000), // 30s timeout
+                })
+            },
+        },
     }
 )

@@ -22,8 +22,32 @@ export function ChatPage() {
     const { data: staff = [], isLoading: staffLoading } = useQuery({
         queryKey: ['staff-list'],
         queryFn: async () => {
-            const { data } = await supabase.from('profiles').select('*').eq('is_active', true).neq('id', profile!.id).order('full_name')
-            return (data ?? []) as Profile[]
+            const { data: profiles } = await supabase.from('profiles').select('*').eq('is_active', true).neq('id', profile!.id).order('full_name')
+            
+            // Get last message time for each staff member
+            const { data: lastMessages } = await supabase
+                .from('messages')
+                .select('sender_id, receiver_id, created_at')
+                .or(`sender_id.eq.${profile!.id},receiver_id.eq.${profile!.id}`)
+                .order('created_at', { ascending: false })
+            
+            // Build a map of last message time per user
+            const lastMsgMap = new Map<string, string>()
+            lastMessages?.forEach(msg => {
+                const otherId = msg.sender_id === profile!.id ? msg.receiver_id : msg.sender_id
+                if (!lastMsgMap.has(otherId)) {
+                    lastMsgMap.set(otherId, msg.created_at)
+                }
+            })
+            
+            // Sort profiles by most recent message (or alphabetically if no messages)
+            const sorted = (profiles ?? []).sort((a, b) => {
+                const aTime = lastMsgMap.get(a.id) || '1970-01-01'
+                const bTime = lastMsgMap.get(b.id) || '1970-01-01'
+                return new Date(bTime).getTime() - new Date(aTime).getTime()
+            })
+            
+            return sorted as Profile[]
         },
         enabled: !!profile,
     })

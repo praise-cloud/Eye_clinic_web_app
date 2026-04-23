@@ -38,14 +38,11 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
 
     useEffect(() => {
         const enterTimer = setTimeout(() => setVisible(true), 50)
-        const exitTimer = setTimeout(() => {
-            setExiting(true)
-            setTimeout(() => onDismiss(notification.id), 300)
-        }, 4500)
-        return () => { clearTimeout(enterTimer); clearTimeout(exitTimer) }
+        return () => { clearTimeout(enterTimer) }
     }, [notification.id])
 
     const handleDismiss = () => {
+        if (exiting) return
         setExiting(true)
         setTimeout(() => onDismiss(notification.id), 300)
     }

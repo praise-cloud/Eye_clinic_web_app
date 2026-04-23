@@ -102,9 +102,41 @@ CREATE TABLE IF NOT EXISTS public.case_notes (
   treatment_plan  TEXT,
   follow_up_date  DATE,
   is_encrypted    BOOLEAN DEFAULT TRUE,
+  cvf_attachment_url TEXT,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add cvf_attachment_url column if it doesn't exist (for existing tables)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'case_notes' AND column_name = 'cvf_attachment_url'
+  ) THEN
+    ALTER TABLE public.case_notes ADD COLUMN cvf_attachment_url TEXT;
+  END IF;
+END $$;
+
+-- ── STORAGE BUCKET FOR CVF ATTACHMENTS ────────────────────────
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('cvf-attachments', 'cvf-attachments', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Anyone can view cvf-attachments" ON storage.objects;
+CREATE POLICY "Anyone can view cvf-attachments"
+  ON storage.objects FOR SELECT
+  USING ( bucket_id = 'cvf-attachments' );
+
+DROP POLICY IF EXISTS "Doctors can upload cvf-attachments" ON storage.objects;
+CREATE POLICY "Doctors can upload cvf-attachments"
+  ON storage.objects FOR INSERT
+  WITH CHECK ( bucket_id = 'cvf-attachments' );
+
+DROP POLICY IF EXISTS "Admins can upload cvf-attachments" ON storage.objects;
+CREATE POLICY "Admins can upload cvf-attachments"
+  ON storage.objects FOR INSERT
+  WITH CHECK ( bucket_id = 'cvf-attachments' );
 
 -- ── PRESCRIPTIONS (GLASSES) ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.prescriptions (

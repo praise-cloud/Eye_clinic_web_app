@@ -132,30 +132,41 @@ export function useRealtimeNotifications() {
                             link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
                         })
                     }
-                })
+})
                 .subscribe()
             channels.push(stockChannel)
 
-            // Also notify when new drugs are added with low stock
-            const stockInsertChannel = supabase
-                .channel(`stock-insert:${profile.role}`)
+            // Also watch glasses inventory for low stock
+            const glassesStockChannel = supabase
+                .channel('glasses-stock-alert')
                 .on('postgres_changes', {
-                    event: 'INSERT', schema: 'public', table: 'drugs',
+                    event: 'UPDATE', schema: 'public', table: 'glasses_inventory',
                 }, (payload: any) => {
-                    const drug = payload.new
-                    const qty = drug?.quantity
-                    const reorderLevel = drug?.reorder_level ?? 10
-                    if (qty !== undefined && qty <= reorderLevel) {
+                    const frame = payload.new
+                    const oldFrame = payload.old
+                    const newQty = frame?.quantity
+                    const reorderLevel = frame?.reorder_level ?? 3
+                    const oldQty = oldFrame?.quantity
+                    if (newQty === undefined || newQty === null) return
+                    const crossedReorderLevel = oldQty !== undefined && oldQty > reorderLevel && newQty <= reorderLevel
+                    if (crossedReorderLevel) {
                         notify({
                             type: 'low_stock',
-                            title: '⚠️ Low Stock',
-                            message: `${drug.name} added with only ${qty} ${drug.unit ?? 'units'}.`,
+                            title: '👓 Low Stock Alert',
+                            message: `${frame.frame_name}: only ${newQty} left (reorder at ${reorderLevel})`,
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
+                        })
+                    } else if (oldQty > 0 && newQty === 0) {
+                        notify({
+                            type: 'low_stock',
+                            title: '🚨 Out of Stock',
+                            message: `${frame.frame_name} is now out of stock!`,
                             link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
                         })
                     }
-                })
+})
                 .subscribe()
-            channels.push(stockInsertChannel)
+            channels.push(glassesStockChannel)
         }
 
         // ── ACCOUNTANT + ADMIN: New payment recorded ──────────────────
