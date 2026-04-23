@@ -13,7 +13,7 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <DialogPrimitive.Overlay
         ref={ref}
-        className={cn('fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-fade-in', className)}
+        className={cn('fixed inset-0 z-50 bg-black/50', className)}
         {...props}
     />
 ))
@@ -24,12 +24,9 @@ const DrawerContent = React.forwardRef<
     React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { width?: string }
 >(({ className, children, width = 'sm:max-w-[600px]', ...props }, ref) => (
     <DialogPrimitive.Portal>
-        <DrawerOverlay />
         <DialogPrimitive.Content
             ref={ref}
             className={cn(
-                // Mobile: full screen bottom sheet
-                // Desktop: right-side drawer
                 'fixed z-50 bg-background shadow-xl flex flex-col',
                 'inset-x-0 bottom-0 rounded-t-2xl max-h-[95vh]',
                 'sm:inset-x-auto sm:right-0 sm:top-0 sm:bottom-0 sm:h-full sm:rounded-none sm:rounded-l-xl',
@@ -39,7 +36,6 @@ const DrawerContent = React.forwardRef<
             )}
             {...props}
         >
-            {/* Mobile drag handle */}
             <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
             </div>

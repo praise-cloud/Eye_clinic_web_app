@@ -20,7 +20,7 @@ const ModalOverlay = React.forwardRef<
     <DialogPrimitive.Overlay
         ref={ref}
         className={cn(
-            'fixed inset-0 z-50 bg-black/30 backdrop-blur-sm',
+            'fixed inset-0 z-50 bg-black/30',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             className
@@ -46,7 +46,6 @@ const ModalContent = React.forwardRef<
     ModalContentProps
 >(({ className, children, size = 'md', ...props }, ref) => (
     <DialogPrimitive.Portal>
-        <ModalOverlay />
         <DialogPrimitive.Content
             ref={ref}
             className={cn(
@@ -62,11 +61,12 @@ const ModalContent = React.forwardRef<
                 className
             )}
             {...props}
->
+        >
             <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-ring z-10">
                 <X className="h-5 w-5" />
                 <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
+            {children}
         </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
 ))
