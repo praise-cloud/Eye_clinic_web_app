@@ -56,10 +56,9 @@ const ModalContent = React.forwardRef<
                 className
             )}
             {...props}
-        >
-            {children}
-            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
-                <X className="h-4 w-4" />
+>
+            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-ring z-10">
+                <X className="h-5 w-5" />
                 <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
         </DialogPrimitive.Content>
