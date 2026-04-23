@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 
@@ -15,6 +15,7 @@ type FormData = z.infer<typeof schema>
 
 export function LoginPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const successMessage = (location.state as any)?.message
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -26,12 +27,25 @@ export function LoginPage() {
     setError('')
     setIsLoading(true)
     try {
+      // Clear any existing session first to avoid conflicts
+      await supabase.auth.signOut()
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
       if (authError) throw authError
-      // Navigation handled by onAuthStateChange — keep loading until redirect
+      // Fetch profile and navigate immediately to avoid stuck login screen
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (sessionData?.session?.user) {
+        const userId = sessionData.session.user.id
+        const { data: profile } = await supabase
+          .from('profiles').select('*').eq('id', userId).single()
+        const role = profile?.role ?? sessionData.session.user.user_metadata?.role ?? 'assistant'
+        navigate(`/${role}`, { replace: true })
+      } else {
+        navigate('/login', { replace: true })
+        setIsLoading(false)
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed'
       if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
