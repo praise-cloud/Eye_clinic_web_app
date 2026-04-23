@@ -348,46 +348,8 @@ CREATE OR REPLACE FUNCTION get_user_role() RETURNS TEXT AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid();
 $$ LANGUAGE SQL SECURITY DEFINER;
 
--- ── REALTIME (idempotent — ignores if already in publication) ─
-DO $$
-DECLARE _msg TEXT;
-BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-EXCEPTION WHEN OTHERS THEN
-  GET DIAGNOSTICS _msg = MESSAGE_TEXT;
-  IF _msg NOT LIKE '%already member%' THEN RAISE;
-END IF;
-END $$;
-
-DO $$
-DECLARE _msg TEXT;
-BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments;
-EXCEPTION WHEN OTHERS THEN
-  GET DIAGNOSTICS _msg = MESSAGE_TEXT;
-  IF _msg NOT LIKE '%already member%' THEN RAISE;
-END IF;
-END $$;
-
-DO $$
-DECLARE _msg TEXT;
-BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.drug_dispensing;
-EXCEPTION WHEN OTHERS THEN
-  GET DIAGNOSTICS _msg = MESSAGE_TEXT;
-  IF _msg NOT LIKE '%already member%' THEN RAISE;
-END IF;
-END $$;
-
-DO $$
-DECLARE _msg TEXT;
-BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.glasses_orders;
-EXCEPTION WHEN OTHERS THEN
-  GET DIAGNOSTICS _msg = MESSAGE_TEXT;
-  IF _msg NOT LIKE '%already member%' THEN RAISE;
-END IF;
-END $$;
+-- Note: REALTIME tables already configured in Supabase dashboard
+-- Skip this section - tables already in publication if you have realtime enabled
 
 -- ══════════════════════════════════════════════════════════════
 -- 8. MIGRATION FIXES — Run these in Supabase SQL editor
