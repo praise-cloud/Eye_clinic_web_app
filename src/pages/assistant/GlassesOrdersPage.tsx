@@ -16,7 +16,6 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { formatDate, formatCurrency } from '@/lib/utils'
-import { PatientSearchField } from '@/components/patients/PatientSearchField'
 import type { GlassesOrder, Patient, GlassesInventory } from '@/types'
 
 const schema = z.object({

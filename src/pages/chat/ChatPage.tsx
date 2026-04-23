@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Send, Search, MessageSquare, ArrowLeft, Trash2, MoreVertical } from 'lucide-react'
+import { Send, Search, MessageSquare, ArrowLeft, Trash2, MoreVertical, Reply, X, Quote } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Profile, Message } from '@/types'
+import { notify } from '@/store/notificationStore'
 
 export function ChatPage() {
     const { profile } = useAuthStore()
@@ -14,6 +15,7 @@ export function ChatPage() {
     const [text, setText] = useState('')
     const [search, setSearch] = useState('')
     const [hoveredMsg, setHoveredMsg] = useState<string | null>(null)
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -53,6 +55,19 @@ export function ChatPage() {
                     const otherId = msg.sender_id === profile.id ? msg.receiver_id : msg.sender_id
                     qc.invalidateQueries({ queryKey: ['messages', profile.id, otherId] })
                     qc.invalidateQueries({ queryKey: ['messages', otherId, profile.id] })
+                    // If the message is from someone we ARE NOT currently chatting with, show a toast
+                    if (msg.sender_id !== profile.id && activeUser?.id !== msg.sender_id) {
+                        notify({
+                            type: 'system',
+                            title: 'New Message',
+                            message: msg.content?.slice(0, 60) + (msg.content?.length > 60 ? '...' : ''),
+                            link: '/chat',
+                        })
+                    }
+                    // If it's from the person we're chatting with, scroll to bottom
+                    if (activeUser?.id === msg.sender_id) {
+                        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+                    }
                 }
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, () => {
@@ -72,16 +87,28 @@ export function ChatPage() {
         if (activeUser) setTimeout(() => inputRef.current?.focus(), 100)
     }, [activeUser?.id])
 
+    useEffect(() => {
+        setReplyingTo(null)
+    }, [activeUser?.id])
+
     const sendMutation = useMutation({
         mutationFn: async (content: string) => {
             if (!profile || !activeUser) throw new Error('No active conversation')
+            let messageContent = content.trim()
+            if (replyingTo) {
+                const quote = replyingTo.content.length > 80
+                    ? `"${replyingTo.content.slice(0, 80)}..."`
+                    : `"${replyingTo.content}"`
+                messageContent = `↩ ${quote}\n\n${content.trim()}`
+            }
             const { error } = await supabase.from('messages').insert({
-                sender_id: profile.id, receiver_id: activeUser.id, content: content.trim(),
+                sender_id: profile.id, receiver_id: activeUser.id, content: messageContent,
             })
             if (error) throw error
         },
         onSuccess: () => {
             setText('')
+            setReplyingTo(null)
             qc.invalidateQueries({ queryKey: ['messages', profile?.id, activeUser?.id] })
         },
     })
@@ -231,10 +258,20 @@ export function ChatPage() {
                                                     {isOwn && isHovered && (
                                                         <button
                                                             onClick={() => deleteMutation.mutate(msg.id)}
-                                                            className="self-center mr-2 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors shadow-sm"
+                                                            className="self-center mr-1 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors shadow-sm"
                                                             title="Delete message"
                                                         >
                                                             <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                    {/* Reply button — for all messages, shown on hover */}
+                                                    {!isOwn && isHovered && (
+                                                        <button
+                                                            onClick={() => { setReplyingTo(msg); inputRef.current?.focus() }}
+                                                            className="self-center mr-1 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200 hover:bg-blue-50 transition-colors shadow-sm"
+                                                            title="Reply to message"
+                                                        >
+                                                            <Reply className="w-3 h-3" />
                                                         </button>
                                                     )}
                                                     <div className="max-w-[78%] sm:max-w-[65%]">
@@ -259,6 +296,18 @@ export function ChatPage() {
 
                         {/* Input */}
                         <div className="p-3 border-t border-slate-100 bg-white flex-shrink-0">
+                            {replyingTo && (
+                                <div className="mb-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-2">
+                                    <Quote className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold text-blue-600">Replying to message</p>
+                                        <p className="text-xs text-blue-500/80 truncate">{replyingTo.content}</p>
+                                    </div>
+                                    <button onClick={() => setReplyingTo(null)} className="p-1 rounded-lg hover:bg-blue-100 text-blue-400 hover:text-blue-600 transition-colors flex-shrink-0">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            )}
                             {sendMutation.isError && <p className="text-xs text-red-500 mb-2 px-1">Failed to send. Try again.</p>}
                             <div className="flex items-center gap-2">
                                 <input ref={inputRef}

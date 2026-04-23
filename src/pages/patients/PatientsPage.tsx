@@ -84,17 +84,20 @@ export function PatientsPage() {
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
             const { error } = await supabase.from('patients').delete().eq('id', id)
-            if (error) throw error
+            if (error) {
+                if (error.code === '42501') throw new Error('Permission denied. Contact your administrator to delete patients.')
+                if (error.code === '235000') throw new Error('Cannot delete: patient has linked records (appointments, payments). Remove those first.')
+                if (error.code === '23503') throw new Error('Cannot delete: patient is linked to other records. Remove those first.')
+                throw new Error(error.message || 'Failed to delete patient. Please try again.')
+            }
         },
         onMutate: async (id: string) => {
-            // Optimistically remove from list immediately
             await qc.cancelQueries({ queryKey: ['patients', search] })
             const previous = qc.getQueryData(['patients', search])
             qc.setQueryData(['patients', search], (old: Patient[] = []) => old.filter(p => p.id !== id))
             return { previous }
         },
         onError: (_err, _id, context: any) => {
-            // Rollback on error
             if (context?.previous) qc.setQueryData(['patients', search], context.previous)
         },
         onSuccess: () => {
@@ -273,22 +276,35 @@ export function PatientsPage() {
                         <ModalTitle className="text-red-600 flex items-center gap-2">
                             <Trash2 className="w-5 h-5" />Delete Patient
                         </ModalTitle>
-                        <ModalDescription>
-                            Permanently delete <strong>{deleteTarget?.first_name} {deleteTarget?.last_name}</strong> ({deleteTarget?.patient_number})? This will remove all their records. This cannot be undone.
+                        <ModalDescription className="text-red-500/80">
+                            This action is <strong>permanent</strong> and cannot be undone.
                         </ModalDescription>
                     </ModalHeader>
+                    <div className="px-6 py-3 bg-red-50 border border-red-100 rounded-xl mx-6 mb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-red-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                {deleteTarget?.first_name?.[0]}{deleteTarget?.last_name?.[0]}
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-red-700">{deleteTarget?.first_name} {deleteTarget?.last_name}</p>
+                                <p className="text-xs text-red-500 font-mono">{deleteTarget?.patient_number}</p>
+                            </div>
+                        </div>
+                        <p className="text-xs text-red-400 mt-2">All appointments, prescriptions, and payments for this patient will also be removed.</p>
+                    </div>
                     {deleteMutation.isError && (
                         <div className="px-6 pb-2">
-                            <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg">
-                                {(deleteMutation.error as Error)?.message || 'Delete failed. Check RLS policies in Supabase.'}
+                            <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100 flex items-start gap-2">
+                                <Trash2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                <span>{(deleteMutation.error as Error)?.message || 'Delete failed. Contact your administrator to check permissions.'}</span>
                             </p>
                         </div>
                     )}
                     <ModalFooter>
-                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Cancel</Button>
                         <Button variant="destructive" loading={deleteMutation.isPending}
                             onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
-                            Delete Patient
+                            Yes, Delete Patient
                         </Button>
                     </ModalFooter>
                 </ModalContent>

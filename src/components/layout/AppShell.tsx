@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { Header } from './Header'
+import { ToastContainer } from './ToastContainer'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocation } from 'react-router-dom'
 
@@ -37,6 +38,7 @@ export function AppShell({ children }: AppShellProps) {
                 <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-6 scrollbar-thin">
                     {children}
                 </main>
+                <ToastContainer />
             </div>
 
             {/* Mobile Bottom Nav */}

@@ -110,18 +110,52 @@ export function useRealtimeNotifications() {
                     event: 'UPDATE', schema: 'public', table: 'drugs',
                 }, (payload: any) => {
                     const drug = payload.new
-                    if (drug?.quantity !== undefined && drug?.reorder_level !== undefined &&
-                        drug.quantity <= drug.reorder_level && drug.quantity >= 0) {
+                    const oldDrug = payload.old
+                    const newQty = drug?.quantity
+                    const reorderLevel = drug?.reorder_level ?? 10
+                    const oldQty = oldDrug?.quantity
+                    if (newQty === undefined || newQty === null) return
+                    const crossedReorderLevel = oldQty !== undefined && oldQty > reorderLevel && newQty <= reorderLevel
+                    const stillLow = oldQty !== undefined && oldQty <= reorderLevel && newQty <= reorderLevel && newQty < oldQty
+                    if (crossedReorderLevel) {
                         notify({
                             type: 'low_stock',
-                            title: '⚠️ Low Stock',
-                            message: `${drug.name}: only ${drug.quantity} ${drug.unit}(s) left.`,
-                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/dispensing',
+                            title: '⚠️ Low Stock Alert',
+                            message: `${drug.name}: dropped to ${newQty} ${drug.unit ?? 'units'} (reorder at ${reorderLevel})`,
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
+                        })
+                    } else if (stillLow && newQty === 0) {
+                        notify({
+                            type: 'low_stock',
+                            title: '🚨 Out of Stock',
+                            message: `${drug.name} is now out of stock!`,
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
                         })
                     }
                 })
                 .subscribe()
             channels.push(stockChannel)
+
+            // Also notify when new drugs are added with low stock
+            const stockInsertChannel = supabase
+                .channel(`stock-insert:${profile.role}`)
+                .on('postgres_changes', {
+                    event: 'INSERT', schema: 'public', table: 'drugs',
+                }, (payload: any) => {
+                    const drug = payload.new
+                    const qty = drug?.quantity
+                    const reorderLevel = drug?.reorder_level ?? 10
+                    if (qty !== undefined && qty <= reorderLevel) {
+                        notify({
+                            type: 'low_stock',
+                            title: '⚠️ Low Stock',
+                            message: `${drug.name} added with only ${qty} ${drug.unit ?? 'units'}.`,
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
+                        })
+                    }
+                })
+                .subscribe()
+            channels.push(stockInsertChannel)
         }
 
         // ── ACCOUNTANT + ADMIN: New payment recorded ──────────────────

@@ -356,6 +356,7 @@ CREATE POLICY "Admin manages profiles" ON public.profiles FOR ALL TO authenticat
 CREATE POLICY "All staff view patients" ON public.patients FOR SELECT TO authenticated USING (TRUE);
 CREATE POLICY "Assistant/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin'));
 CREATE POLICY "Assistant/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('assistant','admin'));
+CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('assistant','admin'));
 
 -- Appointments
 CREATE POLICY "All staff view appointments" ON public.appointments FOR SELECT TO authenticated USING (TRUE);

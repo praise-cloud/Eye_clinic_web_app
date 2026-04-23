@@ -27,16 +27,41 @@ export function DoctorDashboard() {
         enabled: !!profile,
     })
 
+    const { data: pendingNotesData } = useQuery({
+        queryKey: ['doctor', 'pending-notes', profile?.id],
+        queryFn: async () => {
+            const { data: apts } = await supabase
+                .from('appointments')
+                .select('id,patient:patients(first_name,last_name)')
+                .eq('doctor_id', profile!.id)
+                .eq('status', 'completed')
+                .order('scheduled_at', { ascending: false })
+                .limit(50)
+            if (!apts || apts.length === 0) return { withoutNotes: 0, total: 0 }
+            const aptIds = apts.map((a: any) => a.id)
+            const { data: notes } = await supabase
+                .from('case_notes')
+                .select('appointment_id')
+                .eq('doctor_id', profile!.id)
+                .in('appointment_id', aptIds)
+            const notedAptIds = new Set((notes ?? []).map((n: any) => n.appointment_id))
+            const withoutNotes = apts.filter((a: any) => !notedAptIds.has(a.id)).length
+            return { withoutNotes, total: apts.length }
+        },
+        enabled: !!profile,
+    })
+
     const statusColor: Record<string, 'default' | 'warning' | 'success' | 'info' | 'destructive'> = {
         pending: 'warning', confirmed: 'info', arrived: 'success',
         in_progress: 'default', completed: 'success', cancelled: 'destructive', no_show: 'destructive',
     }
 
+    const pendingCount = pendingNotesData?.withoutNotes ?? 0
     const stats = [
         { label: "Today's Appts", value: appointments.length, icon: Calendar, color: 'text-blue-600 bg-blue-50' },
         { label: 'Awaiting', value: appointments.filter(a => a.status === 'arrived').length, icon: Users, color: 'text-amber-600 bg-amber-50' },
         { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, icon: FileText, color: 'text-emerald-600 bg-emerald-50' },
-        { label: 'Pending Notes', value: 0, icon: Pill, color: 'text-purple-600 bg-purple-50' },
+        { label: 'Pending Notes', value: pendingCount, icon: Pill, color: 'text-purple-600 bg-purple-50', sub: pendingNotesData ? `${pendingNotesData.total} completed appts` : undefined },
     ]
 
     return (
@@ -56,6 +81,9 @@ export function DoctorDashboard() {
                             <div className="min-w-0">
                                 <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
                                 <p className="text-xl sm:text-2xl font-bold">{isLoading ? '—' : stat.value}</p>
+                                {'sub' in stat && stat.sub && (
+                                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">{stat.sub}</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
