@@ -27,25 +27,18 @@ export function LoginPage() {
     setError('')
     setIsLoading(true)
     try {
-      // Clear any existing session first to avoid conflicts
-      await supabase.auth.signOut()
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
       if (authError) throw authError
-      // Fetch profile and navigate immediately to avoid stuck login screen
-      const { data: sessionData } = await supabase.auth.getSession()
-      if (sessionData?.session?.user) {
-        const userId = sessionData.session.user.id
-        const { data: profile } = await supabase
-          .from('profiles').select('*').eq('id', userId).single()
-        const role = profile?.role ?? sessionData.session.user.user_metadata?.role ?? 'assistant'
-        navigate(`/${role}`, { replace: true })
-      } else {
-        navigate('/login', { replace: true })
-        setIsLoading(false)
-      }
+      if (!authData?.user) throw new Error('Login failed — no user returned')
+      // Fetch profile directly using the returned user id
+      const userId = authData.user.id
+      const { data: profile } = await supabase
+        .from('profiles').select('*').eq('id', userId).single()
+      const role = profile?.role ?? authData.user.user_metadata?.role ?? 'assistant'
+      navigate(`/${role}`, { replace: true })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed'
       if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
