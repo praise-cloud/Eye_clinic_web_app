@@ -327,7 +327,7 @@ WHERE p.subscription_end IS NOT NULL
   AND p.subscription_end BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
 ORDER BY p.subscription_end ASC;
 
--- ── RLS ──────────────────────────────────────────────────────
+-- ── RLS Enable (idempotent — safe to re-run) ────────────────
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
@@ -343,64 +343,12 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outreach_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
+-- ── get_user_role function ───────────────────────────────────
 CREATE OR REPLACE FUNCTION get_user_role() RETURNS TEXT AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid();
 $$ LANGUAGE SQL SECURITY DEFINER;
 
--- Profiles
-CREATE POLICY "Staff read profiles" ON public.profiles FOR SELECT TO authenticated USING (TRUE);
-CREATE POLICY "Own profile update" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
-CREATE POLICY "Admin manages profiles" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin');
-
--- Patients
-CREATE POLICY "All staff view patients" ON public.patients FOR SELECT TO authenticated USING (TRUE);
-CREATE POLICY "Assistant/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin'));
-CREATE POLICY "Assistant/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('assistant','admin'));
-CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('assistant','admin'));
-
--- Appointments
-CREATE POLICY "All staff view appointments" ON public.appointments FOR SELECT TO authenticated USING (TRUE);
-CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor','assistant','admin'));
-
--- Case Notes
-CREATE POLICY "Doctors/admin view notes" ON public.case_notes FOR SELECT TO authenticated USING (get_user_role() IN ('doctor','admin'));
-CREATE POLICY "Doctors create notes" ON public.case_notes FOR INSERT TO authenticated WITH CHECK (get_user_role() = 'doctor' AND doctor_id = auth.uid());
-CREATE POLICY "Doctors update own notes" ON public.case_notes FOR UPDATE TO authenticated USING (get_user_role() = 'doctor' AND doctor_id = auth.uid());
-
--- Drugs
-CREATE POLICY "All staff view drugs" ON public.drugs FOR SELECT TO authenticated USING (TRUE);
-CREATE POLICY "Assistant/admin manage drugs" ON public.drugs FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin'));
-
--- Drug Dispensing
-CREATE POLICY "View dispensing" ON public.drug_dispensing FOR SELECT TO authenticated USING (get_user_role() IN ('doctor','assistant','admin','accountant'));
-CREATE POLICY "Assistant dispenses" ON public.drug_dispensing FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin'));
-
--- Glasses
-CREATE POLICY "All view glasses" ON public.glasses_inventory FOR SELECT TO authenticated USING (TRUE);
-CREATE POLICY "Assistant/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin'));
-CREATE POLICY "All view orders" ON public.glasses_orders FOR SELECT TO authenticated USING (TRUE);
-CREATE POLICY "Assistant/admin manage orders" ON public.glasses_orders FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin'));
-
--- Payments
-CREATE POLICY "Finance view payments" ON public.payments FOR SELECT TO authenticated USING (get_user_role() IN ('assistant','accountant','admin'));
-CREATE POLICY "Assistant insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin'));
-CREATE POLICY "Accountant/admin manage payments" ON public.payments FOR ALL TO authenticated USING (get_user_role() IN ('accountant','admin'));
-
--- Messages
-CREATE POLICY "Own messages" ON public.messages FOR SELECT TO authenticated USING (sender_id = auth.uid() OR receiver_id = auth.uid());
-CREATE POLICY "Send messages" ON public.messages FOR INSERT TO authenticated WITH CHECK (sender_id = auth.uid());
-
--- Audit Logs
-CREATE POLICY "Admin views audit" ON public.audit_logs FOR SELECT TO authenticated USING (get_user_role() = 'admin');
-CREATE POLICY "Append audit" ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (TRUE);
-
--- Outreach
-CREATE POLICY "Assistant/admin outreach" ON public.outreach_log FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin'));
-
--- Push subscriptions
-CREATE POLICY "Own push sub" ON public.push_subscriptions FOR ALL TO authenticated USING (user_id = auth.uid());
-
--- ── REALTIME ─────────────────────────────────────────────────
+-- ── REALTIME (idempotent) ────────────────────────────────
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.drug_dispensing;
@@ -409,20 +357,227 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.glasses_orders;
 -- ══════════════════════════════════════════════════════════════
 -- 8. MIGRATION FIXES — Run these in Supabase SQL editor
 -- ══════════════════════════════════════════════════════════════
+-- These are IDEMPOTENT — safe to run even if they already exist
 
--- Fix: Add DELETE policy for patients (was missing)
+-- ── Profiles Policies ──────────────────────────────────────────────
 DO $$
-DECLARE
-  _exists bool;
+DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (
-    SELECT 1 FROM pg_policy WHERE tablename = 'patients' AND policyname = 'Assistant/admin delete patients'
-  ) INTO _exists;
-  IF NOT _exists THEN
-    CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated
-      USING (get_user_role() IN ('assistant','admin'));
-  END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='profiles' AND policyname='Staff read profiles') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Staff read profiles" ON public.profiles FOR SELECT TO authenticated USING (TRUE); END IF;
 END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='profiles' AND policyname='Own profile update') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Own profile update" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid()); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='profiles' AND policyname='Admin manages profiles') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Admin manages profiles" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin'); END IF;
+END $$;
+
+-- ── Patients Policies ─────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='patients' AND policyname='All staff view patients') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "All staff view patients" ON public.patients FOR SELECT TO authenticated USING (TRUE); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='patients' AND policyname='Assistant/admin create patients') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='patients' AND policyname='Assistant/admin update patients') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='patients' AND policyname='Assistant/admin delete patients') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+-- ── Appointments Policies ────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='appointments' AND policyname='All staff view appointments') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "All staff view appointments" ON public.appointments FOR SELECT TO authenticated USING (TRUE); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='appointments' AND policyname='Staff manage appointments') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor','assistant','admin')); END IF;
+END $$;
+
+-- ── Case Notes Policies ───────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='case_notes' AND policyname='Doctors/admin view notes') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Doctors/admin view notes" ON public.case_notes FOR SELECT TO authenticated USING (get_user_role() IN ('doctor','admin')); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='case_notes' AND policyname='Doctors create notes') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Doctors create notes" ON public.case_notes FOR INSERT TO authenticated WITH CHECK (get_user_role() = 'doctor' AND doctor_id = auth.uid()); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='case_notes' AND policyname='Doctors update own notes') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Doctors update own notes" ON public.case_notes FOR UPDATE TO authenticated USING (get_user_role() = 'doctor' AND doctor_id = auth.uid()); END IF;
+END $$;
+
+-- ── Drugs Policies ────────────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='drugs' AND policyname='All staff view drugs') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "All staff view drugs" ON public.drugs FOR SELECT TO authenticated USING (TRUE); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='drugs' AND policyname='Assistant/admin manage drugs') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage drugs" ON public.drugs FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+-- ── Drug Dispensing Policies ────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='drug_dispensing' AND policyname='View dispensing') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "View dispensing" ON public.drug_dispensing FOR SELECT TO authenticated USING (get_user_role() IN ('doctor','assistant','admin','accountant')); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='drug_dispensing' AND policyname='Assistant dispenses') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant dispenses" ON public.drug_dispensing FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+-- ── Glasses Policies ────────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='glasses_inventory' AND policyname='All view glasses') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "All view glasses" ON public.glasses_inventory FOR SELECT TO authenticated USING (TRUE); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='glasses_inventory' AND policyname='Assistant/admin manage glasses') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='glasses_orders' AND policyname='All view orders') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "All view orders" ON public.glasses_orders FOR SELECT TO authenticated USING (TRUE); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='glasses_orders' AND policyname='Assistant/admin manage orders') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage orders" ON public.glasses_orders FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+-- ── Payments Policies ─────────────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='payments' AND policyname='Finance view payments') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Finance view payments" ON public.payments FOR SELECT TO authenticated USING (get_user_role() IN ('assistant','accountant','admin')); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='payments' AND policyname='Assistant insert payments') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='payments' AND policyname='Accountant/admin manage payments') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Accountant/admin manage payments" ON public.payments FOR ALL TO authenticated USING (get_user_role() IN ('accountant','admin')); END IF;
+END $$;
+
+-- ── Messages Policies ──────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='messages' AND policyname='Own messages') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Own messages" ON public.messages FOR SELECT TO authenticated USING (sender_id = auth.uid() OR receiver_id = auth.uid()); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='messages' AND policyname='Send messages') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Send messages" ON public.messages FOR INSERT TO authenticated WITH CHECK (sender_id = auth.uid()); END IF;
+END $$;
+
+-- ── Audit Logs Policies ─────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='audit_logs' AND policyname='Admin views audit') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Admin views audit" ON public.audit_logs FOR SELECT TO authenticated USING (get_user_role() = 'admin'); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='audit_logs' AND policyname='Append audit') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Append audit" ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (TRUE); END IF;
+END $$;
+
+-- ── Outreach Policies ────────────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='outreach_log' AND policyname='Assistant/admin outreach') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin outreach" ON public.outreach_log FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+-- ── Push Subscriptions Policies ──────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policy WHERE tablename='push_subscriptions' AND policyname='Own push sub') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Own push sub" ON public.push_subscriptions FOR ALL TO authenticated USING (user_id = auth.uid()); END IF;
+END $$;
+
+-- ══════════════════════════════════════════════════════════════
+-- 9. FOREIGN KEY CASCADE FIXES — Run these in Supabase SQL editor
+-- ══════════════════════════════════════════════════════════════
+-- These fix patient deletion when patient has linked records
 
 -- Fix: Add ON DELETE CASCADE to drug_dispensing.patient_id
 ALTER TABLE public.drug_dispensing DROP CONSTRAINT IF EXISTS drug_dispensing_patient_id_fkey;
@@ -443,3 +598,10 @@ ALTER TABLE public.payments ADD CONSTRAINT payments_patient_id_fkey
 ALTER TABLE public.outreach_log DROP CONSTRAINT IF EXISTS outreach_log_patient_id_fkey;
 ALTER TABLE public.outreach_log ADD CONSTRAINT outreach_log_patient_id_fkey
   FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
+
+-- Fix: Add ON DELETE CASCADE to messages.patient_id (if messages has patient_id FK)
+DO $$
+BEGIN
+  ALTER TABLE public.messages DROP CONSTRAINT IF EXISTS messages_patient_id_fkey;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
