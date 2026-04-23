@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 
@@ -15,7 +15,6 @@ type FormData = z.infer<typeof schema>
 
 export function LoginPage() {
   const location = useLocation()
-  const navigate = useNavigate()
   const successMessage = (location.state as any)?.message
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -27,29 +26,42 @@ export function LoginPage() {
     setError('')
     setIsLoading(true)
 
-    // Safety timeout — if login takes more than 10s, show error
-    const timeout = setTimeout(() => {
-      setError('Login timed out. Check your connection and try again.')
-      setIsLoading(false)
-    }, 10000)
-
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
-      clearTimeout(timeout)
-      if (authError) throw authError
-      if (!authData?.user) throw new Error('Login failed — no user returned')
+
+      if (authError) {
+        const msg = authError.message || 'Login failed'
+        if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
+          setError('Incorrect email or password.')
+        } else if (msg.toLowerCase().includes('email not confirmed')) {
+          setError('Email not confirmed. Contact your administrator.')
+        } else {
+          setError(msg)
+        }
+        setIsLoading(false)
+        return
+      }
+
+      if (!authData?.user) {
+        setError('Login failed — no user returned. Contact your administrator.')
+        setIsLoading(false)
+        return
+      }
 
       const userId = authData.user.id
       const { data: profile } = await supabase
         .from('profiles').select('*').eq('id', userId).single()
+
       const role = profile?.role ?? authData.user.user_metadata?.role ?? 'assistant'
-      navigate(`/${role}`, { replace: true })
+
+      setIsLoading(false)
+
+      window.location.href = `/${role}`
     } catch (err) {
-      clearTimeout(timeout)
-      const msg = (err as any)?.message ?? (err as any)?.error_description ?? 'Login failed'
+      const msg = err instanceof Error ? err.message : 'Login failed'
       if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
         setError('Incorrect email or password.')
       } else if (msg.toLowerCase().includes('email not confirmed')) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -97,7 +97,7 @@ export function PatientDetailPage() {
         enabled: !!id,
     })
 
-    const { data: appointments = [] } = useQuery({
+    const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
         queryKey: ['patient-appointments', id],
         queryFn: async () => {
             const { data } = await supabase.from('appointments')
@@ -108,7 +108,7 @@ export function PatientDetailPage() {
         enabled: !!id && tab === 'appointments',
     })
 
-    const { data: caseNotes = [], isError: caseNotesError } = useQuery({
+    const { data: caseNotes = [], isError: caseNotesError, isLoading: caseNotesLoading } = useQuery({
         queryKey: ['patient-notes', id],
         queryFn: async () => {
             const { data, error } = await supabase.from('case_notes')
@@ -277,7 +277,12 @@ export function PatientDetailPage() {
                     {tab === 'appointments' && (
                         <Card>
                             <CardContent className="p-0">
-                                {appointments.length === 0 ? (
+                                {appointmentsLoading ? (
+                                    <div className="text-center py-10 text-slate-400">
+                                        <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
+                                        <p className="text-sm">Loading appointments...</p>
+                                    </div>
+                                ) : appointments.length === 0 ? (
                                     <div className="text-center py-10 text-slate-400">
                                         <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
                                         <p className="text-sm">No appointments yet</p>
@@ -309,6 +314,11 @@ export function PatientDetailPage() {
                                     </div>
                                     <p className="text-sm text-red-500 font-medium">Failed to load case notes</p>
                                     <p className="text-xs text-red-400 mt-1">You may not have permission to view case notes.</p>
+                                </div>
+                            ) : caseNotesLoading ? (
+                                <div className="text-center py-10 text-slate-400">
+                                    <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
+                                    <p className="text-sm">Loading case notes...</p>
                                 </div>
                             ) : caseNotes.length === 0 ? (
                                 <div className="text-center py-10 text-slate-400">
