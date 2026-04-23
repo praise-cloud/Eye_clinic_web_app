@@ -98,11 +98,28 @@ export function GlassesOrdersPage() {
     const advanceMutation = useMutation({
         mutationFn: async ({ id, status }: { id: string; status: string }) => {
             const update: Record<string, unknown> = { status }
-            if (status === 'dispensed') { update.dispensed_by = profile!.id; update.dispensed_at = new Date().toISOString() }
+            if (status === 'dispensed') {
+                update.dispensed_by = profile!.id
+                update.dispensed_at = new Date().toISOString()
+            }
             await supabase.from('glasses_orders').update(update).eq('id', id)
+
+            if (status === 'dispensed') {
+                const order = orders.find(o => o.id === id)
+                if (order?.frame_id) {
+                    const { data: frame } = await supabase
+                        .from('glasses_inventory').select('quantity').eq('id', order.frame_id).single()
+                    if (frame && frame.quantity > 0) {
+                        await supabase.from('glasses_inventory')
+                            .update({ quantity: frame.quantity - 1 })
+                            .eq('id', order.frame_id)
+                    }
+                }
+            }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-orders'] })
+            qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
             notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order status has been updated.', link: '/assistant/glasses-orders' })
         },
     })
