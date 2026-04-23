@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS public.drugs (
 -- ── DRUG DISPENSING ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.drug_dispensing (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  patient_id        UUID NOT NULL REFERENCES public.patients(id),
+  patient_id        UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
   drug_id           UUID NOT NULL REFERENCES public.drugs(id),
   dispensed_by      UUID NOT NULL REFERENCES public.profiles(id),
   prescription_note TEXT,
@@ -264,7 +264,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation
 -- ── OUTREACH LOG ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.outreach_log (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  patient_id        UUID NOT NULL REFERENCES public.patients(id),
+  patient_id        UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
   sent_by           UUID NOT NULL REFERENCES public.profiles(id),
   channel           TEXT CHECK (channel IN ('sms','email','whatsapp')),
   message_template  TEXT,
@@ -405,3 +405,41 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.drug_dispensing;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.glasses_orders;
+
+-- ══════════════════════════════════════════════════════════════
+-- 8. MIGRATION FIXES — Run these in Supabase SQL editor
+-- ══════════════════════════════════════════════════════════════
+
+-- Fix: Add DELETE policy for patients (was missing)
+DO $$
+DECLARE
+  _exists bool;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM pg_policy WHERE tablename = 'patients' AND policyname = 'Assistant/admin delete patients'
+  ) INTO _exists;
+  IF NOT _exists THEN
+    CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated
+      USING (get_user_role() IN ('assistant','admin'));
+  END IF;
+END $$;
+
+-- Fix: Add ON DELETE CASCADE to drug_dispensing.patient_id
+ALTER TABLE public.drug_dispensing DROP CONSTRAINT IF EXISTS drug_dispensing_patient_id_fkey;
+ALTER TABLE public.drug_dispensing ADD CONSTRAINT drug_dispensing_patient_id_fkey
+  FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
+
+-- Fix: Add ON DELETE CASCADE to glasses_orders.patient_id
+ALTER TABLE public.glasses_orders DROP CONSTRAINT IF EXISTS glasses_orders_patient_id_fkey;
+ALTER TABLE public.glasses_orders ADD CONSTRAINT glasses_orders_patient_id_fkey
+  FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
+
+-- Fix: Add ON DELETE CASCADE to payments.patient_id
+ALTER TABLE public.payments DROP CONSTRAINT IF EXISTS payments_patient_id_fkey;
+ALTER TABLE public.payments ADD CONSTRAINT payments_patient_id_fkey
+  FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
+
+-- Fix: Add ON DELETE CASCADE to outreach_log.patient_id
+ALTER TABLE public.outreach_log DROP CONSTRAINT IF EXISTS outreach_log_patient_id_fkey;
+ALTER TABLE public.outreach_log ADD CONSTRAINT outreach_log_patient_id_fkey
+  FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
