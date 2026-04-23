@@ -3,7 +3,13 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const Modal = DialogPrimitive.Root
+const Modal = ({
+    open,
+    onOpenChange,
+    ...props
+}: React.ComponentProps<typeof DialogPrimitive.Root>) => (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />
+)
 const ModalTrigger = DialogPrimitive.Trigger
 const ModalClose = DialogPrimitive.Close
 
