@@ -78,8 +78,6 @@ function AuthProvider() {
 
     checkSession()
 
-    return () => clearTimeout(timeout)
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'TOKEN_REFRESHED' && session?.user) {
         setUser(session.user)
@@ -118,7 +116,10 @@ function AuthProvider() {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [])
 
   if (!initialCheckDone) {

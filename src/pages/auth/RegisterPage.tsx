@@ -26,6 +26,23 @@ export function RegisterPage() {
   const [serverError, setServerError] = useState('')
   const [role, setRole] = useState<string>('')
 
+  // Check if service key is available
+  if (!SERVICE_KEY) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4 py-8">
+        <div className="w-full max-w-md text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-red-500 mb-3">
+            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold">Configuration Error</h1>
+          <p className="text-muted-foreground text-sm mt-2">Registration is not available. Please contact your administrator.</p>
+        </div>
+      </div>
+    )
+  }
+
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
@@ -75,7 +92,7 @@ export function RegisterPage() {
           <p className="text-muted-foreground text-sm mt-1">Create your staff account</p>
         </div>
 
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
           <h2 className="text-base font-semibold mb-5">Register</h2>
 
           {serverError && (

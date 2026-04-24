@@ -34,10 +34,12 @@ export function LoginPage() {
 
       if (authError) {
         const msg = authError.message || 'Login failed'
-        if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
+        if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials') || msg.toLowerCase().includes('wrong')) {
           setError('Incorrect email or password.')
         } else if (msg.toLowerCase().includes('email not confirmed')) {
           setError('Email not confirmed. Contact your administrator.')
+        } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('connection')) {
+          setError('Network error. Please check your connection and try again.')
         } else {
           setError(msg)
         }
@@ -46,16 +48,15 @@ export function LoginPage() {
       }
 
       // Navigation will be handled by onAuthStateChange in App.tsx
-      // Just show success state - user will be redirected automatically
       setIsLoading(false)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed'
-      if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
+      if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('connection') || msg.toLowerCase().includes('failed to')) {
+        setError('Connection error. Please check your internet and try again.')
+      } else if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials') || msg.toLowerCase().includes('wrong')) {
         setError('Incorrect email or password.')
       } else if (msg.toLowerCase().includes('email not confirmed')) {
         setError('Email not confirmed. Contact your administrator.')
-      } else if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
-        setError('Network error. Please check your connection and try again.')
       } else {
         setError(msg)
       }
@@ -66,7 +67,7 @@ export function LoginPage() {
   return (
         <div className="min-h-screen flex bg-background">
             {/* Left branding panel — desktop only */}
-            <div className="hidden lg:flex flex-col justify-between w-[420px] bg-slate-900 p-10 flex-shrink-0">
+            <div className="hidden lg:flex flex-col justify-between w-[420px] bg-slate-900 dark:bg-slate-950 p-10 flex-shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center">
                         <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
