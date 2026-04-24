@@ -54,12 +54,12 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-card hover:shadow-card-md transition-all">
+        <div className="bg-card rounded-2xl border border-border shadow-card hover:shadow-card-md transition-all">
             <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <Link to={`/patients/${note.patient_id}`} className="font-semibold text-sm text-slate-900 hover:text-primary transition-colors">
+                            <Link to={`/patients/${note.patient_id}`} className="font-semibold text-sm text-foreground hover:text-primary transition-colors">
                                 {(note.patient as any)?.first_name} {(note.patient as any)?.last_name}
                             </Link>
                             <span className="text-xs text-slate-400 font-mono">{(note.patient as any)?.patient_number}</span>
@@ -232,7 +232,7 @@ export function CaseNotesPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Case Notes</h1>
+                    <h1 className="text-xl font-bold text-foreground">Case Notes</h1>
                     <p className="text-sm text-slate-500">{notes.length} notes</p>
                 </div>
                 <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">

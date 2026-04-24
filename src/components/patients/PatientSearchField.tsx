@@ -101,7 +101,7 @@ export function PatientSearchField({
 
                 {/* Dropdown */}
                 {open && query.length >= 2 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-2xl shadow-card-xl z-50 overflow-hidden max-h-56 overflow-y-auto scrollbar-thin">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-card-xl z-50 overflow-hidden max-h-56 overflow-y-auto scrollbar-thin">
                         {results.length === 0 ? (
                             <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400">
                                 <User className="w-4 h-4" />
@@ -113,7 +113,7 @@ export function PatientSearchField({
                                     key={p.id}
                                     type="button"
                                     onClick={() => handleSelect(p)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0"
+                                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left border-b border-slate-50 last:border-0"
                                 >
                                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
                                         {p.first_name[0]}{p.last_name[0]}

@@ -69,7 +69,7 @@ export function NotificationBell() {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-slate-100 rounded-2xl shadow-card-xl z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-card border border-border rounded-2xl shadow-card-xl z-50 overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                         <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export function NotificationBell() {
                         </div>
                         <div className="flex items-center gap-1">
                             {unreadCount > 0 && (
-                                <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors">
+                                <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 px-2 py-1 rounded-lg hover:bg-accent transition-colors">
                                     <CheckCheck className="w-3.5 h-3.5" />Mark all read
                                 </button>
                             )}
@@ -109,7 +109,7 @@ export function NotificationBell() {
                                         key={n.id}
                                         onClick={() => markRead(n.id)}
                                         className={cn(
-                                            'flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0',
+                                            'flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors cursor-pointer border-b border-slate-50 last:border-0',
                                             !n.read && 'bg-blue-50/40'
                                         )}
                                     >

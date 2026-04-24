@@ -106,8 +106,8 @@ export function DispensingPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Drug Dispensing</h1>
-                    <p className="text-sm text-slate-500">Dispense drugs to patients</p>
+                    <h1 className="text-xl font-bold text-foreground900">Drug Dispensing</h1>
+                    <p className="text-sm text-foreground500">Dispense drugs to patients</p>
                 </div>
                 <Button size="sm" onClick={() => { reset(); setOpen(true); setPatientDisplay(''); setDrugSearch(''); setSelectedDrug(null) }} className="gap-1.5">
                     <Pill className="w-3.5 h-3.5" />Dispense Drug
@@ -127,23 +127,23 @@ export function DispensingPage() {
                         <CardHeader><CardTitle>Recent Dispensing</CardTitle></CardHeader>
                         <CardContent className="p-0">
                             {isLoading ? <div className="p-4 space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}</div>
-                                : recentDispensing.length === 0 ? <p className="text-center py-10 text-slate-400 text-sm">No dispensing records</p>
+                                : recentDispensing.length === 0 ? <p className="text-center py-10 text-foreground400 text-sm">No dispensing records</p>
                                     : (
                                         <div className="divide-y divide-slate-50">
                                             {recentDispensing.map(d => (
                                                 <div key={d.id} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors group">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-slate-900">{(d.patient as any)?.first_name} {(d.patient as any)?.last_name}</p>
-                                                        <p className="text-xs text-slate-400">{(d.drug as any)?.name} × {d.quantity} {(d.drug as any)?.unit} · {formatDate(d.dispensed_at)}</p>
+                                                        <p className="text-sm font-semibold text-foreground900">{(d.patient as any)?.first_name} {(d.patient as any)?.last_name}</p>
+                                                        <p className="text-xs text-foreground400">{(d.drug as any)?.name} × {d.quantity} {(d.drug as any)?.unit} · {formatDate(d.dispensed_at)}</p>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <div className="text-right">
                                                             <p className="text-sm font-bold text-emerald-600">{formatCurrency(d.total_price ?? (d.unit_price * d.quantity))}</p>
-                                                            <p className="text-xs text-slate-400">@ {formatCurrency(d.unit_price)}/{(d.drug as any)?.unit}</p>
+                                                            <p className="text-xs text-foreground400">@ {formatCurrency(d.unit_price)}/{(d.drug as any)?.unit}</p>
                                                         </div>
                                                         <button
                                                             onClick={() => deleteMutation.mutate(d.id)}
-                                                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all"
+                                                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-foreground300 hover:text-red-500 transition-all"
                                                             title="Delete record"
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
@@ -160,12 +160,12 @@ export function DispensingPage() {
                 <Card>
                     <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" />Low Stock</CardTitle></CardHeader>
                     <CardContent className="p-0">
-                        {lowStock.length === 0 ? <p className="text-center py-6 text-sm text-slate-400">All stock levels OK ✓</p>
+                        {lowStock.length === 0 ? <p className="text-center py-6 text-sm text-foreground400">All stock levels OK ✓</p>
                             : (
                                 <div className="divide-y divide-slate-50">
                                     {lowStock.map((d: any) => (
                                         <div key={d.id} className="px-4 py-2.5">
-                                            <p className="text-sm font-medium text-slate-900">{d.name}</p>
+                                            <p className="text-sm font-medium text-foreground900">{d.name}</p>
                                             <p className="text-xs text-amber-600">{d.quantity} left (min: {d.reorder_level})</p>
                                         </div>
                                     ))}
@@ -193,7 +193,7 @@ export function DispensingPage() {
                             />
 
                             <div>
-                                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Drug</label>
+                                <label className="text-xs font-semibold text-foreground600 uppercase tracking-wide">Drug</label>
                                 <input className="mt-1.5 w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search drug name..." value={drugSearch} onChange={e => setDrugSearch(e.target.value)} />
                                 {drugs.length > 0 && (
                                     <div className="mt-1 border border-slate-100 rounded-xl divide-y max-h-40 overflow-y-auto bg-white shadow-card-md">
@@ -201,7 +201,7 @@ export function DispensingPage() {
                                             <button key={d.id} type="button" className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors"
                                                 onClick={() => { setValue('drug_id', d.id); setSelectedDrug(d); setDrugSearch(`${d.name} (${d.quantity} in stock)`) }}>
                                                 <span className="font-medium">{d.name}</span>
-                                                <span className="text-slate-400 ml-2 text-xs">{d.quantity} {d.unit} · {formatCurrency(d.selling_price)}</span>
+                                                <span className="text-foreground400 ml-2 text-xs">{d.quantity} {d.unit} · {formatCurrency(d.selling_price)}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -210,8 +210,8 @@ export function DispensingPage() {
 
                             {selectedDrug && (
                                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm space-y-1">
-                                    <p className="font-semibold text-slate-900">{selectedDrug.name}</p>
-                                    <p className="text-slate-500">Price: {formatCurrency(selectedDrug.selling_price)} / {selectedDrug.unit} · Stock: {selectedDrug.quantity}</p>
+                                    <p className="font-semibold text-foreground900">{selectedDrug.name}</p>
+                                    <p className="text-foreground500">Price: {formatCurrency(selectedDrug.selling_price)} / {selectedDrug.unit} · Stock: {selectedDrug.quantity}</p>
                                     {qty > 0 && <p className="font-bold text-emerald-600">Total: {formatCurrency(selectedDrug.selling_price * qty)}</p>}
                                 </div>
                             )}

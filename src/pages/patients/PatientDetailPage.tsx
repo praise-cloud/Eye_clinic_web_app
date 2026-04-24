@@ -37,15 +37,15 @@ function DecryptedNote({ note }: { note: CaseNote }) {
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-card p-4">
+        <div className="bg-card border border-border text-foreground">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900">{note.chief_complaint || 'Case Note'}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-sm font-semibold text-foreground900">{note.chief_complaint || 'Case Note'}</p>
+                    <p className="text-xs text-foreground400 mt-0.5">
                         Dr. {(note.doctor as any)?.full_name} · {formatDate(note.created_at)}
                     </p>
                     {note.treatment_plan && !expanded && (
-                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">Treatment: {note.treatment_plan}</p>
+                        <p className="text-xs text-foreground500 mt-1 line-clamp-1">Treatment: {note.treatment_plan}</p>
                     )}
                 </div>
                 <button onClick={decrypt} className="text-xs text-primary hover:underline flex-shrink-0 font-medium">
@@ -56,23 +56,23 @@ function DecryptedNote({ note }: { note: CaseNote }) {
             {expanded && (
                 <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
                     {(decrypted.history || note.history) && (
-                        <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">History</p>
-                            <p className="text-sm text-slate-700 bg-slate-50 rounded-xl p-3">{decrypted.history || note.history}</p></div>
+                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">History</p>
+                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3">{decrypted.history || note.history}</p></div>
                     )}
                     {(decrypted.examination || note.examination) && (
-                        <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Examination</p>
-                            <p className="text-sm text-slate-700 bg-slate-50 rounded-xl p-3 whitespace-pre-line">{decrypted.examination || note.examination}</p></div>
+                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Examination</p>
+                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3 whitespace-pre-line">{decrypted.examination || note.examination}</p></div>
                     )}
                     {(decrypted.diagnosis || note.diagnosis) && (
-                        <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Diagnosis</p>
-                            <p className="text-sm text-slate-700 bg-slate-50 rounded-xl p-3">{decrypted.diagnosis || note.diagnosis}</p></div>
+                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Diagnosis</p>
+                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3">{decrypted.diagnosis || note.diagnosis}</p></div>
                     )}
                     {note.treatment_plan && (
-                        <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Treatment Plan</p>
-                            <p className="text-sm text-slate-700 bg-slate-50 rounded-xl p-3">{note.treatment_plan}</p></div>
+                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Treatment Plan</p>
+                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3">{note.treatment_plan}</p></div>
                     )}
                     {note.follow_up_date && (
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 text-xs text-foreground500">
                             <Calendar className="w-3.5 h-3.5" />Follow-up: {formatDate(note.follow_up_date)}
                         </div>
                     )}
@@ -164,7 +164,7 @@ export function PatientDetailPage() {
 
     if (!patient) return (
         <div className="text-center py-20">
-            <p className="text-slate-500">Patient not found</p>
+            <p className="text-foreground500">Patient not found</p>
             <Link to={backHref}><Button className="mt-4" variant="outline">Back to Patients</Button></Link>
         </div>
     )
@@ -177,8 +177,8 @@ export function PatientDetailPage() {
                     <Button variant="ghost" size="icon" className="rounded-xl"><ArrowLeft className="w-4 h-4" /></Button>
                 </Link>
                 <div className="flex-1 min-w-0">
-                    <h1 className="text-xl font-bold text-slate-900 truncate">{patient.first_name} {patient.last_name}</h1>
-                    <p className="text-sm text-slate-400 font-mono">{patient.patient_number}</p>
+                    <h1 className="text-xl font-bold text-foreground900 truncate">{patient.first_name} {patient.last_name}</h1>
+                    <p className="text-sm text-foreground400 font-mono">{patient.patient_number}</p>
                 </div>
                 {/* Quick actions based on role */}
                 <div className="flex gap-2 flex-shrink-0">
@@ -219,8 +219,8 @@ export function PatientDetailPage() {
                             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xl font-bold mb-3 shadow-sm">
                                 {patient.first_name[0]}{patient.last_name[0]}
                             </div>
-                            <p className="font-bold text-slate-900">{patient.first_name} {patient.last_name}</p>
-                            <p className="text-xs text-slate-400 font-mono mt-0.5">{patient.patient_number}</p>
+                            <p className="font-bold text-foreground900">{patient.first_name} {patient.last_name}</p>
+                            <p className="text-xs text-foreground400 font-mono mt-0.5">{patient.patient_number}</p>
                             {patient.subscription_type && patient.subscription_type !== 'none' && (
                                 <Badge variant="success" className="mt-2 capitalize">{patient.subscription_type}</Badge>
                             )}
@@ -237,12 +237,12 @@ export function PatientDetailPage() {
                         )}
 
                         <div className="space-y-2 text-sm">
-                            {patient.gender && <div className="flex justify-between"><span className="text-slate-400 text-xs">Gender</span><span className="capitalize text-sm">{patient.gender}</span></div>}
-                            {patient.date_of_birth && <div className="flex justify-between"><span className="text-slate-400 text-xs">DOB</span><span className="text-sm">{formatDate(patient.date_of_birth)}</span></div>}
-                            {patient.blood_group && <div className="flex justify-between"><span className="text-slate-400 text-xs">Blood Group</span><span className="text-sm font-semibold">{patient.blood_group}</span></div>}
-                            {patient.phone && <div className="flex items-center gap-2 text-slate-500 text-xs"><Phone className="w-3 h-3" />{patient.phone}</div>}
-                            {patient.email && <div className="flex items-center gap-2 text-slate-500 text-xs"><Mail className="w-3 h-3" /><span className="truncate">{patient.email}</span></div>}
-                            {patient.address && <div className="flex items-start gap-2 text-slate-500 text-xs"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />{patient.address}</div>}
+                            {patient.gender && <div className="flex justify-between"><span className="text-foreground400 text-xs">Gender</span><span className="capitalize text-sm">{patient.gender}</span></div>}
+                            {patient.date_of_birth && <div className="flex justify-between"><span className="text-foreground400 text-xs">DOB</span><span className="text-sm">{formatDate(patient.date_of_birth)}</span></div>}
+                            {patient.blood_group && <div className="flex justify-between"><span className="text-foreground400 text-xs">Blood Group</span><span className="text-sm font-semibold">{patient.blood_group}</span></div>}
+                            {patient.phone && <div className="flex items-center gap-2 text-foreground500 text-xs"><Phone className="w-3 h-3" />{patient.phone}</div>}
+                            {patient.email && <div className="flex items-center gap-2 text-foreground500 text-xs"><Mail className="w-3 h-3" /><span className="truncate">{patient.email}</span></div>}
+                            {patient.address && <div className="flex items-start gap-2 text-foreground500 text-xs"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />{patient.address}</div>}
                         </div>
                     </CardContent>
                 </Card>
@@ -252,7 +252,7 @@ export function PatientDetailPage() {
                     <div className="flex gap-0.5 border-b border-slate-100 overflow-x-auto scrollbar-thin">
                         {tabs.map(t => (
                             <button key={t.id} onClick={() => setTab(t.id)}
-                                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${tab === t.id ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-700'
+                                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${tab === t.id ? 'border-primary text-primary' : 'border-transparent text-foreground400 hover:text-foreground700'
                                     }`}>
                                 <t.icon className="w-3.5 h-3.5" />{t.label}
                             </button>
@@ -263,12 +263,12 @@ export function PatientDetailPage() {
                     {tab === 'overview' && (
                         <Card>
                             <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                <div><p className="text-xs text-slate-400 mb-1">Occupation</p><p className="font-medium">{patient.occupation || '—'}</p></div>
-                                <div><p className="text-xs text-slate-400 mb-1">Next of Kin</p><p className="font-medium">{patient.next_of_kin_name || '—'}</p></div>
-                                <div><p className="text-xs text-slate-400 mb-1">Kin Phone</p><p className="font-medium">{patient.next_of_kin_phone || '—'}</p></div>
-                                <div><p className="text-xs text-slate-400 mb-1">Subscription</p><p className="font-medium capitalize">{patient.subscription_type || 'None'}</p></div>
-                                {patient.subscription_end && <div><p className="text-xs text-slate-400 mb-1">Subscription Ends</p><p className="font-medium">{formatDate(patient.subscription_end)}</p></div>}
-                                <div><p className="text-xs text-slate-400 mb-1">Registered</p><p className="font-medium">{formatDate(patient.created_at)}</p></div>
+                                <div><p className="text-xs text-foreground400 mb-1">Occupation</p><p className="font-medium">{patient.occupation || '—'}</p></div>
+                                <div><p className="text-xs text-foreground400 mb-1">Next of Kin</p><p className="font-medium">{patient.next_of_kin_name || '—'}</p></div>
+                                <div><p className="text-xs text-foreground400 mb-1">Kin Phone</p><p className="font-medium">{patient.next_of_kin_phone || '—'}</p></div>
+                                <div><p className="text-xs text-foreground400 mb-1">Subscription</p><p className="font-medium capitalize">{patient.subscription_type || 'None'}</p></div>
+                                {patient.subscription_end && <div><p className="text-xs text-foreground400 mb-1">Subscription Ends</p><p className="font-medium">{formatDate(patient.subscription_end)}</p></div>}
+                                <div><p className="text-xs text-foreground400 mb-1">Registered</p><p className="font-medium">{formatDate(patient.created_at)}</p></div>
                             </CardContent>
                         </Card>
                     )}
@@ -278,12 +278,12 @@ export function PatientDetailPage() {
                         <Card>
                             <CardContent className="p-0">
                                 {appointmentsLoading ? (
-                                    <div className="text-center py-10 text-slate-400">
+                                    <div className="text-center py-10 text-foreground400">
                                         <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
                                         <p className="text-sm">Loading appointments...</p>
                                     </div>
                                 ) : appointments.length === 0 ? (
-                                    <div className="text-center py-10 text-slate-400">
+                                    <div className="text-center py-10 text-foreground400">
                                         <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
                                         <p className="text-sm">No appointments yet</p>
                                     </div>
@@ -292,8 +292,8 @@ export function PatientDetailPage() {
                                         {appointments.map(a => (
                                             <div key={a.id} className="flex items-center justify-between px-5 py-3">
                                                 <div>
-                                                    <p className="text-sm font-medium text-slate-900 capitalize">{a.appointment_type.replace('_', ' ')}</p>
-                                                    <p className="text-xs text-slate-400">{formatDateTime(a.scheduled_at)} · Dr. {(a.doctor as any)?.full_name}</p>
+                                                    <p className="text-sm font-medium text-foreground900 capitalize">{a.appointment_type.replace('_', ' ')}</p>
+                                                    <p className="text-xs text-foreground400">{formatDateTime(a.scheduled_at)} · Dr. {(a.doctor as any)?.full_name}</p>
                                                 </div>
                                                 <Badge variant={statusColor[a.status] ?? 'default'} className="text-xs">{a.status.replace('_', ' ')}</Badge>
                                             </div>
@@ -316,12 +316,12 @@ export function PatientDetailPage() {
                                     <p className="text-xs text-red-400 mt-1">You may not have permission to view case notes.</p>
                                 </div>
                             ) : caseNotesLoading ? (
-                                <div className="text-center py-10 text-slate-400">
+                                <div className="text-center py-10 text-foreground400">
                                     <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
                                     <p className="text-sm">Loading case notes...</p>
                                 </div>
                             ) : caseNotes.length === 0 ? (
-                                <div className="text-center py-10 text-slate-400">
+                                <div className="text-center py-10 text-foreground400">
                                     <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
                                     <p className="text-sm">No case notes yet</p>
                                     {profile?.role === 'doctor' && (
@@ -340,7 +340,7 @@ export function PatientDetailPage() {
                     {tab === 'prescriptions' && (
                         <div className="space-y-3">
                             {prescriptions.length === 0 ? (
-                                <div className="text-center py-10 text-slate-400">
+                                <div className="text-center py-10 text-foreground400">
                                     <Pill className="w-8 h-8 mx-auto mb-2 opacity-30" />
                                     <p className="text-sm">No prescriptions yet</p>
                                     {profile?.role === 'assistant' && (
@@ -355,36 +355,36 @@ export function PatientDetailPage() {
                                         <CardContent className="p-4">
                                             <div className="flex items-start justify-between mb-3">
                                                 <div>
-                                                    <p className="text-sm font-semibold text-slate-900 capitalize">{rx.lens_type?.replace('_', ' ') || 'Glasses Prescription'}</p>
-                                                    <p className="text-xs text-slate-400">Dr. {(rx.doctor as any)?.full_name} · {formatDate(rx.created_at)}</p>
+                                                    <p className="text-sm font-semibold text-foreground900 capitalize">{rx.lens_type?.replace('_', ' ') || 'Glasses Prescription'}</p>
+                                                    <p className="text-xs text-foreground400">Dr. {(rx.doctor as any)?.full_name} · {formatDate(rx.created_at)}</p>
                                                 </div>
                                                 {rx.pd && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg font-medium">PD: {rx.pd}mm</span>}
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 text-xs">
                                                 <div>
-                                                    <p className="font-semibold text-slate-500 uppercase tracking-wide text-[10px] mb-1">Right Eye (OD)</p>
+                                                    <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Right Eye (OD)</p>
                                                     <div className="grid grid-cols-4 gap-1 text-center bg-slate-50 rounded-xl p-2">
-                                                        {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-slate-400 text-[10px]">{l}</p>)}
+                                                        {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
                                                         <p className="font-medium">{rx.re_sphere ?? '—'}</p>
                                                         <p className="font-medium">{rx.re_cylinder ?? '—'}</p>
                                                         <p className="font-medium">{rx.re_axis ?? '—'}</p>
                                                         <p className="font-medium">{rx.re_add ?? '—'}</p>
                                                     </div>
-                                                    {rx.re_va && <p className="text-slate-500 mt-1">VA: {rx.re_va}</p>}
+                                                    {rx.re_va && <p className="text-foreground500 mt-1">VA: {rx.re_va}</p>}
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-slate-500 uppercase tracking-wide text-[10px] mb-1">Left Eye (OS)</p>
+                                                    <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Left Eye (OS)</p>
                                                     <div className="grid grid-cols-4 gap-1 text-center bg-slate-50 rounded-xl p-2">
-                                                        {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-slate-400 text-[10px]">{l}</p>)}
+                                                        {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
                                                         <p className="font-medium">{rx.le_sphere ?? '—'}</p>
                                                         <p className="font-medium">{rx.le_cylinder ?? '—'}</p>
                                                         <p className="font-medium">{rx.le_axis ?? '—'}</p>
                                                         <p className="font-medium">{rx.le_add ?? '—'}</p>
                                                     </div>
-                                                    {rx.le_va && <p className="text-slate-500 mt-1">VA: {rx.le_va}</p>}
+                                                    {rx.le_va && <p className="text-foreground500 mt-1">VA: {rx.le_va}</p>}
                                                 </div>
                                             </div>
-                                            {rx.notes && <p className="text-xs text-slate-400 mt-2">{rx.notes}</p>}
+                                            {rx.notes && <p className="text-xs text-foreground400 mt-2">{rx.notes}</p>}
                                         </CardContent>
                                     </Card>
                                 ))
@@ -397,7 +397,7 @@ export function PatientDetailPage() {
                         <Card>
                             <CardContent className="p-0">
                                 {payments.length === 0 ? (
-                                    <div className="text-center py-10 text-slate-400">
+                                    <div className="text-center py-10 text-foreground400">
                                         <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-30" />
                                         <p className="text-sm">No payment records</p>
                                     </div>
@@ -406,8 +406,8 @@ export function PatientDetailPage() {
                                         {payments.map(p => (
                                             <div key={p.id} className="flex items-center justify-between px-5 py-3">
                                                 <div>
-                                                    <p className="text-sm font-medium text-slate-900 capitalize">{p.payment_type.replace('_', ' ')}</p>
-                                                    <p className="text-xs text-slate-400">{p.receipt_number} · {formatDate(p.paid_at)}</p>
+                                                    <p className="text-sm font-medium text-foreground900 capitalize">{p.payment_type.replace('_', ' ')}</p>
+                                                    <p className="text-xs text-foreground400">{p.receipt_number} · {formatDate(p.paid_at)}</p>
                                                 </div>
                                                 <p className="text-sm font-bold text-emerald-600">{formatCurrency(p.amount)}</p>
                                             </div>

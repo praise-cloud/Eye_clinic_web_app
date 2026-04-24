@@ -68,8 +68,8 @@ export function AssistantDashboard() {
     return (
         <div className="space-y-5">
             <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900">Hello, {profile?.full_name?.split(' ')[0]} 👋</h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <h2 className="text-lg sm:text-xl font-bold text-foreground900">Hello, {profile?.full_name?.split(' ')[0]} 👋</h2>
+                <p className="text-xs sm:text-sm text-foreground500 mt-0.5">{new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
 
             {/* Stats */}
@@ -82,8 +82,8 @@ export function AssistantDashboard() {
                                     <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs text-slate-500 truncate">{stat.label}</p>
-                                    <p className="text-xl sm:text-2xl font-bold text-slate-900">{isLoading ? '—' : stat.value}</p>
+                                    <p className="text-xs text-foreground500 truncate">{stat.label}</p>
+                                    <p className="text-xl sm:text-2xl font-bold text-foreground900">{isLoading ? '—' : stat.value}</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -107,21 +107,21 @@ export function AssistantDashboard() {
                             {aptsLoading ? (
                                 <div className="p-4 space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-xl" />)}</div>
                             ) : appointments.length === 0 ? (
-                                <div className="text-center py-10 text-slate-400">
+                                <div className="text-center py-10 text-foreground400">
                                     <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
                                     <p className="text-sm">No appointments today</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-50">
                                     {appointments.map((apt: any) => (
-                                        <div key={apt.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors">
+                                        <div key={apt.id} className="flex items-center justify-between px-4 py-3 hover:bg-accent transition-colors">
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
                                                     {apt.patient?.first_name?.[0]}{apt.patient?.last_name?.[0]}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-slate-900 truncate">{apt.patient?.first_name} {apt.patient?.last_name}</p>
-                                                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                                                    <p className="text-sm font-semibold text-foreground900 truncate">{apt.patient?.first_name} {apt.patient?.last_name}</p>
+                                                    <p className="text-xs text-foreground400 flex items-center gap-1">
                                                         <Clock className="w-3 h-3" />
                                                         {formatDateTime(apt.scheduled_at)} · Dr. {apt.doctor?.full_name}
                                                     </p>
@@ -152,12 +152,12 @@ export function AssistantDashboard() {
                     </CardHeader>
                     <CardContent className="p-0">
                         {lowStockDrugs.length === 0 ? (
-                            <p className="text-center py-6 text-sm text-slate-400">All stock levels OK ✓</p>
+                            <p className="text-center py-6 text-sm text-foreground400">All stock levels OK ✓</p>
                         ) : (
                             <div className="divide-y divide-slate-50">
                                 {lowStockDrugs.map((d: any) => (
                                     <div key={d.id} className="px-4 py-3">
-                                        <p className="text-sm font-medium text-slate-900">{d.name}</p>
+                                        <p className="text-sm font-medium text-foreground900">{d.name}</p>
                                         <p className="text-xs text-amber-600 mt-0.5">{d.quantity} left (min: {d.reorder_level})</p>
                                     </div>
                                 ))}

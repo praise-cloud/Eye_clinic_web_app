@@ -98,8 +98,8 @@ export function GlassesPrescriptionPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Glasses Prescriptions</h1>
-                    <p className="text-sm text-slate-500">{prescriptions.length} prescriptions</p>
+                    <h1 className="text-xl font-bold text-foreground900">Glasses Prescriptions</h1>
+                    <p className="text-sm text-foreground500">{prescriptions.length} prescriptions</p>
                 </div>
                 <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
                     <Plus className="w-3.5 h-3.5" />New Prescription
@@ -110,8 +110,8 @@ export function GlassesPrescriptionPage() {
                 <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}</div>
             ) : prescriptions.length === 0 ? (
                 <div className="text-center py-20">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><Glasses className="w-8 h-8 text-slate-300" /></div>
-                    <p className="text-slate-500 font-medium">No prescriptions yet</p>
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><Glasses className="w-8 h-8 text-foreground300" /></div>
+                    <p className="text-foreground500 font-medium">No prescriptions yet</p>
                     <Button className="mt-5 gap-1.5" size="sm" onClick={() => { reset(); setOpen(true) }}><Plus className="w-4 h-4" />New Prescription</Button>
                 </div>
             ) : (
@@ -121,10 +121,10 @@ export function GlassesPrescriptionPage() {
                             <CardContent className="p-4">
                                 <div className="flex items-start justify-between mb-3">
                                     <div>
-                                        <Link to={`/patients/${rx.patient_id}`} className="font-semibold text-sm text-slate-900 hover:text-primary transition-colors">
+                                        <Link to={`/patients/${rx.patient_id}`} className="font-semibold text-sm text-foreground900 hover:text-primary transition-colors">
                                             {(rx.patient as any)?.first_name} {(rx.patient as any)?.last_name}
                                         </Link>
-                                        <p className="text-xs text-slate-400 mt-0.5">
+                                        <p className="text-xs text-foreground400 mt-0.5">
                                             {(rx.patient as any)?.patient_number} · Dr. {(rx.doctor as any)?.full_name} · {formatDate(rx.created_at)}
                                         </p>
                                     </div>
@@ -141,24 +141,24 @@ export function GlassesPrescriptionPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-xs">
                                     <div className="space-y-1">
-                                        <p className="font-semibold text-slate-500 uppercase tracking-wide text-[10px]">Right Eye (OD)</p>
+                                        <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px]">Right Eye (OD)</p>
                                         <div className="grid grid-cols-4 gap-1 text-center">
-                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-slate-400 text-[10px]">{l}</p>)}
+                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
                                             <p>{rx.re_sphere ?? '—'}</p><p>{rx.re_cylinder ?? '—'}</p><p>{rx.re_axis ?? '—'}</p><p>{rx.re_add ?? '—'}</p>
                                         </div>
-                                        {rx.re_va && <p className="text-slate-500">VA: {rx.re_va}</p>}
+                                        {rx.re_va && <p className="text-foreground500">VA: {rx.re_va}</p>}
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="font-semibold text-slate-500 uppercase tracking-wide text-[10px]">Left Eye (OS)</p>
+                                        <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px]">Left Eye (OS)</p>
                                         <div className="grid grid-cols-4 gap-1 text-center">
-                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-slate-400 text-[10px]">{l}</p>)}
+                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
                                             <p>{rx.le_sphere ?? '—'}</p><p>{rx.le_cylinder ?? '—'}</p><p>{rx.le_axis ?? '—'}</p><p>{rx.le_add ?? '—'}</p>
                                         </div>
-                                        {rx.le_va && <p className="text-slate-500">VA: {rx.le_va}</p>}
+                                        {rx.le_va && <p className="text-foreground500">VA: {rx.le_va}</p>}
                                     </div>
                                 </div>
-                                {rx.pd && <p className="text-xs mt-2 text-slate-400">PD: {rx.pd}mm</p>}
-                                {rx.notes && <p className="text-xs mt-1 text-slate-400">{rx.notes}</p>}
+                                {rx.pd && <p className="text-xs mt-2 text-foreground400">PD: {rx.pd}mm</p>}
+                                {rx.notes && <p className="text-xs mt-1 text-foreground400">{rx.notes}</p>}
                             </CardContent>
                         </Card>
                     ))}
@@ -186,7 +186,7 @@ export function GlassesPrescriptionPage() {
                             </Select>
 
                             <div>
-                                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Right Eye (OD)</p>
+                                <p className="text-xs font-semibold text-foreground600 uppercase tracking-wide mb-2">Right Eye (OD)</p>
                                 <div className="grid grid-cols-5 gap-2">
                                     {[['re_sphere', 'Sph'], ['re_cylinder', 'Cyl'], ['re_axis', 'Axis'], ['re_add', 'Add'], ['re_va', 'VA']].map(([f, l]) => (
                                         <Input key={f} label={l} placeholder="—" {...register(f as any)} />
@@ -195,7 +195,7 @@ export function GlassesPrescriptionPage() {
                             </div>
 
                             <div>
-                                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Left Eye (OS)</p>
+                                <p className="text-xs font-semibold text-foreground600 uppercase tracking-wide mb-2">Left Eye (OS)</p>
                                 <div className="grid grid-cols-5 gap-2">
                                     {[['le_sphere', 'Sph'], ['le_cylinder', 'Cyl'], ['le_axis', 'Axis'], ['le_add', 'Add'], ['le_va', 'VA']].map(([f, l]) => (
                                         <Input key={f} label={l} placeholder="—" {...register(f as any)} />

@@ -164,7 +164,7 @@ export function SettingsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${theme !== 'dark' ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/50'}`}
                                 onClick={() => theme !== 'dark' && handleThemeToggle()}>
-                                <div className="rounded-lg bg-white border border-slate-200 overflow-hidden">
+                                <div className="rounded-lg bg-card border border-border overflow-hidden">
                                     <div className="h-8 bg-slate-100 border-b border-slate-200 flex items-center gap-1 px-2">
                                         <div className="w-2 h-2 rounded-full bg-red-400" />
                                         <div className="w-2 h-2 rounded-full bg-yellow-400" />

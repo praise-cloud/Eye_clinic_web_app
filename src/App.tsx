@@ -45,28 +45,40 @@ function AuthProvider() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user) {
-        setUser(session.user)
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-        if (data) {
-          setProfile(data as Profile)
-        } else {
-          const meta = session.user.user_metadata
-          const role = (meta?.role ?? 'assistant') as Profile['role']
-          const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
-          const { data: newProfile } = await supabase.from('profiles').upsert({
-            id: session.user.id, full_name, role, is_active: true,
-          }, { onConflict: 'id' }).select().single()
-          if (newProfile) setProfile(newProfile as Profile)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          setUser(session.user)
+          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          if (data) {
+            setProfile(data as Profile)
+          } else {
+            const meta = session.user.user_metadata
+            const role = (meta?.role ?? 'assistant') as Profile['role']
+            const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
+            const { data: newProfile } = await supabase.from('profiles').upsert({
+              id: session.user.id, full_name, role, is_active: true,
+            }, { onConflict: 'id' }).select().single()
+            if (newProfile) setProfile(newProfile as Profile)
+          }
         }
+      } catch (e) {
+        console.warn('Session check failed:', e)
+      } finally {
+        setLoading(false)
+        setInitialCheckDone(true)
       }
-      setLoading(false)
-      setInitialCheckDone(true)
     }
 
+    const timeout = setTimeout(() => {
+      setLoading(false)
+      setInitialCheckDone(true)
+    }, 10000)
+
     checkSession()
+
+    return () => clearTimeout(timeout)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'TOKEN_REFRESHED' && session?.user) {

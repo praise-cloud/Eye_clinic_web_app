@@ -75,8 +75,8 @@ export function PaymentsPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Payments</h1>
-                    <p className="text-sm text-slate-500">{filtered.length} records · {formatCurrency(total)}</p>
+                    <h1 className="text-xl font-bold text-foreground900">Payments</h1>
+                    <p className="text-sm text-foreground500">{filtered.length} records · {formatCurrency(total)}</p>
                 </div>
                 <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
                     <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Record Payment</span><span className="sm:hidden">Add</span>
@@ -84,7 +84,7 @@ export function PaymentsPage() {
             </div>
 
             <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground400" />
                 <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient or receipt..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
@@ -92,8 +92,8 @@ export function PaymentsPage() {
                 <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-2xl" />)}</div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-16">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><DollarSign className="w-8 h-8 text-slate-300" /></div>
-                    <p className="text-slate-500 font-medium">No payments found</p>
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><DollarSign className="w-8 h-8 text-foreground300" /></div>
+                    <p className="text-foreground500 font-medium">No payments found</p>
                 </div>
             ) : (
                 <div className="space-y-2">
@@ -103,10 +103,10 @@ export function PaymentsPage() {
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <p className="text-sm font-semibold text-slate-900 truncate">{(p.patient as any)?.first_name} {(p.patient as any)?.last_name}</p>
+                                            <p className="text-sm font-semibold text-foreground900 truncate">{(p.patient as any)?.first_name} {(p.patient as any)?.last_name}</p>
                                             <Badge variant={typeColor[p.payment_type] ?? 'default'} className="text-xs capitalize">{p.payment_type.replace('_', ' ')}</Badge>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                                        <div className="flex items-center gap-2 text-xs text-foreground400 mt-0.5">
                                             <span className="font-mono">{p.receipt_number}</span>
                                             <span>·</span><span className="capitalize">{p.payment_method}</span>
                                             <span>·</span><span>{formatDate(p.paid_at)}</span>

@@ -69,7 +69,7 @@ export function ReportsPage() {
                 <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
                     {(['7', '30', '90'] as const).map(r => (
                         <button key={r} onClick={() => setRange(r)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${range === r ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${range === r ? 'bg-white shadow-sm text-foreground900' : 'text-foreground500 hover:text-foreground700'}`}>
                             {r}d
                         </button>
                     ))}
@@ -83,7 +83,7 @@ export function ReportsPage() {
                     { label: 'Drug Sales', value: formatCurrency(totals.drug), color: 'text-blue-600' },
                     { label: 'Glasses Sales', value: formatCurrency(totals.glasses), color: 'text-purple-600' },
                     { label: 'Consultations', value: formatCurrency(totals.consultation), color: 'text-amber-600' },
-                    { label: 'Total Visits', value: totals.patients.toString(), color: 'text-slate-700' },
+                    { label: 'Total Visits', value: totals.patients.toString(), color: 'text-foreground700' },
                 ].map(s => (
                     <Card key={s.label}>
                         <CardContent className="p-4">

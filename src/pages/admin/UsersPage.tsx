@@ -108,7 +108,7 @@ export function UsersPage() {
             ) : (
                 <div className="space-y-2">
                     {users.map(u => (
-                        <div key={u.id} className="bg-white rounded-2xl border border-slate-100 shadow-card hover:shadow-card-md transition-all p-4">
+                        <div key={u.id} className="bg-card border border-border shadow-card hover:shadow-card-md transition-all p-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-sm"
                                     style={{ background: `linear-gradient(135deg, ${getRoleAccent(u.role)}, ${getRoleAccent(u.role)}cc)` }}>
