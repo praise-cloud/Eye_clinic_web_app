@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useAuthStore } from '@/store/authStore'
 import { Stethoscope, ClipboardList, ShieldCheck, BarChart3, ArrowRight, CheckCircle } from 'lucide-react'
 
 const roles = [
@@ -31,6 +33,17 @@ const features = [
 
 export function SplashScreen() {
     const navigate = useNavigate()
+    const { profile, isAuthenticated } = useAuthStore()
+
+    useEffect(() => {
+        if (isAuthenticated && profile?.role) {
+            navigate(`/${profile.role}`, { replace: true })
+        }
+    }, [isAuthenticated, profile?.role, navigate])
+
+    if (isAuthenticated && profile?.role) {
+        return null
+    }
 
     return (
         <div className="min-h-screen bg-slate-950 text-white font-sans">

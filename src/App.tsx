@@ -152,24 +152,6 @@ const P = ({ roles, children }: { roles?: Profile['role'][]; children: React.Rea
   </RoleGuard>
 )
 
-// Public route — redirect to role dashboard if already authenticated
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { profile, isAuthenticated } = useAuthStore()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (isAuthenticated && profile?.role) {
-      navigate(`/${profile.role}`, { replace: true })
-    }
-  }, [isAuthenticated, profile?.role, navigate])
-
-  if (isAuthenticated && profile?.role) {
-    return null
-  }
-
-  return <>{children}</>
-}
-
 function App() {
   const { setTheme } = useUIStore()
 
@@ -191,8 +173,8 @@ function App() {
         <AuthProvider />
         <RealtimeProvider />
         <Routes>
-          {/* Public — redirect to dashboard if already authenticated */}
-          <Route path="/" element={<PublicRoute><SplashScreen /></PublicRoute>} />
+          {/* Public — show splash screen (redirect handled in SplashScreen) */}
+          <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<LoginPage />} />
 
           {/* Shared protected */}
