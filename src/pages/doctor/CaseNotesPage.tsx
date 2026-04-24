@@ -38,6 +38,7 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
     const [expanded, setExpanded] = useState(false)
     const [decrypted, setDecrypted] = useState<Record<string, string>>({})
     const [decrypting, setDecrypting] = useState(false)
+    const [showPdf, setShowPdf] = useState(false)
 
     const handleExpand = async () => {
         if (!expanded && note.is_encrypted && Object.keys(decrypted).length === 0) {
@@ -103,16 +104,40 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
                                 {note.cvf_attachment_url && (
                                     <div>
                                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">CVF Attachment</p>
-                                        <a href={note.cvf_attachment_url} target="_blank" rel="noopener noreferrer" 
-                                           className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                                            <File className="w-4 h-4" />View Attachment
-                                        </a>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => setShowPdf(true)}
+                                                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                                                <File className="w-4 h-4" />View Document
+                                            </button>
+                                            <a href={note.cvf_attachment_url} target="_blank" rel="noopener noreferrer" 
+                                                className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
+                                                <Eye className="w-4 h-4" />Download
+                                            </a>
+                                        </div>
                                     </div>
-                                )}                            </>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
             </div>
+
+            {/* PDF Viewer Modal */}
+            {showPdf && note.cvf_attachment_url && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowPdf(false)}>
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <h3 className="font-semibold">CVF Document</h3>
+                            <button onClick={() => setShowPdf(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                            <iframe src={note.cvf_attachment_url} className="w-full h-full" title="CVF Document" />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

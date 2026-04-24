@@ -24,30 +24,37 @@ export function ChatPage() {
         queryFn: async () => {
             const { data: profiles } = await supabase.from('profiles').select('*').eq('is_active', true).neq('id', profile!.id).order('full_name')
             
-            // Get last message time for each staff member
+            // Get all conversations with last message time and unread count for each user
             const { data: lastMessages } = await supabase
                 .from('messages')
-                .select('sender_id, receiver_id, created_at')
+                .select('sender_id, receiver_id, created_at, is_read')
                 .or(`sender_id.eq.${profile!.id},receiver_id.eq.${profile!.id}`)
                 .order('created_at', { ascending: false })
             
-            // Build a map of last message time per user
+            // Build maps of last message time and unread count per user
             const lastMsgMap = new Map<string, string>()
+            const unreadMap = new Map<string, number>()
+            
             lastMessages?.forEach(msg => {
                 const otherId = msg.sender_id === profile!.id ? msg.receiver_id : msg.sender_id
                 if (!lastMsgMap.has(otherId)) {
                     lastMsgMap.set(otherId, msg.created_at)
                 }
+                // Count unread messages where current user is receiver
+                if (msg.receiver_id === profile!.id && !msg.is_read) {
+                    unreadMap.set(otherId, (unreadMap.get(otherId) || 0) + 1)
+                }
             })
             
-            // Sort profiles by most recent message (or alphabetically if no messages)
+            // Sort profiles by most recent message (newest first)
             const sorted = (profiles ?? []).sort((a, b) => {
                 const aTime = lastMsgMap.get(a.id) || '1970-01-01'
                 const bTime = lastMsgMap.get(b.id) || '1970-01-01'
                 return new Date(bTime).getTime() - new Date(aTime).getTime()
             })
             
-            return sorted as Profile[]
+            // Attach unread counts to profiles for display
+            return sorted.map(p => ({ ...p, unreadCount: unreadMap.get(p.id) || 0 })) as Profile[] & { unreadCount: number }[]
         },
         enabled: !!profile,
     })
@@ -134,8 +141,27 @@ export function ChatPage() {
             setText('')
             setReplyingTo(null)
             qc.invalidateQueries({ queryKey: ['messages', profile?.id, activeUser?.id] })
+            qc.invalidateQueries({ queryKey: ['staff-list'] })
         },
     })
+
+    // Mark messages as read when opening a conversation
+    const markAsRead = useMutation({
+        mutationFn: async (otherUserId: string) => {
+            await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
+                .eq('receiver_id', profile!.id).eq('sender_id', otherUserId).eq('is_read', false)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['staff-list'] })
+        },
+    })
+
+    // Auto-mark as read when activeUser changes
+    useEffect(() => {
+        if (activeUser?.id) {
+            markAsRead.mutate(activeUser.id)
+        }
+    }, [activeUser?.id])
 
     const deleteMutation = useMutation({
         mutationFn: async (msgId: string) => {
@@ -196,21 +222,26 @@ export function ChatPage() {
                     {staffLoading ? (
                         <div className="p-3 space-y-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
                     ) : filteredStaff.length === 0 ? (
-                        <p className="text-center text-sm text-slate-400 py-10">No staff found</p>
+                        <p className="text-center text-sm text-muted-foreground py-10">No staff found</p>
                     ) : (
-                        filteredStaff.map(s => (
+                        filteredStaff.map(s => {
+                            const unread = (s as any).unreadCount || 0
+                            return (
                             <button key={s.id} onClick={() => setActiveUser(s)}
-                                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0 ${activeUser?.id === s.id ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''}`}>
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-sm"
+                                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent transition-colors text-left border-b border-border last:border-0 ${activeUser?.id === s.id ? 'bg-accent border-l-2 border-l-primary' : ''}`}>
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-primary-foreground flex-shrink-0 shadow-sm"
                                     style={{ background: `linear-gradient(135deg, ${getRoleAccent(s.role)}, ${getRoleAccent(s.role)}cc)` }}>
                                     {getInitials(s.full_name)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-slate-900 truncate">{s.full_name}</p>
+                                    <p className="text-sm font-semibold text-foreground truncate">{s.full_name}</p>
                                     <span className={`text-xs capitalize font-medium ${getRoleColor(s.role)}`}>{s.role}</span>
                                 </div>
+                                {unread > 0 && (
+                                    <span className="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">{unread > 9 ? '9+' : unread}</span>
+                                )}
                             </button>
-                        ))
+                        )})
                     )}
                 </div>
             </div>

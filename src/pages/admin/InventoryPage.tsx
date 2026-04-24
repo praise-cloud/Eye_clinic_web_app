@@ -44,6 +44,17 @@ const frameSchema = z.object({
 })
 type FrameForm = z.infer<typeof frameSchema>
 
+const othersSchema = z.object({
+    name: z.string().min(1, 'Required'),
+    category: z.string().optional(),
+    unit: z.string().min(1, 'Required'),
+    quantity: z.number().min(0),
+    reorder_level: z.number().min(0),
+    purchase_price: z.number().optional(),
+    selling_price: z.number().min(0, 'Required'),
+})
+type OthersForm = z.infer<typeof othersSchema>
+
 export function InventoryPage() {
     const qc = useQueryClient()
     const [activeTab, setActiveTab] = useState<'drugs' | 'glasses' | 'others'>('drugs')
@@ -52,6 +63,7 @@ export function InventoryPage() {
     const [othersDrawer, setOthersDrawer] = useState(false)
     const [editDrug, setEditDrug] = useState<Drug | null>(null)
     const [editFrame, setEditFrame] = useState<GlassesInventory | null>(null)
+    const [editOthers, setEditOthers] = useState<any | null>(null)
 
     const { data: drugs = [], isLoading: drugsLoading } = useQuery({
         queryKey: ['drugs'],
@@ -70,6 +82,7 @@ export function InventoryPage() {
 
     const drugForm = useForm<DrugForm>({ resolver: zodResolver(drugSchema), defaultValues: { quantity: 0, reorder_level: 10, selling_price: 0 } })
     const frameForm = useForm<FrameForm>({ resolver: zodResolver(frameSchema), defaultValues: { quantity: 0, reorder_level: 5, selling_price: 0 } })
+    const othersForm = useForm<OthersForm>({ resolver: zodResolver(othersSchema), defaultValues: { quantity: 0, reorder_level: 5, selling_price: 0, unit: 'piece' } })
 
     const saveDrug = useMutation({
         mutationFn: async (data: DrugForm) => {
@@ -97,6 +110,19 @@ export function InventoryPage() {
         },
     })
 
+    const saveOthers = useMutation({
+        mutationFn: async (data: OthersForm) => {
+            if (editFrame) await supabase.from('inventory_others').update(data).eq('id', editFrame.id)
+            else await supabase.from('inventory_others').insert(data)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['others-inventory'] })
+            setOthersDrawer(false)
+            othersForm.reset()
+            notify({ type: 'system', title: editFrame ? 'Item Updated' : 'Item Added', message: editFrame ? 'Inventory item has been updated.' : 'A new item has been added to inventory.', link: '/admin/inventory' })
+        },
+    })
+
     const openEditDrug = (d: Drug) => {
         setEditDrug(d)
         drugForm.reset({ name: d.name, generic_name: d.generic_name, category: d.category, unit: d.unit, quantity: d.quantity, reorder_level: d.reorder_level, purchase_price: d.purchase_price, selling_price: d.selling_price, supplier: d.supplier, expiry_date: d.expiry_date })
@@ -107,8 +133,8 @@ export function InventoryPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <div><h1 className="text-xl font-bold">Inventory</h1></div>
-                <Button size="sm" onClick={() => { if (activeTab === 'drugs') { setEditDrug(null); drugForm.reset({ quantity: 0, reorder_level: 10, selling_price: 0, unit: 'piece' }); setDrugDrawer(true) } else { setEditFrame(null); frameForm.reset({ quantity: 0, reorder_level: 5, selling_price: 0 }); setFrameDrawer(true) } }}>
-                    <Plus className="w-4 h-4" />Add {activeTab === 'drugs' ? 'Drug' : 'Frame'}
+                <Button size="sm" onClick={() => { if (activeTab === 'drugs') { setEditDrug(null); drugForm.reset({ quantity: 0, reorder_level: 10, selling_price: 0, unit: 'piece' }); setDrugDrawer(true) } else if (activeTab === 'glasses') { setEditFrame(null); frameForm.reset({ quantity: 0, reorder_level: 5, selling_price: 0 }); setFrameDrawer(true) } else { setEditOthers(null); othersForm.reset({ quantity: 0, reorder_level: 5, selling_price: 0, unit: 'piece' }); setOthersDrawer(true) } }}>
+                    <Plus className="w-4 h-4" />Add {activeTab === 'drugs' ? 'Drug' : activeTab === 'glasses' ? 'Frame' : 'Item'}
                 </Button>
             </div>
 
@@ -116,7 +142,7 @@ export function InventoryPage() {
                 {(['drugs', 'glasses', 'others'] as const).map(t => (
                     <button key={t} onClick={() => setActiveTab(t)}
                         className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px capitalize transition-colors ${activeTab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-                        {t === 'drugs' ? <Package className="w-3.5 h-3.5" /> : t === 'glasses' ? <Glasses className="w-3.5 h-3.5" /> : <MoreHorizontal className="w-3.5 h-3.5" />}{t}
+                        {t === 'drugs' ? <Package className="w-3.5 h-3.5" /> : t === 'glasses' ? <Glasses className="w-3.5 h-3.5" /> : <MoreHorizontal className="w-3.5 h-3.5" />}{t === 'others' ? 'Items' : t}
                     </button>
                 ))}
             </div>
@@ -201,7 +227,7 @@ export function InventoryPage() {
                                             </td>
                                             <td className="px-4 py-2.5 text-muted-foreground">{o.unit}</td>
                                             <td className="px-4 py-2.5">{formatCurrency(o.selling_price)}</td>
-                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setOthersDrawer(true) }}>Edit</Button></td>
+                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditOthers(o); othersForm.reset({ name: o.name, category: o.category, unit: o.unit, quantity: o.quantity, reorder_level: o.reorder_level, purchase_price: o.purchase_price, selling_price: o.selling_price }); setOthersDrawer(true) }}>Edit</Button></td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -279,6 +305,36 @@ export function InventoryPage() {
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setFrameDrawer(false)}>Cancel</Button>
                         <Button type="submit" form="frame-form" loading={saveFrame.isPending}>{editFrame ? 'Save Changes' : 'Add Frame'}</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Others/Items Drawer */}
+            <Modal open={othersDrawer} onOpenChange={setOthersDrawer}>
+                <ModalContent size="lg">
+                    <ModalHeader><ModalTitle>{editOthers ? 'Edit Item' : 'Add Item'}</ModalTitle></ModalHeader>
+                    <ModalBody>
+                        <form id="others-form" onSubmit={othersForm.handleSubmit(d => saveOthers.mutate(d))} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input label="Item Name *" error={othersForm.formState.errors.name?.message} {...othersForm.register('name')} />
+                                <Input label="Category" {...othersForm.register('category')} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input label="Unit *" placeholder="piece, box, pack" {...othersForm.register('unit')} />
+                                <Input label="Quantity" type="number" {...othersForm.register('quantity', { valueAsNumber: true })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input label="Reorder Level" type="number" {...othersForm.register('reorder_level', { valueAsNumber: true })} />
+                                <Input label="Selling Price (₦) *" type="number" error={othersForm.formState.errors.selling_price?.message} {...othersForm.register('selling_price', { valueAsNumber: true })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input label="Purchase Price (₦)" type="number" {...othersForm.register('purchase_price', { valueAsNumber: true })} />
+                            </div>
+                        </form>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setOthersDrawer(false)}>Cancel</Button>
+                        <Button type="submit" form="others-form" loading={saveOthers.isPending}>{editOthers ? 'Save Changes' : 'Add Item'}</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
