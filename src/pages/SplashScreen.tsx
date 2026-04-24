@@ -39,10 +39,14 @@ export function SplashScreen() {
         if (isAuthenticated && profile?.role) {
             navigate(`/${profile.role}`, { replace: true })
         }
-    }, [isAuthenticated, profile?.role, navigate])
+    }, [isAuthenticated, profile?.role])
 
     if (isAuthenticated && profile?.role) {
-        return null
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+        )
     }
 
     return (
