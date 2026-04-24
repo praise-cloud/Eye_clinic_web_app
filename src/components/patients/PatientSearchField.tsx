@@ -119,7 +119,7 @@ export function PatientSearchField({
                                         {p.first_name[0]}{p.last_name[0]}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-slate-900 truncate">
+                                        <p className="text-sm font-semibold text-foreground truncate">
                                             {p.first_name} {p.last_name}
                                         </p>
                                         <p className="text-xs text-slate-400">

@@ -57,19 +57,19 @@ function DecryptedNote({ note }: { note: CaseNote }) {
                 <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
                     {(decrypted.history || note.history) && (
                         <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">History</p>
-                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3">{decrypted.history || note.history}</p></div>
+                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.history || note.history}</p></div>
                     )}
                     {(decrypted.examination || note.examination) && (
                         <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Examination</p>
-                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3 whitespace-pre-line">{decrypted.examination || note.examination}</p></div>
+                            <p className="text-sm text-foreground bg-muted rounded-xl p-3 whitespace-pre-line">{decrypted.examination || note.examination}</p></div>
                     )}
                     {(decrypted.diagnosis || note.diagnosis) && (
                         <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Diagnosis</p>
-                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3">{decrypted.diagnosis || note.diagnosis}</p></div>
+                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.diagnosis || note.diagnosis}</p></div>
                     )}
                     {note.treatment_plan && (
                         <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Treatment Plan</p>
-                            <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3">{note.treatment_plan}</p></div>
+                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{note.treatment_plan}</p></div>
                     )}
                     {note.follow_up_date && (
                         <div className="flex items-center gap-2 text-xs text-foreground500">
@@ -363,7 +363,7 @@ export function PatientDetailPage() {
                                             <div className="grid grid-cols-2 gap-4 text-xs">
                                                 <div>
                                                     <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Right Eye (OD)</p>
-                                                    <div className="grid grid-cols-4 gap-1 text-center bg-slate-50 rounded-xl p-2">
+                                                    <div className="grid grid-cols-4 gap-1 text-center bg-muted rounded-xl p-2">
                                                         {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
                                                         <p className="font-medium">{rx.re_sphere ?? '—'}</p>
                                                         <p className="font-medium">{rx.re_cylinder ?? '—'}</p>
@@ -374,7 +374,7 @@ export function PatientDetailPage() {
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Left Eye (OS)</p>
-                                                    <div className="grid grid-cols-4 gap-1 text-center bg-slate-50 rounded-xl p-2">
+                                                    <div className="grid grid-cols-4 gap-1 text-center bg-muted rounded-xl p-2">
                                                         {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
                                                         <p className="font-medium">{rx.le_sphere ?? '—'}</p>
                                                         <p className="font-medium">{rx.le_cylinder ?? '—'}</p>

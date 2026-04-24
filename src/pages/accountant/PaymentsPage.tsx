@@ -85,7 +85,7 @@ export function PaymentsPage() {
 
             <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground400" />
-                <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient or receipt..." value={search} onChange={e => setSearch(e.target.value)} />
+                <input className="w-full pl-10 pr-4 h-10 rounded-xl border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient or receipt..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
             {isLoading ? (

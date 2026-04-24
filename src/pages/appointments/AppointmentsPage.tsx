@@ -93,7 +93,7 @@ function AppointmentCard({ apt, onStatusUpdate }: { apt: Appointment; onStatusUp
                         {apt.notes && (
                             <div>
                                 <p className="text-xs text-foreground400 mb-0.5">Notes</p>
-                                <p className="text-sm text-foreground700 bg-slate-50 rounded-xl p-3">{apt.notes}</p>
+                                <p className="text-sm text-foreground bg-muted rounded-xl p-3">{apt.notes}</p>
                             </div>
                         )}
                         <div className="flex flex-wrap gap-2 pt-1">
@@ -187,7 +187,7 @@ export function AppointmentsPage() {
             <div className="flex gap-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground400" />
-                    <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient name or ID..." value={search} onChange={e => setSearch(e.target.value)} />
+                    <input className="w-full pl-10 pr-4 h-10 rounded-xl border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient name or ID..." value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-32 sm:w-40 rounded-xl border-slate-200 shadow-sm"><SelectValue /></SelectTrigger>

@@ -95,8 +95,8 @@ export function UsersPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Staff Management</h1>
-                    <p className="text-sm text-slate-500">{users.length} staff members</p>
+                    <h1 className="text-xl font-bold text-foreground900">Staff Management</h1>
+                    <p className="text-sm text-foreground500">{users.length} staff members</p>
                 </div>
                 <Button size="sm" onClick={() => { reset(); setError(''); setOpen(true) }} className="gap-1.5">
                     <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Add Staff</span><span className="sm:hidden">Add</span>
@@ -116,11 +116,11 @@ export function UsersPage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="font-semibold text-sm text-slate-900">{u.full_name}</p>
+                                        <p className="font-semibold text-sm text-foreground900">{u.full_name}</p>
                                         <span className={`text-xs capitalize px-2 py-0.5 rounded-full font-medium ${getRoleColor(u.role)}`}>{u.role}</span>
                                         <Badge variant={u.is_active ? 'success' : 'destructive'} className="text-xs">{u.is_active ? 'Active' : 'Inactive'}</Badge>
                                     </div>
-                                    <p className="text-xs text-slate-400 mt-0.5">{u.phone || 'No phone'} · Joined {formatDate(u.created_at)}</p>
+                                    <p className="text-xs text-foreground400 mt-0.5">{u.phone || 'No phone'} · Joined {formatDate(u.created_at)}</p>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                     <Button variant="ghost" size="sm"
@@ -137,7 +137,7 @@ export function UsersPage() {
                             </div>
                         </div>
                     ))}
-                    {users.length === 0 && <div className="text-center py-16 text-slate-400">No staff members yet</div>}
+                    {users.length === 0 && <div className="text-center py-16 text-foreground400">No staff members yet</div>}
                 </div>
             )}
 

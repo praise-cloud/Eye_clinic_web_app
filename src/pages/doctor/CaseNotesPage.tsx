@@ -125,7 +125,7 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
             {/* PDF Viewer Modal */}
             {showPdf && note.cvf_attachment_url && (
                 <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowPdf(false)}>
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-card shadow-xl w-full max-w-4xl h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-4 border-b">
                             <h3 className="font-semibold">CVF Document</h3>
                             <button onClick={() => setShowPdf(false)} className="p-2 hover:bg-slate-100 rounded-lg">
@@ -242,7 +242,7 @@ export function CaseNotesPage() {
 
             <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient or complaint..." value={search} onChange={e => setSearch(e.target.value)} />
+                <input className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search patient or complaint..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
             {isLoading ? (
@@ -284,7 +284,7 @@ export function CaseNotesPage() {
                             {[['history', 'History'], ['examination', 'Examination Findings'], ['diagnosis', 'Diagnosis'], ['treatment_plan', 'Treatment Plan']].map(([f, l]) => (
                                 <div key={f} className="space-y-1.5">
                                     <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{l}</label>
-                                    <textarea className="w-full min-h-[80px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" {...register(f as any)} />
+                                    <textarea className="w-full min-h-[80px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" {...register(f as any)} />
                                 </div>
                             ))}
                             <Input label="Follow-up Date" type="date" {...register('follow_up_date')} />
@@ -313,11 +313,11 @@ export function CaseNotesPage() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Right Eye (OD)</label>
-                                            <textarea className="w-full min-h-[60px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" placeholder="e.g. Full to confrontation" {...register('cvf_od')} />
+                                            <textarea className="w-full min-h-[60px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" placeholder="e.g. Full to confrontation" {...register('cvf_od')} />
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Left Eye (OS)</label>
-                                            <textarea className="w-full min-h-[60px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" placeholder="e.g. Inferior defect" {...register('cvf_os')} />
+                                            <textarea className="w-full min-h-[60px] px-3.5 py-2.5 rounded-xl border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none" placeholder="e.g. Inferior defect" {...register('cvf_os')} />
                                         </div>
                                     </div>
                                 </div>

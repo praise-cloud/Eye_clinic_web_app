@@ -194,9 +194,9 @@ export function DispensingPage() {
 
                             <div>
                                 <label className="text-xs font-semibold text-foreground600 uppercase tracking-wide">Drug</label>
-                                <input className="mt-1.5 w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search drug name..." value={drugSearch} onChange={e => setDrugSearch(e.target.value)} />
+                                <input className="mt-1.5 w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search drug name..." value={drugSearch} onChange={e => setDrugSearch(e.target.value)} />
                                 {drugs.length > 0 && (
-                                    <div className="mt-1 border border-slate-100 rounded-xl divide-y max-h-40 overflow-y-auto bg-white shadow-card-md">
+                                    <div className="mt-1 border border-slate-100 rounded-xl divide-y max-h-40 overflow-y-auto bg-background shadow-card-md">
                                         {drugs.map(d => (
                                             <button key={d.id} type="button" className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors"
                                                 onClick={() => { setValue('drug_id', d.id); setSelectedDrug(d); setDrugSearch(`${d.name} (${d.quantity} in stock)`) }}>

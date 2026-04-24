@@ -118,7 +118,7 @@ export function NotificationBell() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">
-                                                <p className={cn('text-sm leading-snug', !n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>
+                                                <p className={cn('text-sm leading-snug', !n.read ? 'font-semibold text-foreground' : 'font-medium text-foreground00')}>
                                                     {n.title}
                                                 </p>
                                                 <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5">{timeAgo(n.created_at)}</span>

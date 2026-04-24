@@ -69,7 +69,7 @@ export function ReportsPage() {
                 <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
                     {(['7', '30', '90'] as const).map(r => (
                         <button key={r} onClick={() => setRange(r)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${range === r ? 'bg-white shadow-sm text-foreground900' : 'text-foreground500 hover:text-foreground700'}`}>
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${range === r ? 'bg-card shadow-sm text-foreground900' : 'text-foreground500 hover:text-foreground700'}`}>
                             {r}d
                         </button>
                     ))}

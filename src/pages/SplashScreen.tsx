@@ -8,19 +8,19 @@ const roles = [
         features: ['Patient case notes', 'Glasses prescriptions', 'Appointment queue', 'Drug prescriptions']
     },
     {
-        icon: ClipboardList, title: 'Assistant', color: '#0D9488', bg: 'rgba(13,148,136,0.12)', border: 'rgba(13,148,136,0.25)',
+        icon: ClipboardList, title: 'Frontdesk', color: '#0D9488', bg: 'rgba(13,148,136,0.12)', border: 'rgba(13,148,136,0.25)',
         description: 'Register patients, manage appointments, dispense drugs, and handle outreach.',
         features: ['Patient registration', 'Drug dispensing', 'Glasses orders', 'Patient outreach']
     },
     {
-        icon: ShieldCheck, title: 'Admin', color: '#4F46E5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(79,70,229,0.25)',
-        description: 'Full system access — manage staff, oversee operations, view audit logs.',
-        features: ['User management', 'Audit logs', 'Inventory control', 'System settings']
+        icon: ShieldCheck, title: 'Admin/Accounts', color: '#4F46E5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(79,70,229,0.25)',
+        description: 'Full system access — manage staff, inventory, payments, and all operations.',
+        features: ['User management', 'Inventory control', 'Payment records', 'Financial reports']
     },
     {
-        icon: BarChart3, title: 'Accountant', color: '#059669', bg: 'rgba(5,150,105,0.12)', border: 'rgba(5,150,105,0.25)',
-        description: 'Track revenue, manage payments, generate financial reports.',
-        features: ['Daily summaries', 'Payment records', 'Financial reports', 'Subscriptions']
+        icon: BarChart3, title: 'Manager', color: '#9333EA', bg: 'rgba(147,51,234,0.12)', border: 'rgba(147,51,234,0.25)',
+        description: 'Oversee everything — audit logs, reports, staff management.',
+        features: ['Audit logs', 'Financial reports', 'Staff management', 'System overview']
     },
 ]
 
