@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Glasses } from 'lucide-react'
+import { Plus, Glasses, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -43,6 +43,7 @@ export function GlassesPrescriptionPage() {
                 .order('created_at', { ascending: false })
             return (data ?? []) as Prescription[]
         },
+        refetchInterval: 15000,
     })
 
     const { data: doctors = [] } = useQuery({
@@ -61,6 +62,7 @@ export function GlassesPrescriptionPage() {
             const { error } = await supabase.from('prescriptions').insert({
                 patient_id: data.patient_id,
                 doctor_id: data.doctor_id,
+                status: 'pending',
                 re_sphere: toNum(data.re_sphere), re_cylinder: toNum(data.re_cylinder), re_axis: toNum(data.re_axis), re_add: toNum(data.re_add), re_va: data.re_va,
                 le_sphere: toNum(data.le_sphere), le_cylinder: toNum(data.le_cylinder), le_axis: toNum(data.le_axis), le_add: toNum(data.le_add), le_va: data.le_va,
                 pd: toNum(data.pd), lens_type: data.lens_type, notes: data.notes,
@@ -69,10 +71,28 @@ export function GlassesPrescriptionPage() {
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['prescriptions-all'] })
+            qc.invalidateQueries({ queryKey: ['assistant-dashboard'] })
             setOpen(false); reset(); setPatientDisplay('')
             notify({ type: 'prescription', title: 'Prescription Recorded', message: 'Glasses prescription has been saved.', link: '/assistant/prescriptions' })
         },
     })
+
+    const dispenseMutation = useMutation({
+        mutationFn: async (rxId: string) => {
+            const { error } = await supabase.from('prescriptions').update({ status: 'dispensed' }).eq('id', rxId)
+            if (error) throw error
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['prescriptions-all'] })
+            qc.invalidateQueries({ queryKey: ['assistant-dashboard'] })
+            notify({ type: 'prescription', title: 'Prescription Dispensed', message: 'Prescription has been marked as dispensed.' })
+        },
+    })
+
+    const rxStatusVariant: Record<string, 'warning' | 'success'> = {
+        pending: 'warning',
+        dispensed: 'success',
+    }
 
     return (
         <div className="space-y-5">
@@ -108,7 +128,16 @@ export function GlassesPrescriptionPage() {
                                             {(rx.patient as any)?.patient_number} · Dr. {(rx.doctor as any)?.full_name} · {formatDate(rx.created_at)}
                                         </p>
                                     </div>
-                                    {rx.lens_type && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg capitalize font-medium">{rx.lens_type.replace('_', ' ')}</span>}
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-xs px-2 py-0.5 rounded-lg font-medium ${rx.status === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                                            {rx.status || 'pending'}
+                                        </span>
+                                        {(rx.status === 'pending' || !rx.status) && (
+                                            <button onClick={() => dispenseMutation.mutate(rx.id)} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100" title="Mark as Dispensed">
+                                                <CheckCircle className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-xs">
                                     <div className="space-y-1">

@@ -21,12 +21,13 @@ export function AssistantDashboard() {
         queryKey: ['assistant-dashboard'],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
-            const [p, a, l] = await Promise.all([
+            const [p, a, l, r] = await Promise.all([
                 supabase.from('patients').select('id', { count: 'exact' }).gte('created_at', `${today}T00:00:00`),
                 supabase.from('appointments').select('id', { count: 'exact' }).gte('scheduled_at', `${today}T00:00:00`).lte('scheduled_at', `${today}T23:59:59`),
                 supabase.from('drugs').select('id', { count: 'exact' }).lte('quantity', 10),
+                supabase.from('prescriptions').select('id', { count: 'exact' }).eq('status', 'pending'),
             ])
-            return { newPatients: p.count ?? 0, appointments: a.count ?? 0, lowStock: l.count ?? 0 }
+            return { newPatients: p.count ?? 0, appointments: a.count ?? 0, lowStock: l.count ?? 0, pendingRx: r.count ?? 0 }
         },
         refetchInterval: 30000,
     })
@@ -61,7 +62,7 @@ export function AssistantDashboard() {
         { label: 'New Patients', value: stats?.newPatients ?? 0, icon: Users, color: 'text-teal-600 bg-teal-50', href: '/assistant/patients' },
         { label: 'Appointments', value: stats?.appointments ?? 0, icon: Calendar, color: 'text-blue-600 bg-blue-50', href: '/assistant/appointments' },
         { label: 'Low Stock', value: stats?.lowStock ?? 0, icon: Package, color: 'text-red-600 bg-red-50', href: '/assistant/inventory' },
-        { label: 'Pending Rx', value: 0, icon: Pill, color: 'text-amber-600 bg-amber-50', href: '/assistant/dispensing' },
+        { label: 'Pending Rx', value: stats?.pendingRx ?? 0, icon: Pill, color: 'text-amber-600 bg-amber-50', href: '/assistant/prescriptions' },
     ]
 
     return (

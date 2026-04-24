@@ -34,13 +34,13 @@ export function PrescriptionsPage() {
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [patientSearch, setPatientSearch] = useState('')
 
-    const { data: prescriptions = [], isLoading } = useQuery({
+const { data: prescriptions = [], isLoading } = useQuery({
         queryKey: ['prescriptions', profile?.id],
         queryFn: async () => {
             const { data } = await supabase.from('prescriptions').select('*, patient:patients(first_name,last_name,patient_number)').eq('doctor_id', profile!.id).order('created_at', { ascending: false })
             return (data ?? []) as Prescription[]
         },
-        enabled: !!profile,
+        refetchInterval: 15000,
     })
 
     const { data: patients = [] } = useQuery({
@@ -59,6 +59,7 @@ export function PrescriptionsPage() {
             const toNum = (v?: string) => v ? parseFloat(v) : undefined
             await supabase.from('prescriptions').insert({
                 patient_id: data.patient_id, doctor_id: profile!.id,
+                status: 'pending',
                 re_sphere: toNum(data.re_sphere), re_cylinder: toNum(data.re_cylinder), re_axis: toNum(data.re_axis), re_add: toNum(data.re_add), re_va: data.re_va,
                 le_sphere: toNum(data.le_sphere), le_cylinder: toNum(data.le_cylinder), le_axis: toNum(data.le_axis), le_add: toNum(data.le_add), le_va: data.le_va,
                 pd: toNum(data.pd), lens_type: data.lens_type, notes: data.notes,
@@ -66,6 +67,7 @@ export function PrescriptionsPage() {
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['prescriptions'] })
+            qc.invalidateQueries({ queryKey: ['assistant-dashboard'] })
             setDrawerOpen(false)
             reset()
             notify({ type: 'prescription', title: 'Prescription Created', message: 'A new glasses prescription has been saved.', link: '/doctor/prescriptions' })
@@ -94,6 +96,8 @@ export function PrescriptionsPage() {
                                         <p className="text-xs text-muted-foreground">{(rx.patient as any)?.patient_number} · {formatDate(rx.created_at)}</p>
                                     </div>
                                     {rx.lens_type && <span className="text-xs bg-muted px-2 py-0.5 rounded capitalize">{rx.lens_type.replace('_', ' ')}</span>}
+                                    {rx.status === 'pending' && <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">Pending</span>}
+                                    {rx.status === 'dispensed' && <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">Dispensed</span>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-xs">
                                     <div className="space-y-1">

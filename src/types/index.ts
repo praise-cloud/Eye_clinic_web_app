@@ -74,6 +74,7 @@ export interface Prescription {
   patient_id: string
   doctor_id: string
   case_note_id?: string
+  status?: 'pending' | 'dispensed'
   re_sphere?: number
   re_cylinder?: number
   re_axis?: number

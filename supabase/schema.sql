@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS public.prescriptions (
   patient_id    UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
   doctor_id     UUID NOT NULL REFERENCES public.profiles(id),
   case_note_id  UUID REFERENCES public.case_notes(id),
+  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'dispensed')),
   re_sphere     NUMERIC(5,2), re_cylinder NUMERIC(5,2), re_axis INTEGER, re_add NUMERIC(5,2), re_va TEXT,
   le_sphere     NUMERIC(5,2), le_cylinder NUMERIC(5,2), le_axis INTEGER, le_add NUMERIC(5,2), le_va TEXT,
   pd            NUMERIC(5,1),
