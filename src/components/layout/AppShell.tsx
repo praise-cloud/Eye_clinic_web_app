@@ -16,7 +16,7 @@ export function AppShell({ children }: AppShellProps) {
     const title = pathname.split('/').filter(Boolean).pop() ?? 'dashboard'
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-50">
+        <div className="flex h-screen overflow-hidden bg-background">
             {/* Desktop Sidebar */}
             <div className="hidden lg:flex flex-shrink-0">
                 <Sidebar onLogout={logout} />
@@ -35,7 +35,7 @@ export function AppShell({ children }: AppShellProps) {
             {/* Main */}
             <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                 <Header title={title} onMenuClick={() => setMobileSidebarOpen(true)} />
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-6 scrollbar-thin">
+                <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-6 scrollbar-thin bg-background">
                     {children}
                 </main>
                 <ToastContainer />

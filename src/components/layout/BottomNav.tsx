@@ -46,14 +46,14 @@ export function BottomNav({ onLogout }: BottomNavProps) {
     const items = bottomNavByRole[role] ?? bottomNavByRole.assistant
 
     return (
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 flex items-center justify-around px-1 py-1 safe-area-pb shadow-lg">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border flex items-center justify-around px-1 py-1 safe-area-pb shadow-lg">
             {items.map((item) => (
                 <NavLink
                     key={item.href}
                     to={item.href}
                     end={item.href.split('/').length <= 2}
                     className={({ isActive }) =>
-                        `flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-0 flex-1 transition-colors ${isActive ? 'text-primary' : 'text-slate-400'}`
+                        `flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-0 flex-1 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`
                     }
                     style={({ isActive }) => isActive ? { color: accent } : {}}
                 >

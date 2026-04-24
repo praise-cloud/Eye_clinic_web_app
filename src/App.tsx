@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import { useAuthStore } from './store/authStore'
+import { useUIStore } from './store/uiStore'
 import { RoleGuard } from './components/layout/RoleGuard'
 import { AppShell } from './components/layout/AppShell'
 import type { Profile } from './types'
@@ -121,6 +122,20 @@ const P = ({ roles, children }: { roles?: Profile['role'][]; children: React.Rea
 )
 
 function App() {
+  const { setTheme } = useUIStore()
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('ui-storage')
+    if (savedTheme) {
+      try {
+        const parsed = JSON.parse(savedTheme)
+        if (parsed.state?.theme) {
+          document.documentElement.classList.toggle('dark', parsed.state.theme === 'dark')
+        }
+      } catch (e) {}
+    }
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

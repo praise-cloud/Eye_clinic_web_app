@@ -15,14 +15,14 @@ const typeIcon: Record<AppNotification['type'], React.ElementType> = {
 }
 
 const typeColor: Record<AppNotification['type'], { bg: string; border: string; icon: string }> = {
-    appointment: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-500' },
-    prescription: { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'text-purple-500' },
-    low_stock: { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-500' },
-    payment: { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'text-emerald-500' },
-    patient: { bg: 'bg-teal-50', border: 'border-teal-200', icon: 'text-teal-500' },
-    dispensing: { bg: 'bg-indigo-50', border: 'border-indigo-200', icon: 'text-indigo-500' },
-    glasses: { bg: 'bg-pink-50', border: 'border-pink-200', icon: 'text-pink-500' },
-    system: { bg: 'bg-slate-50', border: 'border-slate-200', icon: 'text-slate-500' },
+    appointment: { bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800', icon: 'text-blue-500' },
+    prescription: { bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-200 dark:border-purple-800', icon: 'text-purple-500' },
+    low_stock: { bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-800', icon: 'text-amber-500' },
+    payment: { bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800', icon: 'text-emerald-500' },
+    patient: { bg: 'bg-teal-50 dark:bg-teal-950/30', border: 'border-teal-200 dark:border-teal-800', icon: 'text-teal-500' },
+    dispensing: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-200 dark:border-indigo-800', icon: 'text-indigo-500' },
+    glasses: { bg: 'bg-pink-50 dark:bg-pink-950/30', border: 'border-pink-200 dark:border-pink-800', icon: 'text-pink-500' },
+    system: { bg: 'bg-muted', border: 'border-border', icon: 'text-muted-foreground' },
 }
 
 interface ToastItemProps {
@@ -49,16 +49,16 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
 
     const content = (
         <div className={`flex items-start gap-3 p-4 rounded-xl border shadow-lg max-w-sm transition-all duration-300 ${colors.bg} ${colors.border} ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} ${exiting ? 'opacity-0 translate-y-2 scale-95' : ''}`}>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-white border ${colors.border}`}>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-card border ${colors.border}`}>
                 <Icon className={`w-4 h-4 ${colors.icon}`} />
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 leading-tight">{notification.title}</p>
-                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notification.message}</p>
+                <p className="text-sm font-semibold text-foreground leading-tight">{notification.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notification.message}</p>
             </div>
             <button
                 onClick={handleDismiss}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
+                className="p-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
             >
                 <X className="w-3.5 h-3.5" />
             </button>
