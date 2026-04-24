@@ -59,7 +59,7 @@ export function AccountantDashboard() {
                 <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-sm sm:text-base">Recent Transactions</CardTitle>
-                        <Link to="/accountant/payments" className="text-xs text-primary hover:underline">View all</Link>
+                        <Link to="/admin/payments" className="text-xs text-primary hover:underline">View all</Link>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">

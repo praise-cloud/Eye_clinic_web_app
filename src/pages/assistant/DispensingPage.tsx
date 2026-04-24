@@ -87,7 +87,7 @@ export function DispensingPage() {
             qc.invalidateQueries({ queryKey: ['dispensing'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
             setOpen(false); reset(); setSelectedDrug(null); setPatientDisplay(''); setDrugSearch('')
-            notify({ type: 'dispensing', title: 'Drug Dispensed', message: `${selectedDrug?.name} has been dispensed.`, link: '/assistant/dispensing' })
+            notify({ type: 'dispensing', title: 'Drug Dispensed', message: `${selectedDrug?.name} has been dispensed.`, link: '/frontdesk/dispensing' })
         },
     })
 

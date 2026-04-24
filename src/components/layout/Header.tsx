@@ -24,8 +24,8 @@ function getBreadcrumb(pathname: string): string {
 
     '/frontdesk/outreach': 'Outreach', '/admin/inventory': 'Inventory',
     '/admin/users': 'Staff Management', '/admin/audit': 'Audit Logs', '/admin/reports': 'Reports',
-    '/accountant/payments': 'Payments', '/accountant/summary': 'Daily Summary',
-    '/accountant/subscriptions': 'Subscriptions', '/chat': 'Messages', '/settings': 'Settings',
+    '/admin/payments': 'Payments', '/admin/summary': 'Daily Summary',
+    '/admin/subscriptions': 'Subscriptions', '/manager/audit': 'Audit Logs',
   }
   return map[pathname] ?? pathname.split('/').filter(Boolean).map(s => s.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')).join(' › ')
 }
@@ -35,7 +35,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
   const { theme, toggleTheme } = useUIStore()
   const { logout } = useAuth()
   const { pathname } = useLocation()
-  const accent = getRoleAccent(profile?.role ?? 'assistant')
+  const accent = getRoleAccent(profile?.role ?? 'frontdesk')
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 

@@ -46,20 +46,20 @@ export function getInitials(name: string): string {
 
 export function getRoleColor(role: string): string {
     const colors: Record<string, string> = {
-        doctor: 'bg-blue-100 text-blue-700',
-        assistant: 'bg-teal-100 text-teal-700',
-        admin: 'bg-indigo-100 text-indigo-700',
-        accountant: 'bg-emerald-100 text-emerald-700',
+        doctor: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+        frontdesk: 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
+        admin: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+        manager: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
     }
-    return colors[role] ?? 'bg-gray-100 text-gray-700'
+    return colors[role] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
 }
 
 export function getRoleAccent(role: string): string {
     const accents: Record<string, string> = {
         doctor: '#1D7FE8',
-        assistant: '#0D9488',
+        frontdesk: '#0D9488',
         admin: '#4F46E5',
-        accountant: '#059669',
+        manager: '#9333EA',
     }
     return accents[role] ?? '#1D7FE8'
 }

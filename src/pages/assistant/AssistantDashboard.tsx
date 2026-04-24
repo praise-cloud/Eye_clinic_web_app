@@ -59,10 +59,10 @@ export function AssistantDashboard() {
     })
 
     const statCards = [
-        { label: 'New Patients', value: stats?.newPatients ?? 0, icon: Users, color: 'text-teal-600 bg-teal-50', href: '/assistant/patients' },
-        { label: 'Appointments', value: stats?.appointments ?? 0, icon: Calendar, color: 'text-blue-600 bg-blue-50', href: '/assistant/appointments' },
-        { label: 'Low Stock', value: stats?.lowStock ?? 0, icon: Package, color: 'text-red-600 bg-red-50', href: '/assistant/inventory' },
-        { label: 'Pending Rx', value: stats?.pendingRx ?? 0, icon: Pill, color: 'text-amber-600 bg-amber-50', href: '/assistant/prescriptions' },
+        { label: 'New Patients', value: stats?.newPatients ?? 0, icon: Users, color: 'text-teal-600 bg-teal-50', href: '/frontdesk/patients' },
+        { label: 'Appointments', value: stats?.appointments ?? 0, icon: Calendar, color: 'text-blue-600 bg-blue-50', href: '/frontdesk/appointments' },
+        { label: 'Low Stock', value: stats?.lowStock ?? 0, icon: Package, color: 'text-red-600 bg-red-50', href: '/frontdesk/inventory' },
+        { label: 'Pending Rx', value: stats?.pendingRx ?? 0, icon: Pill, color: 'text-amber-600 bg-amber-50', href: '/frontdesk/prescriptions' },
     ]
 
     return (
@@ -98,7 +98,7 @@ export function AssistantDashboard() {
                         <CardHeader className="pb-2">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-sm sm:text-base">Today's Appointments</CardTitle>
-                                <Link to="/assistant/appointments">
+                                <Link to="/frontdesk/appointments">
                                     <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary">View all <ChevronRight className="w-3 h-3" /></Button>
                                 </Link>
                             </div>
@@ -145,7 +145,7 @@ export function AssistantDashboard() {
                             <CardTitle className="text-sm flex items-center gap-1.5">
                                 <Package className="w-4 h-4 text-amber-500" />Low Stock
                             </CardTitle>
-                            <Link to="/assistant/inventory">
+                            <Link to="/frontdesk/inventory">
                                 <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary">Manage <ChevronRight className="w-3 h-3" /></Button>
                             </Link>
                         </div>

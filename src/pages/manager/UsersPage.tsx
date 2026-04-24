@@ -19,7 +19,7 @@ const schema = z.object({
     full_name: z.string().min(2, 'Required'),
     email: z.string().email('Valid email required'),
     password: z.string().min(8, 'Min 8 characters'),
-    role: z.enum(['doctor', 'assistant', 'accountant']),
+    role: z.enum(['doctor', 'frontdesk', 'admin', 'manager']),
     phone: z.string().optional(),
 })
 type FormData = z.infer<typeof schema>
@@ -158,8 +158,9 @@ export function UsersPage() {
                                 <SelectTrigger label="Role *" error={errors.role?.message}><SelectValue placeholder="Select role" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="doctor">Doctor</SelectItem>
-                                    <SelectItem value="assistant">Assistant</SelectItem>
-                                    <SelectItem value="accountant">Accountant</SelectItem>
+                                    <SelectItem value="frontdesk">Frontdesk</SelectItem>
+                                    <SelectItem value="admin">Admin/Accounts</SelectItem>
+                                    <SelectItem value="manager">Manager</SelectItem>
                                 </SelectContent>
                             </Select>
                             <Input label="Phone (optional)" {...register('phone')} />

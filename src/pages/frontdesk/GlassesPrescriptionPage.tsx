@@ -73,7 +73,7 @@ export function GlassesPrescriptionPage() {
             qc.invalidateQueries({ queryKey: ['prescriptions-all'] })
             qc.invalidateQueries({ queryKey: ['assistant-dashboard'] })
             setOpen(false); reset(); setPatientDisplay('')
-            notify({ type: 'prescription', title: 'Prescription Recorded', message: 'Glasses prescription has been saved.', link: '/assistant/prescriptions' })
+            notify({ type: 'prescription', title: 'Prescription Recorded', message: 'Glasses prescription has been saved.', link: '/frontdesk/prescriptions' })
         },
     })
 

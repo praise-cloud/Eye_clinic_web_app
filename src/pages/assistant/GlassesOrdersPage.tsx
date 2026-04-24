@@ -91,7 +91,7 @@ export function GlassesOrdersPage() {
             reset()
             setSelectedFrame(null)
             setPatientSearch('')
-            notify({ type: 'glasses', title: 'Glasses Order Created', message: 'A new glasses order has been placed.', link: '/assistant/glasses-orders' })
+            notify({ type: 'glasses', title: 'Glasses Order Created', message: 'A new glasses order has been placed.', link: '/frontdesk/glasses-orders' })
         },
     })
 
@@ -139,7 +139,7 @@ export function GlassesOrdersPage() {
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
             qc.invalidateQueries({ queryKey: ['payments'] })
             qc.invalidateQueries({ queryKey: ['daily-summary'] })
-            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order has been dispensed and payment recorded.', link: '/assistant/glasses-orders' })
+            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order has been dispensed and payment recorded.', link: '/frontdesk/glasses-orders' })
         },
     })
 
