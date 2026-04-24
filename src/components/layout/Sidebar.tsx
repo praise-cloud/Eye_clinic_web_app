@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { cn, getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
+import { useAuth } from '@/hooks/useAuth'
 import type { UserRole } from '@/types'
 
 interface NavItem { label: string; href: string; icon: React.ElementType; badge?: number }
@@ -55,6 +56,7 @@ interface SidebarProps { onLogout: () => void }
 
 export function Sidebar({ onLogout }: SidebarProps) {
   const { profile } = useAuthStore()
+  const { logout } = useAuth()
   const role = profile?.role ?? 'assistant'
   const accent = getRoleAccent(role)
   const items = navByRole[role] ?? navByRole.assistant

@@ -7,12 +7,18 @@ export function useAuth() {
   async function login(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-    // Navigation is handled by onAuthStateChange in AuthProvider
   }
 
   async function logout() {
-    await supabase.auth.signOut()
-    signOut()
+    try {
+      await supabase.auth.signOut()
+      signOut()
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('Logout error:', error)
+      signOut()
+      window.location.href = '/login'
+    }
   }
 
   return { login, logout }
