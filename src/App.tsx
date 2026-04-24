@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { useAuthStore } from './store/authStore'
 import { useUIStore } from './store/uiStore'
@@ -41,18 +41,18 @@ const queryClient = new QueryClient({
 function AuthProvider() {
   const { setUser, setProfile, setLoading, signOut } = useAuthStore()
   const navigate = useNavigate()
+  const [initialCheckDone, setInitialCheckDone] = useState(false)
 
   useEffect(() => {
-    // Check existing session on mount
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
       if (session?.user) {
         setUser(session.user)
-        const { data } = await supabase
-          .from('profiles').select('*').eq('id', session.user.id).single()
+        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
         if (data) {
           setProfile(data as Profile)
         } else {
-          // Auto-create profile if missing
           const meta = session.user.user_metadata
           const role = (meta?.role ?? 'assistant') as Profile['role']
           const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
@@ -63,21 +63,23 @@ function AuthProvider() {
         }
       }
       setLoading(false)
-    })
+      setInitialCheckDone(true)
+    }
 
-    // Listen for auth state changes
+    checkSession()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'TOKEN_REFRESHED' && session?.user) {
+        setUser(session.user)
+      } else if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
         try {
-          const { data } = await supabase
-            .from('profiles').select('*').eq('id', session.user.id).single()
+          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
           if (data) {
             setProfile(data as Profile)
             setLoading(false)
             navigate(`/${data.role}`, { replace: true })
           } else {
-            // Profile missing — create from metadata
             const meta = session.user.user_metadata
             const role = (meta?.role ?? 'assistant') as Profile['role']
             const full_name = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0] ?? 'User'
@@ -99,11 +101,27 @@ function AuthProvider() {
         setProfile(null)
         signOut()
         navigate('/login', { replace: true })
+      } else if (event === 'USER_UPDATED' && session?.user) {
+        setUser(session.user)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  if (!initialCheckDone) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto mb-4 overflow-hidden">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+          </div>
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground mt-4">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return null
 }

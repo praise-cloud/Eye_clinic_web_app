@@ -57,6 +57,8 @@ export function PatientsPage() {
             const { data } = await q.limit(100)
             return (data ?? []) as Patient[]
         },
+        refetchInterval: 15000,
+        staleTime: 5000,
     })
 
     const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })

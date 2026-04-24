@@ -23,7 +23,7 @@ export const supabase = createClient(
             fetch: (url, options) => {
                 return fetch(url, {
                     ...options,
-                    signal: AbortSignal.timeout(30000), // 30s timeout
+                    signal: AbortSignal.timeout(30000),
                 })
             },
         },
