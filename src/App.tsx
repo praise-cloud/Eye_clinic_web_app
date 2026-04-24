@@ -13,26 +13,26 @@ import { useRealtimeNotifications } from './hooks/useRealtimeNotifications'
 import { SplashScreen } from './pages/SplashScreen'
 import { LoginPage } from './pages/auth/LoginPage'
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard'
-import { AssistantDashboard } from './pages/assistant/AssistantDashboard'
+import { FrontdeskDashboard } from './pages/frontdesk/FrontdeskDashboard'
+import { ManagerDashboard } from './pages/manager/ManagerDashboard'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
-import { AccountantDashboard } from './pages/accountant/AccountantDashboard'
 import { PatientsPage } from './pages/patients/PatientsPage'
 import { PatientDetailPage } from './pages/patients/PatientDetailPage'
 import { AppointmentsPage } from './pages/appointments/AppointmentsPage'
 import { CaseNotesPage } from './pages/doctor/CaseNotesPage'
-import { DispensingPage } from './pages/assistant/DispensingPage'
-import { GlassesOrdersPage } from './pages/assistant/GlassesOrdersPage'
-import { GlassesPrescriptionPage } from './pages/assistant/GlassesPrescriptionPage'
+import { DispensingPage } from './pages/frontdesk/DispensingPage'
+import { GlassesOrdersPage } from './pages/frontdesk/GlassesOrdersPage'
+import { GlassesPrescriptionPage } from './pages/frontdesk/GlassesPrescriptionPage'
 import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
-import { AuditPage } from './pages/admin/AuditPage'
-import { PaymentsPage } from './pages/accountant/PaymentsPage'
-import { DailySummaryPage } from './pages/accountant/DailySummaryPage'
-import { SubscriptionsPage } from './pages/accountant/SubscriptionsPage'
+import { AuditPage } from './pages/manager/AuditPage'
+import { PaymentsPage } from './pages/admin/PaymentsPage'
+import { DailySummaryPage } from './pages/admin/DailySummaryPage'
+import { SubscriptionsPage } from './pages/admin/SubscriptionsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ChatPage } from './pages/chat/ChatPage'
-import { OutreachPage } from './pages/assistant/OutreachPage'
+import { OutreachPage } from './pages/frontdesk/OutreachPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
@@ -55,7 +55,7 @@ function AuthProvider() {
             setProfile(data as Profile)
           } else {
             const meta = session.user.user_metadata
-            const role = (meta?.role ?? 'assistant') as Profile['role']
+            const role = (meta?.role ?? 'frontdesk') as Profile['role']
             const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
             const { data: newProfile } = await supabase.from('profiles').upsert({
               id: session.user.id, full_name, role, is_active: true,
@@ -91,7 +91,7 @@ function AuthProvider() {
             navigate(`/${data.role}`, { replace: true })
           } else {
             const meta = session.user.user_metadata
-            const role = (meta?.role ?? 'assistant') as Profile['role']
+            const role = (meta?.role ?? 'frontdesk') as Profile['role']
             const full_name = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0] ?? 'User'
             const phone = meta?.phone ?? undefined
             const { data: newProfile } = await supabase.from('profiles').upsert({
@@ -182,39 +182,36 @@ function App() {
           <Route path="/patients/:id" element={<P><PatientDetailPage /></P>} />
           <Route path="/settings" element={<P><SettingsPage /></P>} />
 
-          {/* Doctor — no prescriptions, doctor only writes case notes */}
+          {/* Doctor — patients, appointments, case notes */}
           <Route path="/doctor" element={<P roles={['doctor']}><DoctorDashboard /></P>} />
           <Route path="/doctor/patients" element={<P roles={['doctor']}><PatientsPage /></P>} />
           <Route path="/doctor/appointments" element={<P roles={['doctor']}><AppointmentsPage /></P>} />
           <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
 
-          {/* Assistant */}
-          <Route path="/assistant" element={<P roles={['assistant']}><AssistantDashboard /></P>} />
-          <Route path="/assistant/patients" element={<P roles={['assistant']}><PatientsPage /></P>} />
-          <Route path="/assistant/appointments" element={<P roles={['assistant']}><AppointmentsPage /></P>} />
-          <Route path="/assistant/dispensing" element={<P roles={['assistant']}><DispensingPage /></P>} />
-          <Route path="/assistant/glasses-orders" element={<P roles={['assistant']}><GlassesOrdersPage /></P>} />
+          {/* Frontdesk — patients, appointments, dispensing, glasses, outreach */}
+          <Route path="/frontdesk" element={<P roles={['frontdesk']}><FrontdeskDashboard /></P>} />
+          <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
+          <Route path="/frontdesk/appointments" element={<P roles={['frontdesk']}><AppointmentsPage /></P>} />
+          <Route path="/frontdesk/dispensing" element={<P roles={['frontdesk']}><DispensingPage /></P>} />
+          <Route path="/frontdesk/glasses-orders" element={<P roles={['frontdesk']}><GlassesOrdersPage /></P>} />
+          <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
+          <Route path="/frontdesk/prescriptions" element={<P roles={['frontdesk']}><GlassesPrescriptionPage /></P>} />
 
-          {/* Admin */}
+          {/* Admin/Accounts — combined admin + accountant (NO audit logs) */}
           <Route path="/admin" element={<P roles={['admin']}><AdminDashboard /></P>} />
           <Route path="/admin/patients" element={<P roles={['admin']}><PatientsPage /></P>} />
           <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
           <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
           <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
+          <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
+          <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
+          <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />
 
-          {/* Accountant */}
-          <Route path="/accountant" element={<P roles={['accountant']}><AccountantDashboard /></P>} />
-          <Route path="/accountant/payments" element={<P roles={['accountant']}><PaymentsPage /></P>} />
-          <Route path="/accountant/summary" element={<P roles={['accountant']}><DailySummaryPage /></P>} />
-          <Route path="/accountant/subscriptions" element={<P roles={['accountant']}><SubscriptionsPage /></P>} />
-
-          {/* Admin extras */}
-          <Route path="/admin/audit" element={<P roles={['admin']}><AuditPage /></P>} />
-
-          {/* Assistant extras */}
-          <Route path="/assistant/outreach" element={<P roles={['assistant']}><OutreachPage /></P>} />
-          <Route path="/assistant/inventory" element={<P roles={['assistant']}><InventoryPage /></P>} />
-          <Route path="/assistant/prescriptions" element={<P roles={['assistant']}><GlassesPrescriptionPage /></P>} />
+          {/* Manager — audit logs, reports, create accounts */}
+          <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />
+          <Route path="/manager/audit" element={<P roles={['manager']}><AuditPage /></P>} />
+          <Route path="/manager/reports" element={<P roles={['manager']}><ReportsPage /></P>} />
+          <Route path="/manager/users" element={<P roles={['manager']}><UsersPage /></P>} />
 
           {/* Shared chat */}
           <Route path="/chat" element={<P><ChatPage /></P>} />

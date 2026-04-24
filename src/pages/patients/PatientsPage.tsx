@@ -29,7 +29,6 @@ const schema = z.object({
     occupation: z.string().optional(),
     next_of_kin_name: z.string().optional(),
     next_of_kin_phone: z.string().optional(),
-    blood_group: z.string().optional(),
     allergies: z.string().optional(),
     subscription_type: z.enum(['none', 'basic', 'standard', 'premium']).optional(),
 })
@@ -46,8 +45,8 @@ export function PatientsPage() {
     const [open, setOpen] = useState(false)
     const [editPatient, setEditPatient] = useState<Patient | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
-    // Only assistants can register/edit/delete patients — admin is read-only
-    const canWrite = profile?.role === 'assistant'
+    // Only frontdesks can register/edit/delete patients — admin is read-only
+    const canWrite = profile?.role === 'frontdesk'
 
     const { data: patients = [], isLoading } = useQuery({
         queryKey: ['patients', search],
@@ -112,7 +111,7 @@ export function PatientsPage() {
     const openNew = () => { setEditPatient(null); reset(); setOpen(true) }
     const openEdit = (p: Patient) => {
         setEditPatient(p)
-        reset({ first_name: p.first_name, last_name: p.last_name, phone: p.phone, email: p.email, date_of_birth: p.date_of_birth, gender: p.gender, address: p.address, occupation: p.occupation, next_of_kin_name: p.next_of_kin_name, next_of_kin_phone: p.next_of_kin_phone, blood_group: p.blood_group, allergies: p.allergies, subscription_type: p.subscription_type })
+        reset({ first_name: p.first_name, last_name: p.last_name, phone: p.phone, email: p.email, date_of_birth: p.date_of_birth, gender: p.gender, address: p.address, occupation: p.occupation, next_of_kin_name: p.next_of_kin_name, next_of_kin_phone: p.next_of_kin_phone, allergies: p.allergies, subscription_type: p.subscription_type })
         setOpen(true)
     }
 
@@ -242,7 +241,7 @@ export function PatientsPage() {
                             <Input label="Address" {...register('address')} />
                             <div className="grid grid-cols-2 gap-3">
                                 <Input label="Occupation" {...register('occupation')} />
-                                <Input label="Blood Group" placeholder="e.g. O+" {...register('blood_group')} />
+                                <Input label="Allergies" {...register('allergies')} />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <Input label="Next of Kin" {...register('next_of_kin_name')} />

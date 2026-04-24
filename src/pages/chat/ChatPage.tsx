@@ -189,7 +189,7 @@ export function ChatPage() {
     }, [text, activeUser, sendMutation])
 
     const filteredStaff = staff.filter(s => s.full_name.toLowerCase().includes(search.toLowerCase()))
-    const accent = getRoleAccent(profile?.role ?? 'assistant')
+    const accent = getRoleAccent(profile?.role ?? 'frontdesk')
 
     const formatTime = (ts: string) =>
         new Date(ts).toLocaleTimeString('en-NG', {

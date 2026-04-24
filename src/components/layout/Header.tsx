@@ -14,12 +14,15 @@ interface HeaderProps {
 
 function getBreadcrumb(pathname: string): string {
   const map: Record<string, string> = {
-    '/doctor': 'Dashboard', '/assistant': 'Dashboard', '/admin': 'Dashboard', '/accountant': 'Dashboard',
-    '/doctor/patients': 'Patients', '/assistant/patients': 'Patients', '/admin/patients': 'Patients',
-    '/doctor/appointments': 'Appointments', '/assistant/appointments': 'Appointments',
-    '/doctor/case-notes': 'Case Notes', '/doctor/prescriptions': 'Prescriptions',
-    '/assistant/dispensing': 'Drug Dispensing', '/assistant/glasses-orders': 'Glasses Orders',
-    '/assistant/outreach': 'Outreach', '/admin/inventory': 'Inventory',
+'/doctor': 'Dashboard', '/frontdesk': 'Dashboard', '/admin': 'Dashboard', '/manager': 'Dashboard',
+
+    '/doctor/patients': 'Patients', '/frontdesk/patients': 'Patients', '/admin/patients': 'Patients',
+
+    '/doctor/appointments': 'Appointments', '/frontdesk/appointments': 'Appointments',
+
+    '/frontdesk/dispensing': 'Drug Dispensing', '/frontdesk/glasses-orders': 'Glasses Orders',
+
+    '/frontdesk/outreach': 'Outreach', '/admin/inventory': 'Inventory',
     '/admin/users': 'Staff Management', '/admin/audit': 'Audit Logs', '/admin/reports': 'Reports',
     '/accountant/payments': 'Payments', '/accountant/summary': 'Daily Summary',
     '/accountant/subscriptions': 'Subscriptions', '/chat': 'Messages', '/settings': 'Settings',

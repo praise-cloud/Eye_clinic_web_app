@@ -150,7 +150,7 @@ export function PatientDetailPage() {
     ]
 
     // Back navigation based on role
-    const backHref = profile?.role === 'assistant' ? '/assistant/patients'
+    const backHref = profile?.role === 'frontdesk' ? '/frontdesk/patients'
         : profile?.role === 'doctor' ? '/doctor/patients'
             : profile?.role === 'admin' ? '/admin/patients'
                 : '/patients'
@@ -182,14 +182,14 @@ export function PatientDetailPage() {
                 </div>
                 {/* Quick actions based on role */}
                 <div className="flex gap-2 flex-shrink-0">
-                    {profile?.role === 'assistant' && (
+                    {profile?.role === 'frontdesk' && (
                         <>
-                            <Link to={`/assistant/appointments?patient=${id}`}>
+                            <Link to={`/frontdesk/appointments?patient=${id}`}>
                                 <Button variant="outline" size="sm" className="gap-1.5 hidden sm:flex">
                                     <Calendar className="w-3.5 h-3.5" />Book Appt
                                 </Button>
                             </Link>
-                            <Link to={`/assistant/dispensing`}>
+                            <Link to={`/frontdesk/dispensing`}>
                                 <Button variant="outline" size="sm" className="gap-1.5 hidden sm:flex">
                                     <Pill className="w-3.5 h-3.5" />Dispense
                                 </Button>
@@ -203,7 +203,7 @@ export function PatientDetailPage() {
                             </Button>
                         </Link>
                     )}
-                    {['assistant'].includes(profile?.role ?? '') && (
+                    {['frontdesk'].includes(profile?.role ?? '') && (
                         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(backHref)}>
                             <Edit className="w-3.5 h-3.5" />Edit
                         </Button>
@@ -239,7 +239,7 @@ export function PatientDetailPage() {
                         <div className="space-y-2 text-sm">
                             {patient.gender && <div className="flex justify-between"><span className="text-foreground400 text-xs">Gender</span><span className="capitalize text-sm">{patient.gender}</span></div>}
                             {patient.date_of_birth && <div className="flex justify-between"><span className="text-foreground400 text-xs">DOB</span><span className="text-sm">{formatDate(patient.date_of_birth)}</span></div>}
-                            {patient.blood_group && <div className="flex justify-between"><span className="text-foreground400 text-xs">Blood Group</span><span className="text-sm font-semibold">{patient.blood_group}</span></div>}
+                            
                             {patient.phone && <div className="flex items-center gap-2 text-foreground500 text-xs"><Phone className="w-3 h-3" />{patient.phone}</div>}
                             {patient.email && <div className="flex items-center gap-2 text-foreground500 text-xs"><Mail className="w-3 h-3" /><span className="truncate">{patient.email}</span></div>}
                             {patient.address && <div className="flex items-start gap-2 text-foreground500 text-xs"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />{patient.address}</div>}
@@ -343,8 +343,8 @@ export function PatientDetailPage() {
                                 <div className="text-center py-10 text-foreground400">
                                     <Pill className="w-8 h-8 mx-auto mb-2 opacity-30" />
                                     <p className="text-sm">No prescriptions yet</p>
-                                    {profile?.role === 'assistant' && (
-                                        <Link to="/assistant/prescriptions">
+                                    {profile?.role === 'frontdesk' && (
+                                        <Link to="/frontdesk/prescriptions">
                                             <Button size="sm" className="mt-3 gap-1.5"><Pill className="w-3.5 h-3.5" />Add Prescription</Button>
                                         </Link>
                                     )}

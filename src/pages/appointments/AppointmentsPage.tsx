@@ -153,7 +153,7 @@ export function AppointmentsPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['appointments'] })
             setOpen(false); reset(); setPatientDisplay('')
-            const link = profile?.role === 'doctor' ? '/doctor/appointments' : profile?.role === 'assistant' ? '/assistant/appointments' : '/admin/patients'
+            const link = profile?.role === 'doctor' ? '/doctor/appointments' : profile?.role === 'frontdesk' ? '/frontdesk/appointments' : '/admin/patients'
             notify({ type: 'appointment', title: 'Appointment Booked', message: 'A new appointment has been scheduled.', link })
         },
     })

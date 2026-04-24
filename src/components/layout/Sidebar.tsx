@@ -20,33 +20,32 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
-  assistant: [
-    { label: 'Dashboard', href: '/assistant', icon: LayoutDashboard },
-    { label: 'Patients', href: '/assistant/patients', icon: Users },
-    { label: 'Appointments', href: '/assistant/appointments', icon: Calendar },
-    { label: 'Drug Dispensing', href: '/assistant/dispensing', icon: Pill },
-    { label: 'Glasses Orders', href: '/assistant/glasses-orders', icon: Package },
-    { label: 'Prescriptions', href: '/assistant/prescriptions', icon: ClipboardList },
-    { label: 'Inventory', href: '/assistant/inventory', icon: Package },
-    { label: 'Outreach', href: '/assistant/outreach', icon: Send },
+  frontdesk: [
+    { label: 'Dashboard', href: '/frontdesk', icon: LayoutDashboard },
+    { label: 'Patients', href: '/frontdesk/patients', icon: Users },
+    { label: 'Appointments', href: '/frontdesk/appointments', icon: Calendar },
+    { label: 'Drug Dispensing', href: '/frontdesk/dispensing', icon: Pill },
+    { label: 'Glasses Orders', href: '/frontdesk/glasses-orders', icon: Package },
+    { label: 'Prescriptions', href: '/frontdesk/prescriptions', icon: ClipboardList },
+    { label: 'Outreach', href: '/frontdesk/outreach', icon: Send },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
   admin: [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { label: 'Patients', href: '/admin/patients', icon: Users },
-    { label: 'Inventory', href: '/assistant/inventory', icon: Package },
+    { label: 'Inventory', href: '/admin/inventory', icon: Package },
     { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
+    { label: 'Payments', href: '/admin/payments', icon: DollarSign },
     { label: 'Staff', href: '/admin/users', icon: UserCog },
-    { label: 'Audit Logs', href: '/admin/audit', icon: FileText },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
-  accountant: [
-    { label: 'Dashboard', href: '/accountant', icon: LayoutDashboard },
-    { label: 'Payments', href: '/accountant/payments', icon: DollarSign },
-    { label: 'Daily Summary', href: '/accountant/summary', icon: BarChart3 },
-    { label: 'Subscriptions', href: '/accountant/subscriptions', icon: ClipboardList },
+  manager: [
+    { label: 'Dashboard', href: '/manager', icon: LayoutDashboard },
+    { label: 'Audit Logs', href: '/manager/audit', icon: FileText },
+    { label: 'Reports', href: '/manager/reports', icon: BarChart3 },
+    { label: 'Staff', href: '/manager/users', icon: UserCog },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
@@ -57,9 +56,9 @@ interface SidebarProps { onLogout: () => void }
 export function Sidebar({ onLogout }: SidebarProps) {
   const { profile } = useAuthStore()
   const { logout } = useAuth()
-  const role = profile?.role ?? 'assistant'
+  const role = profile?.role ?? 'frontdesk'
   const accent = getRoleAccent(role)
-  const items = navByRole[role] ?? navByRole.assistant
+  const items = navByRole[role] ?? navByRole.frontdesk
 
   return (
     <aside className="flex flex-col w-64 h-screen bg-card border-r border-border flex-shrink-0">

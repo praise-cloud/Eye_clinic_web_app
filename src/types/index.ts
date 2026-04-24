@@ -1,4 +1,4 @@
-export type UserRole = 'doctor' | 'assistant' | 'admin' | 'accountant'
+export type UserRole = 'frontdesk' | 'doctor' | 'admin' | 'manager'
 
 export interface Profile {
   id: string
@@ -24,7 +24,6 @@ export interface Patient {
   occupation?: string
   next_of_kin_name?: string
   next_of_kin_phone?: string
-  blood_group?: string
   allergies?: string
   subscription_type?: 'none' | 'basic' | 'standard' | 'premium'
   subscription_start?: string

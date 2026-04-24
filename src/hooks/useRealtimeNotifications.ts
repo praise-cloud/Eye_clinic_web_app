@@ -66,8 +66,8 @@ export function useRealtimeNotifications() {
             channels.push(aptArrived)
         }
 
-        // ── ASSISTANT: New prescription issued ────────────────────────
-        if (profile.role === 'assistant') {
+        // ── FRONTDESK: New prescription issued ────────────────────────
+        if (profile.role === 'frontdesk') {
             const rxChannel = supabase
                 .channel('rx-new')
                 .on('postgres_changes', {
@@ -77,7 +77,7 @@ export function useRealtimeNotifications() {
                         type: 'prescription',
                         title: 'New Prescription',
                         message: 'A doctor has issued a new prescription to dispense.',
-                        link: '/assistant/dispensing',
+                        link: '/frontdesk/dispensing',
                     })
                 })
                 .subscribe()
@@ -94,7 +94,7 @@ export function useRealtimeNotifications() {
                             type: 'glasses',
                             title: '👓 Glasses Ready',
                             message: `Order ${payload.new.order_number} is ready for collection.`,
-                            link: '/assistant/glasses-orders',
+                            link: '/frontdesk/glasses-orders',
                         })
                     }
                 })
@@ -102,8 +102,8 @@ export function useRealtimeNotifications() {
             channels.push(glassesReady)
         }
 
-        // ── ASSISTANT + ADMIN: Low stock alert ────────────────────────
-        if (['assistant', 'admin'].includes(profile.role)) {
+        // ── FRONTDESK + ADMIN: Low stock alert ────────────────────────
+        if (['frontdesk', 'admin'].includes(profile.role)) {
             const stockChannel = supabase
                 .channel(`stock-alert:${profile.role}`)
                 .on('postgres_changes', {
@@ -122,14 +122,14 @@ export function useRealtimeNotifications() {
                             type: 'low_stock',
                             title: '⚠️ Low Stock Alert',
                             message: `${drug.name}: dropped to ${newQty} ${drug.unit ?? 'units'} (reorder at ${reorderLevel})`,
-                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
                         })
                     } else if (stillLow && newQty === 0) {
                         notify({
                             type: 'low_stock',
                             title: '🚨 Out of Stock',
                             message: `${drug.name} is now out of stock!`,
-                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
                         })
                     }
 })
@@ -154,14 +154,14 @@ export function useRealtimeNotifications() {
                             type: 'low_stock',
                             title: '👓 Low Stock Alert',
                             message: `${frame.frame_name}: only ${newQty} left (reorder at ${reorderLevel})`,
-                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
                         })
                     } else if (oldQty > 0 && newQty === 0) {
                         notify({
                             type: 'low_stock',
                             title: '🚨 Out of Stock',
                             message: `${frame.frame_name} is now out of stock!`,
-                            link: profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory',
+                            link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
                         })
                     }
 })
@@ -170,7 +170,7 @@ export function useRealtimeNotifications() {
         }
 
         // ── ACCOUNTANT + ADMIN: New payment recorded ──────────────────
-        if (['accountant', 'admin'].includes(profile.role)) {
+        if (['admin', 'admin'].includes(profile.role)) {
             const payChannel = supabase
                 .channel(`pay-new:${profile.role}`)
                 .on('postgres_changes', {
@@ -180,7 +180,7 @@ export function useRealtimeNotifications() {
                         type: 'payment',
                         title: 'Payment Recorded',
                         message: `A new payment has been recorded.`,
-                        link: profile.role === 'accountant' ? '/accountant/payments' : '/admin/reports',
+                        link: profile.role === 'admin' ? '/admin/payments' : '/admin/reports',
                     })
                 })
                 .subscribe()

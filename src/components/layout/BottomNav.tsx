@@ -12,12 +12,12 @@ const bottomNavByRole: Record<UserRole, { label: string; href: string; icon: Rea
         { label: 'Chat', href: '/chat', icon: MessageSquare },
         { label: 'Settings', href: '/settings', icon: Settings },
     ],
-    assistant: [
-        { label: 'Home', href: '/assistant', icon: LayoutDashboard },
-        { label: 'Patients', href: '/assistant/patients', icon: Users },
-        { label: 'Dispense', href: '/assistant/dispensing', icon: Pill },
-        { label: 'Inventory', href: '/assistant/inventory', icon: Package },
+    frontdesk: [
+        { label: 'Home', href: '/frontdesk', icon: LayoutDashboard },
+        { label: 'Patients', href: '/frontdesk/patients', icon: Users },
+        { label: 'Dispense', href: '/frontdesk/dispensing', icon: Pill },
         { label: 'Chat', href: '/chat', icon: MessageSquare },
+        { label: 'Settings', href: '/settings', icon: Settings },
     ],
     admin: [
         { label: 'Home', href: '/admin', icon: LayoutDashboard },
@@ -26,10 +26,10 @@ const bottomNavByRole: Record<UserRole, { label: string; href: string; icon: Rea
         { label: 'Staff', href: '/admin/users', icon: Users },
         { label: 'Chat', href: '/chat', icon: MessageSquare },
     ],
-    accountant: [
-        { label: 'Home', href: '/accountant', icon: LayoutDashboard },
-        { label: 'Payments', href: '/accountant/payments', icon: DollarSign },
-        { label: 'Summary', href: '/accountant/summary', icon: BarChart3 },
+    manager: [
+        { label: 'Home', href: '/manager', icon: LayoutDashboard },
+        { label: 'Audit', href: '/manager/audit', icon: BarChart3 },
+        { label: 'Staff', href: '/manager/users', icon: Users },
         { label: 'Chat', href: '/chat', icon: MessageSquare },
         { label: 'Settings', href: '/settings', icon: Settings },
     ],
@@ -41,9 +41,9 @@ interface BottomNavProps {
 
 export function BottomNav({ onLogout }: BottomNavProps) {
     const { profile } = useAuthStore()
-    const role = profile?.role ?? 'assistant'
+    const role = profile?.role ?? 'frontdesk'
     const accent = getRoleAccent(role)
-    const items = bottomNavByRole[role] ?? bottomNavByRole.assistant
+    const items = bottomNavByRole[role] ?? bottomNavByRole.frontdesk
 
     return (
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border flex items-center justify-around px-1 py-1 safe-area-pb shadow-lg">
