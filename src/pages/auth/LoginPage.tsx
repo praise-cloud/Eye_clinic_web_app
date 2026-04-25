@@ -27,43 +27,35 @@ export function LoginPage() {
     setError('')
     setIsLoading(true)
 
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      })
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
 
-      if (authError) {
-        let errorMsg = 'Login failed. Please try again.'
-        const msg = authError.message?.toLowerCase() || ''
-        if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('wrong') || msg.includes('could not find')) {
-          errorMsg = 'Incorrect email or password.'
-        } else if (msg.includes('email not confirmed')) {
-          errorMsg = 'Email not confirmed. Contact your administrator.'
-        } else if (msg.includes('user not found')) {
-          errorMsg = 'No account found with this email.'
-        }
-        setError(errorMsg)
-        setIsLoading(false)
-        return
-      }
+    setIsLoading(false)
 
-      // Fetch profile and redirect
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', authData.user.id).single()
-      setIsLoading(false)
-
-      // Redirect to role dashboard or fallback
-      if (profile?.role) {
-        navigate(`/${profile.role}`, { replace: true })
+    if (authError) {
+      const msg = authError.message?.toLowerCase() || ''
+      if (msg.includes('invalid') || msg.includes('wrong') || msg.includes('credentials') || msg.includes('could not find') || msg.includes('not found')) {
+        setError('Incorrect email or password.')
+      } else if (msg.includes('not confirmed')) {
+        setError('Email not confirmed. Contact admin.')
       } else {
-        // Profile might not exist yet, use metadata
-        const role = authData.user.user_metadata?.role || 'frontdesk'
-        navigate(`/${role}`, { replace: true })
+        setError('Login failed. Please try again.')
       }
-    } catch (err) {
-      console.error('Login error:', err)
-      setError('Connection error. Please check your internet and try again.')
-      setIsLoading(false)
+      return
+    }
+
+    if (authData.user) {
+      // Get profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single()
+
+      const role = profile?.role || authData.user.user_metadata?.role || 'frontdesk'
+      navigate(`/${role}`, { replace: true })
     }
   }
 
