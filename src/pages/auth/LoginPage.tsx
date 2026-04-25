@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
 
@@ -15,6 +15,7 @@ type FormData = z.infer<typeof schema>
 
 export function LoginPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const successMessage = (location.state as any)?.message
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -47,8 +48,10 @@ export function LoginPage() {
         return
       }
 
-      // Navigation will be handled by onAuthStateChange in App.tsx
+      // Fetch profile and redirect
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', authData.user.id).single()
       setIsLoading(false)
+      navigate(`/${profile?.role || 'frontdesk'}`, { replace: true })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed'
       if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('connection') || msg.toLowerCase().includes('failed to')) {
@@ -166,7 +169,10 @@ export function LoginPage() {
                     </form>
 
                     <p className="mt-6 text-center text-sm text-muted-foreground">
-                        Don't have an account? Contact your administrator.
+                        Don't have an account?{' '}
+                        <Link to="/register" className="text-primary hover:underline font-medium">
+                            Create Account
+                        </Link>
                     </p>
 
                     <p className="mt-8 text-center text-xs text-muted-foreground">
