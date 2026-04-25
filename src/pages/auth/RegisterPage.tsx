@@ -7,6 +7,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { supabase } from '@/lib/supabase'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Enter your full name'),
@@ -24,7 +25,7 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
   const [role, setRole] = useState<string>('')
-  const [isSuccess, setIsSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -32,6 +33,7 @@ export function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     setServerError('')
+    setIsLoading(true)
     try {
       const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
         method: 'POST',
@@ -49,7 +51,15 @@ export function RegisterPage() {
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.msg || result.error_description || 'Registration failed')
-      setIsSuccess(true)
+
+      // Auto sign in after registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
+      if (signInError) throw signInError
+
+      navigate(`/${data.role}`, { replace: true })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed.'
       if (msg.includes('already registered') || msg.includes('already been registered')) {
@@ -57,26 +67,8 @@ export function RegisterPage() {
       } else {
         setServerError(msg)
       }
+      setIsLoading(false)
     }
-  }
-
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4 py-8">
-        <div className="w-full max-w-md text-center">
-          <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold mb-2">Account Created!</h1>
-          <p className="text-muted-foreground text-sm mb-6">Your account has been created successfully.</p>
-          <Link to="/login" className="inline-flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors">
-            Go to Login
-          </Link>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -117,8 +109,8 @@ export function RegisterPage() {
                 <SelectItem value="frontdesk">Frontdesk</SelectItem>
               </SelectContent>
             </Select>
-            <Button type="submit" className="w-full h-10" loading={isSubmitting}>
-              {isSubmitting ? 'Creating account...' : 'Create Account'}
+            <Button type="submit" className="w-full h-10" disabled={isLoading || isSubmitting}>
+              {(isLoading || isSubmitting) ? 'Creating account...' : 'Create Account'}
             </Button>
           </form>
 
