@@ -47,19 +47,27 @@ function AuthProvider() {
   useEffect(() => {
     let mounted = true
 
+    const withTimeout = (promise: Promise<any>, ms: number) => 
+      Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+      ])
+
     const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 3000) as any
 
-        if (mounted) {
-          if (session?.user) {
-            setUser(session.user)
+        if (mounted && session?.user) {
+          setUser(session.user)
+          try {
             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
             if (data) setProfile(data as Profile)
+          } catch (e) {
+            // Profile fetch failed, continue anyway
           }
         }
       } catch (e) {
-        // Ignore errors, just proceed to login
+        // Timeout or error, proceed to login
       }
 
       if (mounted) {
