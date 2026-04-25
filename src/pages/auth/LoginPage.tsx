@@ -70,7 +70,7 @@ export function LoginPage() {
             <div className="hidden lg:flex flex-col justify-between w-[420px] bg-slate-900 dark:bg-slate-950 p-10 flex-shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center">
-                        <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+                        <img src="/icons/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
                     </div>
                     <div>
                         <p className="text-white font-bold text-sm">KORENE</p>
@@ -101,7 +101,7 @@ export function LoginPage() {
                     {/* Mobile logo */}
                     <div className="lg:hidden text-center mb-8">
                         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-500 mb-3 overflow-hidden">
-                            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                         </div>
                         <h1 className="text-xl font-bold text-foreground">KORENE Eye Clinic</h1>
                     </div>

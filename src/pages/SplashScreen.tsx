@@ -39,7 +39,7 @@ export function SplashScreen() {
             <nav className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-white/5">
                 <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+                        <img src="/icons/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
                     </div>
                     <div>
                         <span className="font-bold text-sm sm:text-base">KORENE</span>
@@ -132,7 +132,7 @@ export function SplashScreen() {
             {/* Footer */}
             <footer className="border-t border-white/5 px-4 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="Logo" className="w-4 h-4 object-contain" />
+                    <img src="/icons/logo.png" alt="Logo" className="w-4 h-4 object-contain" />
                     <span className="text-xs text-white/30">KORENE Eye Clinic Management System</span>
                 </div>
                 <span className="text-xs text-white/20">© {new Date().getFullYear()} All rights reserved</span>

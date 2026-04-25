@@ -65,7 +65,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 h-16 border-b border-border flex-shrink-0">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0 bg-blue-500">
-          <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+          <img src="/icons/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
         </div>
         <div>
           <p className="text-sm font-bold text-foreground leading-none">KORENE</p>

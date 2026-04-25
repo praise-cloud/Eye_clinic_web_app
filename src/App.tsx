@@ -127,7 +127,7 @@ function AuthProvider() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto mb-4 overflow-hidden">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground mt-4">Loading...</p>
