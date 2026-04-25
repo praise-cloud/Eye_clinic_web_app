@@ -173,7 +173,7 @@ function App() {
         <AuthProvider />
         <RealtimeProvider />
         <Routes>
-          {/* Public — show splash screen (redirect handled in SplashScreen) */}
+          {/* Root — show splash screen */}
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<LoginPage />} />
 
