@@ -87,8 +87,6 @@ function AuthProvider() {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
           if (data) {
             setProfile(data as Profile)
-            setLoading(false)
-            navigate(`/${data.role}`, { replace: true })
           } else {
             const meta = session.user.user_metadata
             const role = (meta?.role ?? 'frontdesk') as Profile['role']
@@ -98,22 +96,18 @@ function AuthProvider() {
               id: session.user.id, full_name, role, is_active: true, phone,
             }, { onConflict: 'id' }).select().single()
             setProfile((newProfile ?? { id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' }) as Profile)
-            setLoading(false)
-            navigate(`/${role}`, { replace: true })
           }
         } catch (e) {
           console.error('Profile fetch error:', e)
-          setLoading(false)
-          navigate('/login', { replace: true })
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
         signOut()
-        navigate('/login', { replace: true })
       } else if (event === 'USER_UPDATED' && session?.user) {
         setUser(session.user)
       }
+      setLoading(false)
     })
 
     return () => {
