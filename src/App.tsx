@@ -48,7 +48,7 @@ function AuthProvider() {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        
+
         if (session?.user) {
           setUser(session.user)
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
@@ -122,7 +122,7 @@ function AuthProvider() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto mb-4 overflow-hidden">
-            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <img src="/icons/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
           </div>
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground mt-4">Loading...</p>

@@ -16,7 +16,6 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-// Use Supabase admin API via service key — works from any device
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
 
@@ -25,23 +24,7 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
   const [role, setRole] = useState<string>('')
-
-  // Check if service key is available
-  if (!SERVICE_KEY) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4 py-8">
-        <div className="w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-red-500 mb-3">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold">Configuration Error</h1>
-          <p className="text-muted-foreground text-sm mt-2">Registration is not available. Please contact your administrator.</p>
-        </div>
-      </div>
-    )
-  }
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -50,7 +33,6 @@ export function RegisterPage() {
   const onSubmit = async (data: FormData) => {
     setServerError('')
     try {
-      // Call Supabase Admin API directly — no backend server needed
       const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
         method: 'POST',
         headers: {
@@ -67,7 +49,7 @@ export function RegisterPage() {
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.msg || result.error_description || 'Registration failed')
-      navigate('/login', { state: { message: 'Account created! You can now sign in.' } })
+      setIsSuccess(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed.'
       if (msg.includes('already registered') || msg.includes('already been registered')) {
@@ -78,15 +60,31 @@ export function RegisterPage() {
     }
   }
 
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4 py-8">
+        <div className="w-full max-w-md text-center">
+          <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold mb-2">Account Created!</h1>
+          <p className="text-muted-foreground text-sm mb-6">Your account has been created successfully.</p>
+          <Link to="/login" className="inline-flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors">
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-3">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-3 overflow-hidden">
+            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <h1 className="text-xl font-bold">KORENE Eye Clinic</h1>
           <p className="text-muted-foreground text-sm mt-1">Create your staff account</p>
@@ -96,7 +94,7 @@ export function RegisterPage() {
           <h2 className="text-base font-semibold mb-5">Register</h2>
 
           {serverError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm">
               {serverError}
             </div>
           )}

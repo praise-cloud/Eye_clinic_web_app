@@ -38,8 +38,8 @@ export function SplashScreen() {
             {/* Nav */}
             <nav className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-white/5">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        <img src="/icons/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+                    <div className="flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img src="/icons/logo.png" alt="Logo" className="w-24 h-12 object-contain" />
                     </div>
                     <div>
                         <span className="font-bold text-sm sm:text-base">KORENE</span>
