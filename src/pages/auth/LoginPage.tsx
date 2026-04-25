@@ -72,15 +72,16 @@ export function LoginPage() {
             {/* Left branding panel — desktop only */}
             <div className="hidden lg:flex flex-col justify-between w-[420px] bg-slate-900 dark:bg-slate-950 p-10 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center">
-                        <img src="/icons/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+                    <div className="w-16 h-16 rounded-2xl bg-blue-500 flex items-center justify-center overflow-hidden shadow-lg">
+                        <img src="/icons/logo.png" alt="Logo" className="w-14 h-14 object-contain" />
                     </div>
                     <div>
-                        <p className="text-white font-bold text-sm">KORENE</p>
-                        <p className="text-slate-400 text-xs">Eye Clinic</p>
+                        <p className="text-white font-bold text-lg">KORENE</p>
+                        <p className="text-slate-400 text-sm">Eye Clinic</p>
                     </div>
                 </div>
-                <div>
+                <div className="relative">
+                    <div className="absolute -top-20 -left-10 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl -z-10" />
                     <h2 className="text-3xl font-bold text-white leading-tight mb-4">
                         Complete clinic<br />management<br />in one place.
                     </h2>
@@ -103,8 +104,8 @@ export function LoginPage() {
                 <div className="w-full max-w-sm">
                     {/* Mobile logo */}
                     <div className="lg:hidden text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-500 mb-3 overflow-hidden">
-                            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-blue-500 mb-4 overflow-hidden shadow-lg">
+                            <img src="/icons/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
                         </div>
                         <h1 className="text-xl font-bold text-foreground">KORENE Eye Clinic</h1>
                     </div>

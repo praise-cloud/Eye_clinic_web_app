@@ -83,8 +83,8 @@ export function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-3 overflow-hidden">
-            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary mb-4 overflow-hidden shadow-lg">
+            <img src="/icons/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-xl font-bold">KORENE Eye Clinic</h1>
           <p className="text-muted-foreground text-sm mt-1">Create your staff account</p>
