@@ -20,6 +20,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard'
 import { PatientsPage } from './pages/patients/PatientsPage'
 import { PatientDetailPage } from './pages/patients/PatientDetailPage'
 import { AppointmentsPage } from './pages/appointments/AppointmentsPage'
+import { CalendarPage } from './pages/appointments/CalendarPage'
 import { CaseNotesPage } from './pages/doctor/CaseNotesPage'
 import { DispensingPage } from './pages/frontdesk/DispensingPage'
 import { GlassesOrdersPage } from './pages/frontdesk/GlassesOrdersPage'
@@ -182,20 +183,23 @@ function App() {
           <Route path="/doctor" element={<P roles={['doctor']}><DoctorDashboard /></P>} />
           <Route path="/doctor/patients" element={<P roles={['doctor']}><PatientsPage /></P>} />
           <Route path="/doctor/appointments" element={<P roles={['doctor']}><AppointmentsPage /></P>} />
+          <Route path="/doctor/calendar" element={<P roles={['doctor']}><CalendarPage /></P>} />
           <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
 
-          {/* Frontdesk — patients, appointments, dispensing, glasses, outreach */}
+          {/* Frontdesk — patients, appointments, calendar, dispensing, glasses, outreach */}
           <Route path="/frontdesk" element={<P roles={['frontdesk']}><FrontdeskDashboard /></P>} />
           <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
           <Route path="/frontdesk/appointments" element={<P roles={['frontdesk']}><AppointmentsPage /></P>} />
+          <Route path="/frontdesk/calendar" element={<P roles={['frontdesk']}><CalendarPage /></P>} />
           <Route path="/frontdesk/dispensing" element={<P roles={['frontdesk']}><DispensingPage /></P>} />
           <Route path="/frontdesk/glasses-orders" element={<P roles={['frontdesk']}><GlassesOrdersPage /></P>} />
           <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
           <Route path="/frontdesk/prescriptions" element={<P roles={['frontdesk']}><GlassesPrescriptionPage /></P>} />
 
-          {/* Admin/Accounts — combined admin + accountant (NO audit logs) */}
+          {/* Admin/Accounts — combined admin + accountant */}
           <Route path="/admin" element={<P roles={['admin']}><AdminDashboard /></P>} />
           <Route path="/admin/patients" element={<P roles={['admin']}><PatientsPage /></P>} />
+          <Route path="/admin/calendar" element={<P roles={['admin']}><CalendarPage /></P>} />
           <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
           <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
           <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />

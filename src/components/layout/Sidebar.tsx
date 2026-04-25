@@ -16,6 +16,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Dashboard', href: '/doctor', icon: LayoutDashboard },
     { label: 'Patients', href: '/doctor/patients', icon: Users },
     { label: 'Appointments', href: '/doctor/appointments', icon: Calendar },
+    { label: 'Calendar', href: '/doctor/calendar', icon: Calendar },
     { label: 'Case Notes', href: '/doctor/case-notes', icon: FileText },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
@@ -24,6 +25,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Dashboard', href: '/frontdesk', icon: LayoutDashboard },
     { label: 'Patients', href: '/frontdesk/patients', icon: Users },
     { label: 'Appointments', href: '/frontdesk/appointments', icon: Calendar },
+    { label: 'Calendar', href: '/frontdesk/calendar', icon: Calendar },
     { label: 'Drug Dispensing', href: '/frontdesk/dispensing', icon: Pill },
     { label: 'Glasses Orders', href: '/frontdesk/glasses-orders', icon: Package },
     { label: 'Prescriptions', href: '/frontdesk/prescriptions', icon: ClipboardList },
@@ -34,6 +36,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { label: 'Patients', href: '/admin/patients', icon: Users },
+    { label: 'Calendar', href: '/admin/calendar', icon: Calendar },
     { label: 'Inventory', href: '/admin/inventory', icon: Package },
     { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { label: 'Payments', href: '/admin/payments', icon: DollarSign },

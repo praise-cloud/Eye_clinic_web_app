@@ -34,16 +34,16 @@ export function LoginPage() {
       })
 
       if (authError) {
-        const msg = authError.message || 'Login failed'
-        if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials') || msg.toLowerCase().includes('wrong')) {
-          setError('Incorrect email or password.')
-        } else if (msg.toLowerCase().includes('email not confirmed')) {
-          setError('Email not confirmed. Contact your administrator.')
-        } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('connection')) {
-          setError('Network error. Please check your connection and try again.')
-        } else {
-          setError(msg)
+        let errorMsg = 'Login failed. Please try again.'
+        const msg = authError.message?.toLowerCase() || ''
+        if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('wrong') || msg.includes('could not find')) {
+          errorMsg = 'Incorrect email or password.'
+        } else if (msg.includes('email not confirmed')) {
+          errorMsg = 'Email not confirmed. Contact your administrator.'
+        } else if (msg.includes('user not found')) {
+          errorMsg = 'No account found with this email.'
         }
+        setError(errorMsg)
         setIsLoading(false)
         return
       }
@@ -51,18 +51,18 @@ export function LoginPage() {
       // Fetch profile and redirect
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', authData.user.id).single()
       setIsLoading(false)
-      navigate(`/${profile?.role || 'frontdesk'}`, { replace: true })
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Login failed'
-      if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('connection') || msg.toLowerCase().includes('failed to')) {
-        setError('Connection error. Please check your internet and try again.')
-      } else if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials') || msg.toLowerCase().includes('wrong')) {
-        setError('Incorrect email or password.')
-      } else if (msg.toLowerCase().includes('email not confirmed')) {
-        setError('Email not confirmed. Contact your administrator.')
+
+      // Redirect to role dashboard or fallback
+      if (profile?.role) {
+        navigate(`/${profile.role}`, { replace: true })
       } else {
-        setError(msg)
+        // Profile might not exist yet, use metadata
+        const role = authData.user.user_metadata?.role || 'frontdesk'
+        navigate(`/${role}`, { replace: true })
       }
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('Connection error. Please check your internet and try again.')
       setIsLoading(false)
     }
   }
