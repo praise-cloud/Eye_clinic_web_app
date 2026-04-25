@@ -41,79 +41,52 @@ const queryClient = new QueryClient({
 })
 
 function AuthProvider() {
-  const { setUser, setProfile, setLoading, signOut } = useAuthStore()
-  const navigate = useNavigate()
+  const { setUser, setProfile, setLoading } = useAuthStore()
   const [initialCheckDone, setInitialCheckDone] = useState(false)
 
   useEffect(() => {
-    const checkSession = async () => {
+    let mounted = true
+
+    const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
 
-        if (session?.user) {
-          setUser(session.user)
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-          if (data) {
-            setProfile(data as Profile)
-          } else {
-            const meta = session.user.user_metadata
-            const role = (meta?.role ?? 'frontdesk') as Profile['role']
-            const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
-            const { data: newProfile } = await supabase.from('profiles').upsert({
-              id: session.user.id, full_name, role, is_active: true,
-            }, { onConflict: 'id' }).select().single()
-            if (newProfile) setProfile(newProfile as Profile)
+        if (mounted) {
+          if (session?.user) {
+            setUser(session.user)
+            const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+            if (data) setProfile(data as Profile)
           }
         }
       } catch (e) {
-        console.warn('Session check failed:', e)
-      } finally {
+        // Ignore errors, just proceed to login
+      }
+
+      if (mounted) {
         setLoading(false)
         setInitialCheckDone(true)
       }
     }
 
-    const timeout = setTimeout(() => {
-      setLoading(false)
-      setInitialCheckDone(true)
-    }, 10000)
+    init()
 
-    checkSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED' && session?.user) {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
         setUser(session.user)
-      } else if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user)
-        try {
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-          if (data) {
-            setProfile(data as Profile)
-          } else {
-            const meta = session.user.user_metadata
-            const role = (meta?.role ?? 'frontdesk') as Profile['role']
-            const full_name = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0] ?? 'User'
-            const phone = meta?.phone ?? undefined
-            const { data: newProfile } = await supabase.from('profiles').upsert({
-              id: session.user.id, full_name, role, is_active: true, phone,
-            }, { onConflict: 'id' }).select().single()
-            setProfile((newProfile ?? { id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' }) as Profile)
-          }
-        } catch (e) {
-          console.error('Profile fetch error:', e)
-        }
+        supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          .then(({ data }) => {
+            if (data) setProfile(data as Profile)
+          })
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
-        signOut()
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        setUser(session.user)
       }
       setLoading(false)
     })
 
     return () => {
-      clearTimeout(timeout)
+      mounted = false
       subscription.unsubscribe()
     }
   }, [])
@@ -123,10 +96,9 @@ function AuthProvider() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto mb-4 overflow-hidden">
-            <img src="/icons/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
+            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground mt-4">Loading...</p>
         </div>
       </div>
     )
