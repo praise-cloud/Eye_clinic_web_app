@@ -54,6 +54,13 @@ function AuthProvider() {
       ])
 
     const init = async () => {
+      const failSafeTimer = setTimeout(() => {
+        if (mounted) {
+          setLoading(false)
+          setInitialCheckDone(true)
+        }
+      }, 2000)
+
       try {
         const { data: { session } } = await withTimeout(supabase.auth.getSession(), 3000) as any
 
@@ -70,6 +77,7 @@ function AuthProvider() {
         // Timeout or error, proceed to login
       }
 
+      clearTimeout(failSafeTimer)
       if (mounted) {
         setLoading(false)
         setInitialCheckDone(true)
