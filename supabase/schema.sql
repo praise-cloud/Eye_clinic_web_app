@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name   TEXT NOT NULL,
-  role        TEXT NOT NULL CHECK (role IN ('doctor','frontdesk','admin','manager')),
+  role        TEXT NOT NULL,
   phone       TEXT,
   avatar_url  TEXT,
   is_active   BOOLEAN DEFAULT TRUE,
@@ -26,18 +26,23 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
+-- Drop constraint FIRST before updating roles
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+
+-- Update existing roles (normalize and map legacy roles)
 UPDATE public.profiles
 SET role = CASE
-  WHEN role = 'assistant' THEN 'frontdesk'
-  WHEN role = 'accountant' THEN 'admin'
-  ELSE role
+  WHEN lower(btrim(role)) = 'assistant' THEN 'frontdesk'
+  WHEN lower(btrim(role)) = 'accountant' THEN 'admin'
+  ELSE lower(btrim(role))
 END
-WHERE role IN ('assistant', 'accountant');
+WHERE lower(btrim(role)) IN ('assistant', 'accountant')
+   OR role <> lower(btrim(role));
 
-ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+-- Add the new constraint with correct roles
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_role_check
-  CHECK (role IN ('doctor', 'frontdesk', 'admin', 'manager'));
+  CHECK (lower(btrim(role)) IN ('doctor', 'frontdesk', 'admin', 'manager'));
 
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -49,7 +54,7 @@ AS $$
 DECLARE
   normalized_role TEXT;
 BEGIN
-  normalized_role := COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk');
+  normalized_role := lower(btrim(COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk')));
 
   IF normalized_role = 'assistant' THEN
     normalized_role := 'frontdesk';
@@ -88,6 +93,11 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ── get_user_role function ───────────────────────────────────
+CREATE OR REPLACE FUNCTION get_user_role() RETURNS TEXT AS $$
+  SELECT lower(btrim(role)) FROM public.profiles WHERE id = auth.uid();
+$$ LANGUAGE SQL SECURITY DEFINER;
 
 -- ── PATIENTS ─────────────────────────────────────────────────
 CREATE SEQUENCE IF NOT EXISTS patient_number_seq START 1;
@@ -302,7 +312,7 @@ CREATE TABLE IF NOT EXISTS public.glasses_inventory (
   frame_code      TEXT UNIQUE,
   color           TEXT,
   material        TEXT,
-  gender          TEXT CHECK (gender IN ('male','female','others')),
+  gender          TEXT CHECK (gender IN ('male','female','other')),
   quantity        INTEGER NOT NULL DEFAULT 0,
   reorder_level   INTEGER DEFAULT 5,
   purchase_price  NUMERIC(12,2),
@@ -417,14 +427,8 @@ CREATE TABLE IF NOT EXISTS public.settings (
 
 CREATE INDEX IF NOT EXISTS idx_settings_key ON public.settings(key);
 
--- Enable RLS and add policies
+-- Enable RLS
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Anyone read settings" ON public.settings;
-CREATE POLICY "Anyone read settings" ON public.settings FOR SELECT TO authenticated USING (TRUE);
-
-DROP POLICY IF EXISTS "Admin manage settings" ON public.settings;
-CREATE POLICY "Admin manage settings" ON public.settings FOR ALL TO authenticated USING (get_user_role() = 'admin');
 
 -- Default settings (idempotent) - Replace these values in Settings page
 INSERT INTO public.settings (key, value) VALUES
@@ -504,11 +508,6 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outreach_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
--- ── get_user_role function ───────────────────────────────────
-CREATE OR REPLACE FUNCTION get_user_role() RETURNS TEXT AS $$
-  SELECT role FROM public.profiles WHERE id = auth.uid();
-$$ LANGUAGE SQL SECURITY DEFINER;
-
 -- Note: REALTIME tables already configured in Supabase dashboard
 -- Skip this section - tables already in publication if you have realtime enabled
 
@@ -554,25 +553,29 @@ BEGIN
   IF NOT _exists THEN CREATE POLICY "All staff view patients" ON public.patients FOR SELECT TO authenticated USING (TRUE); END IF;
 END $$;
 
+DROP POLICY IF EXISTS "Assistant/admin create patients" ON public.patients;
+DROP POLICY IF EXISTS "Assistant/admin update patients" ON public.patients;
+DROP POLICY IF EXISTS "Assistant/admin delete patients" ON public.patients;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Assistant/admin create patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Frontdesk/admin create patients') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Assistant/admin update patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Frontdesk/admin update patients') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Assistant/admin delete patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Frontdesk/admin delete patients') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Appointments Policies ────────────────────────────────────
@@ -620,14 +623,18 @@ BEGIN
   IF NOT _exists THEN CREATE POLICY "All staff view drugs" ON public.drugs FOR SELECT TO authenticated USING (TRUE); END IF;
 END $$;
 
+DROP POLICY IF EXISTS "Assistant/admin manage drugs" ON public.drugs;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='drugs' AND policyname='Assistant/admin manage drugs') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage drugs" ON public.drugs FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='drugs' AND policyname='Frontdesk/admin manage drugs') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin manage drugs" ON public.drugs FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Drug Dispensing Policies ────────────────────────────────────
+DROP POLICY IF EXISTS "Assistant dispenses" ON public.drug_dispensing;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
@@ -638,11 +645,14 @@ END $$;
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='drug_dispensing' AND policyname='Assistant dispenses') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant dispenses" ON public.drug_dispensing FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='drug_dispensing' AND policyname='Frontdesk/admin dispenses') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin dispenses" ON public.drug_dispensing FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Glasses Policies ────────────────────────────────────────
+DROP POLICY IF EXISTS "Assistant/admin manage glasses" ON public.glasses_inventory;
+DROP POLICY IF EXISTS "Assistant/admin manage orders" ON public.glasses_orders;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
@@ -653,8 +663,8 @@ END $$;
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='glasses_inventory' AND policyname='Assistant/admin manage glasses') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='glasses_inventory' AND policyname='Frontdesk/admin manage glasses') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
@@ -667,11 +677,14 @@ END $$;
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='glasses_orders' AND policyname='Assistant/admin manage orders') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage orders" ON public.glasses_orders FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='glasses_orders' AND policyname='Frontdesk/admin manage orders') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin manage orders" ON public.glasses_orders FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Payments Policies ─────────────────────────────────────────────
+DROP POLICY IF EXISTS "Assistant insert payments" ON public.payments;
+DROP POLICY IF EXISTS "Accountant/admin manage payments" ON public.payments;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
@@ -682,14 +695,14 @@ END $$;
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Assistant insert payments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Frontdesk/admin insert payments') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Accountant/admin manage payments') INTO _exists;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Admin manage payments') INTO _exists;
   IF NOT _exists THEN CREATE POLICY "Admin manage payments" ON public.payments FOR ALL TO authenticated USING (get_user_role() = 'admin'); END IF;
 END $$;
 
@@ -738,26 +751,33 @@ BEGIN
 END $$;
 
 -- ── Outreach Policies ────────────────────────────────────────────
+DROP POLICY IF EXISTS "Assistant/admin outreach" ON public.outreach_log;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='outreach_log' AND policyname='Assistant/admin outreach') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin outreach" ON public.outreach_log FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='outreach_log' AND policyname='Frontdesk/admin outreach') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin outreach" ON public.outreach_log FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Settings Policies ───────────────────────────────────────
+DROP POLICY IF EXISTS "Anyone read settings" ON public.settings;
+DROP POLICY IF EXISTS "Users read own settings" ON public.settings;
+DROP POLICY IF EXISTS "Users manage own settings" ON public.settings;
+DROP POLICY IF EXISTS "Admin manage settings" ON public.settings;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='settings' AND policyname='Users read own settings') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Users read own settings" ON public.settings FOR SELECT TO authenticated USING (TRUE); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='settings' AND policyname='Authenticated read settings') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Authenticated read settings" ON public.settings FOR SELECT TO authenticated USING (TRUE); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='settings' AND policyname='Users manage own settings') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Users manage own settings" ON public.settings FOR ALL TO authenticated USING (TRUE); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='settings' AND policyname='Admin manage settings') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Admin manage settings" ON public.settings FOR ALL TO authenticated USING (get_user_role() = 'admin'); END IF;
 END $$;
 
 -- ── Push Subscriptions Policies ──────────────────────────
