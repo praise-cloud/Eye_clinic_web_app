@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/store/authStore'
+import { useClinicStore } from '@/hooks/useClinicSettings'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Enter your full name'),
@@ -23,6 +25,7 @@ const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
 export function RegisterPage() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
+  const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
   const [serverError, setServerError] = useState('')
   const [role, setRole] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
@@ -53,11 +56,16 @@ export function RegisterPage() {
       if (!res.ok) throw new Error(result.msg || result.error_description || 'Registration failed')
 
       // Auto sign in after registration
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
       if (signInError) throw signInError
+
+      // FIX: Set user in store BEFORE navigating
+      if (authData?.user) {
+        useAuthStore.getState().setUser(authData.user)
+      }
 
       navigate(`/${data.role}`, { replace: true })
     } catch (err) {
@@ -78,7 +86,7 @@ export function RegisterPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary mb-4 overflow-hidden shadow-lg">
             <img src="/icons/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
           </div>
-          <h1 className="text-xl font-bold">KORENE Eye Clinic</h1>
+          <h1 className="text-xl font-bold">{clinicName} Eye Clinic</h1>
           <p className="text-muted-foreground text-sm mt-1">Create your staff account</p>
         </div>
 

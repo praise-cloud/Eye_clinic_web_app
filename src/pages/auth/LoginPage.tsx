@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/store/authStore'
+import { useClinicStore } from '@/hooks/useClinicSettings'
 import { Input } from '@/components/ui/input'
 
 const schema = z.object({
@@ -20,6 +22,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -47,12 +50,17 @@ export function LoginPage() {
     }
 
     if (authData.user) {
+      // FIX: Set user in store BEFORE navigating to ensure auth state is ready
+      useAuthStore.getState().setUser(authData.user)
+      
       // Get profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', authData.user.id)
         .single()
+
+      if (profile) useAuthStore.getState().setProfile(profile)
 
       const role = profile?.role || authData.user.user_metadata?.role || 'frontdesk'
       navigate(`/${role}`, { replace: true })
@@ -68,7 +76,7 @@ export function LoginPage() {
                         <img src="/icons/logo.png" alt="Logo" className="w-14 h-14 object-contain" />
                     </div>
                     <div>
-                        <p className="text-white font-bold text-lg">KORENE</p>
+                        <p className="text-white font-bold text-lg">{clinicName}</p>
                         <p className="text-slate-400 text-sm">Eye Clinic</p>
                     </div>
                 </div>
@@ -99,7 +107,7 @@ export function LoginPage() {
                         <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-blue-500 mb-4 overflow-hidden shadow-lg">
                             <img src="/icons/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
                         </div>
-                        <h1 className="text-xl font-bold text-foreground">KORENE Eye Clinic</h1>
+                        <h1 className="text-xl font-bold text-foreground">{clinicName} Eye Clinic</h1>
                     </div>
 
                     <div className="mb-8">
@@ -169,7 +177,7 @@ export function LoginPage() {
                     </p>
 
                     <p className="mt-8 text-center text-xs text-muted-foreground">
-                        © {new Date().getFullYear()} KORENE Eye Clinic. All rights reserved.
+                        © {new Date().getFullYear()} {clinicName} Eye Clinic. All rights reserved.
                     </p>
                 </div>
             </div>
