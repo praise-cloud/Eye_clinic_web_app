@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.case_notes (
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
+    SELECT 1 FROM information_schema.columns
     WHERE table_name = 'case_notes' AND column_name = 'cvf_attachment_url'
   ) THEN
     ALTER TABLE public.case_notes ADD COLUMN cvf_attachment_url TEXT;

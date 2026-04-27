@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { MiniCalendar } from '@/components/calendar/MiniCalendar'
+import { ActivityFeed } from '@/components/admin/ActivityFeed'
 
 export function AdminDashboard() {
     const { data: stats } = useQuery({
@@ -68,7 +69,10 @@ export function AdminDashboard() {
                 })}
             </div>
 
-            <MiniCalendar />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <MiniCalendar compact />
+                <ActivityFeed compact />
+            </div>
         </div>
     )
 }

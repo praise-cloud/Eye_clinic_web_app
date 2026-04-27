@@ -362,3 +362,12 @@ cd client && npm run dev
 - Staff delete now properly deletes from profiles table before auth cleanup
 - Edit staff action added to admin UsersPage (edit name, role, phone)
 - Vercel Analytics integrated for application analytics tracking
+
+### May 1, 2026 — Chat System Enhancements
+- Chat now supports photo and document attachments
+- Images can be viewed in full-screen preview within chat
+- Documents show download option in preview
+- Message bubble options: reply, edit (own messages), delete (own messages)
+- Updated messages table schema with attachment fields and updated_at
+- Added storage bucket 'files' for chat attachments
+- Added RLS policies for message edit/delete and file uploads
