@@ -20,7 +20,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+const SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 
 // Helper to map invalid roles to valid ones
 const mapRole = (role: string | undefined): string => {
@@ -49,8 +49,8 @@ export function RegisterPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SERVICE_KEY,
-          'Authorization': `Bearer ${SERVICE_KEY}`,
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify({
           email: data.email,
@@ -72,14 +72,14 @@ export function RegisterPage() {
       // FIX: Set user and profile in store BEFORE navigating
       if (authData?.user) {
         useAuthStore.getState().setUser(authData.user)
-        
+
         // Fetch profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', authData.user.id)
           .single()
-        
+
         if (profile) {
           useAuthStore.getState().setProfile(profile as any)
         }

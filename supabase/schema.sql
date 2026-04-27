@@ -11,13 +11,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name   TEXT NOT NULL,
-  role        TEXT NOT NULL CHECK (role IN ('doctor','assistant','frontdesk','admin','manager','accountant')),
+  role        TEXT NOT NULL CHECK (role IN ('doctor','frontdesk','admin','manager')),
   phone       TEXT,
-  avatar_url  TEXT,
-  is_active   BOOLEAN DEFAULT TRUE,
-  created_at  TIMESTAMPTZ DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ DEFAULT NOW()
-);
   avatar_url  TEXT,
   is_active   BOOLEAN DEFAULT TRUE,
   created_at  TIMESTAMPTZ DEFAULT NOW(),
@@ -30,7 +25,7 @@ BEGIN
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', 'New User'),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'assistant')
+    COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk')
   );
   RETURN NEW;
 END;
@@ -124,9 +119,19 @@ BEGIN
 END $$;
 
 -- ── STORAGE BUCKET FOR CVF ATTACHMENTS ────────────────────────
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('cvf-attachments', 'cvf-attachments', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
-ON CONFLICT (id) DO NOTHING;
+-- Note: Only run if storage buckets table exists and has the expected columns
+-- The storage schema varies by Supabase version
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'storage' AND table_name = 'buckets' AND column_name = 'name'
+  ) THEN
+    INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    VALUES ('cvf-attachments', 'cvf-attachments', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Anyone can view cvf-attachments" ON storage.objects;
 CREATE POLICY "Anyone can view cvf-attachments"
@@ -144,9 +149,17 @@ CREATE POLICY "Admins can upload cvf-attachments"
   WITH CHECK ( bucket_id = 'cvf-attachments' );
 
 -- ── STORAGE BUCKET FOR CHAT FILES ────────────────────────────────
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('files', 'files', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'])
-ON CONFLICT (id) DO NOTHING;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'storage' AND table_name = 'buckets' AND column_name = 'name'
+  ) THEN
+    INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    VALUES ('files', 'files', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'])
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Anyone can view files" ON storage.objects;
 CREATE POLICY "Anyone can view files"
@@ -351,6 +364,23 @@ CREATE TABLE IF NOT EXISTS public.settings (
 
 CREATE INDEX IF NOT EXISTS idx_settings_key ON public.settings(key);
 
+-- Enable RLS and add policies
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone read settings" ON public.settings;
+CREATE POLICY "Anyone read settings" ON public.settings FOR SELECT TO authenticated USING (TRUE);
+
+DROP POLICY IF EXISTS "Admin manage settings" ON public.settings;
+CREATE POLICY "Admin manage settings" ON public.settings FOR ALL TO authenticated USING (get_user_role() = 'admin');
+
+-- Default settings (idempotent) - Replace these values in Settings page
+INSERT INTO public.settings (key, value) VALUES
+    ('clinic_name', 'Your Clinic Name'),
+    ('clinic_email', 'contact@yourclinic.com'),
+    ('clinic_phone', '+234'),
+    ('clinic_address', '')
+ON CONFLICT (key) DO NOTHING;
+
 -- ── PUSH SUBSCRIPTIONS ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.push_subscriptions (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -468,21 +498,21 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Assistant/admin create patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Assistant/admin update patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Assistant/admin delete patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Appointments Policies ────────────────────────────────────
@@ -497,7 +527,7 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='appointments' AND policyname='Staff manage appointments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor','assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor','frontdesk','admin')); END IF;
 END $$;
 
 -- ── Case Notes Policies ───────────────────────────────────────
@@ -534,7 +564,7 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='drugs' AND policyname='Assistant/admin manage drugs') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage drugs" ON public.drugs FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage drugs" ON public.drugs FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Drug Dispensing Policies ────────────────────────────────────
@@ -542,14 +572,14 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='drug_dispensing' AND policyname='View dispensing') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "View dispensing" ON public.drug_dispensing FOR SELECT TO authenticated USING (get_user_role() IN ('doctor','assistant','admin','accountant')); END IF;
+  IF NOT _exists THEN CREATE POLICY "View dispensing" ON public.drug_dispensing FOR SELECT TO authenticated USING (get_user_role() IN ('doctor','frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='drug_dispensing' AND policyname='Assistant dispenses') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant dispenses" ON public.drug_dispensing FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant dispenses" ON public.drug_dispensing FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Glasses Policies ────────────────────────────────────────
@@ -564,7 +594,7 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='glasses_inventory' AND policyname='Assistant/admin manage glasses') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
@@ -578,7 +608,7 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='glasses_orders' AND policyname='Assistant/admin manage orders') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage orders" ON public.glasses_orders FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin manage orders" ON public.glasses_orders FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Payments Policies ─────────────────────────────────────────────
@@ -586,21 +616,21 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Finance view payments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Finance view payments" ON public.payments FOR SELECT TO authenticated USING (get_user_role() IN ('assistant','accountant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Finance view payments" ON public.payments FOR SELECT TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Assistant insert payments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Accountant/admin manage payments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Accountant/admin manage payments" ON public.payments FOR ALL TO authenticated USING (get_user_role() IN ('accountant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Admin manage payments" ON public.payments FOR ALL TO authenticated USING (get_user_role() = 'admin'); END IF;
 END $$;
 
 -- ── Messages Policies ──────────────────────────────────────
@@ -652,7 +682,7 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='outreach_log' AND policyname='Assistant/admin outreach') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Assistant/admin outreach" ON public.outreach_log FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Assistant/admin outreach" ON public.outreach_log FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
 END $$;
 
 -- ── Settings Policies ───────────────────────────────────────

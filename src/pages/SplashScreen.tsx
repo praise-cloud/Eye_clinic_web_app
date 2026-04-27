@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Stethoscope, ClipboardList, ShieldCheck, BarChart3, ArrowRight, CheckCircle } from 'lucide-react'
+import { useClinicStore } from '@/hooks/useClinicSettings'
 
 const roles = [
     {
@@ -31,6 +32,7 @@ const features = [
 
 export function SplashScreen() {
     const navigate = useNavigate()
+    const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
 
     return (
         <div className="min-h-screen bg-slate-950 text-white font-sans">
@@ -42,7 +44,7 @@ export function SplashScreen() {
                         <img src="/icons/logo.png" alt="Logo" className="w-24 h-12 object-contain" />
                     </div>
                     <div>
-                        <span className="font-bold text-sm sm:text-base">KORENE</span>
+                        <span className="font-bold text-sm sm:text-base">{clinicName}</span>
                         <span className="text-white/40 text-xs ml-1.5 hidden sm:inline">Eye Clinic</span>
                     </div>
                 </div>
@@ -65,7 +67,7 @@ export function SplashScreen() {
                     <span className="text-blue-400">Management Platform</span>
                 </h1>
                 <p className="text-white/50 text-base sm:text-lg leading-relaxed mb-8 max-w-xl mx-auto">
-                    A complete PWA for KORENE Eye Clinic — patients, appointments, prescriptions, pharmacy, and finances in one place.
+                    A complete PWA for {clinicName} Eye Clinic — patients, appointments, prescriptions, pharmacy, and finances in one place.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button onClick={() => navigate('/login')}
@@ -133,7 +135,7 @@ export function SplashScreen() {
             <footer className="border-t border-white/5 px-4 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <img src="/icons/logo.png" alt="Logo" className="w-4 h-4 object-contain" />
-                    <span className="text-xs text-white/30">KORENE Eye Clinic Management System</span>
+                    <span className="text-xs text-white/30">{clinicName} Eye Clinic Management System</span>
                 </div>
                 <span className="text-xs text-white/20">© {new Date().getFullYear()} All rights reserved</span>
             </footer>

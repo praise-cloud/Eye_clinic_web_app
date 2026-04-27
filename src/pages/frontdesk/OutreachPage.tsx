@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Send, Phone, Mail, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
+import { useClinicStore } from '@/hooks/useClinicSettings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,17 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatDate } from '@/lib/utils'
 import type { Patient, OutreachLog } from '@/types'
 
-const TEMPLATES: Record<string, string> = {
-    appointment_reminder: 'Dear {name}, this is a reminder of your appointment at KORENE Eye Clinic. Please arrive 10 minutes early. Call us for any changes.',
-    subscription_expiry: 'Dear {name}, your KORENE Eye Clinic subscription is expiring soon. Please contact us to renew and continue enjoying our services.',
-    checkup_due: 'Dear {name}, it\'s time for your routine eye checkup at KORENE Eye Clinic. Please call us to book an appointment.',
-    glasses_ready: 'Dear {name}, your glasses are ready for collection at KORENE Eye Clinic. Our hours are Mon-Fri 8AM-6PM.',
+const getTemplates = (clinicName: string): Record<string, string> => ({
+    appointment_reminder: `Dear {name}, this is a reminder of your appointment at ${clinicName}. Please arrive 10 minutes early. Call us for any changes.`,
+    subscription_expiry: `Dear {name}, your ${clinicName} subscription is expiring soon. Please contact us to renew and continue enjoying our services.`,
+    checkup_due: `Dear {name}, it's time for your routine eye checkup at ${clinicName}. Please call us to book an appointment.`,
+    glasses_ready: `Dear {name}, your glasses are ready for collection at ${clinicName}. Our hours are Mon-Fri 8AM-6PM.`,
     custom: '',
-}
+})
 
 export function OutreachPage() {
     const { profile } = useAuthStore()
     const qc = useQueryClient()
+    const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
+    const TEMPLATES = getTemplates(clinicName)
     const [patientSearch, setPatientSearch] = useState('')
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
     const [channel, setChannel] = useState<'sms' | 'email'>('sms')

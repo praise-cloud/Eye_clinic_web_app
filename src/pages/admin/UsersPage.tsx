@@ -52,10 +52,10 @@ export function UsersPage() {
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
             const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-            const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+            const SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
             const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
+                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
                 body: JSON.stringify({ email: data.email, password: data.password, email_confirm: true, user_metadata: { full_name: data.full_name, role: data.role, phone: data.phone } }),
             })
             const result = await res.json()
@@ -105,7 +105,7 @@ export function UsersPage() {
                 .from('profiles')
                 .update({ is_active: false })
                 .eq('id', userId)
-            
+
             if (error) throw error
         },
         onSuccess: () => {

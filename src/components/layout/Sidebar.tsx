@@ -7,6 +7,7 @@ import {
 import { cn, getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { useAuth } from '@/hooks/useAuth'
+import { useClinicStore } from '@/hooks/useClinicSettings'
 import type { UserRole } from '@/types'
 
 interface NavItem { label: string; href: string; icon: React.ElementType; badge?: number }
@@ -61,6 +62,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const role = profile?.role ?? 'frontdesk'
   const accent = getRoleAccent(role)
   const items = navByRole[role] ?? navByRole.frontdesk
+  const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
 
   return (
     <aside className="flex flex-col w-64 h-screen bg-card border-r border-border flex-shrink-0">
@@ -70,8 +72,8 @@ export function Sidebar({ onLogout }: SidebarProps) {
           <img src="/icons/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
         </div>
         <div>
-          <p className="text-sm font-bold text-foreground leading-none">KORENE</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Eye Clinic</p>
+          <p className="text-sm font-bold text-foreground leading-none">{clinicName}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Eye Care</p>
         </div>
       </div>
 

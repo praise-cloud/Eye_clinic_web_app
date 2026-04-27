@@ -14,6 +14,7 @@ export function AppShell({ children }: AppShellProps) {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
     const title = pathname.split('/').filter(Boolean).pop() ?? 'dashboard'
+    const isChatPage = pathname === '/chat'
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
@@ -35,14 +36,14 @@ export function AppShell({ children }: AppShellProps) {
             {/* Main */}
             <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                 <Header title={title} onMenuClick={() => setMobileSidebarOpen(true)} />
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-6 scrollbar-thin bg-background">
+                <main className={`flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin bg-background ${!isChatPage ? 'pb-24 lg:pb-6' : 'pb-6'}`}>
                     {children}
                 </main>
                 <ToastContainer />
             </div>
 
-            {/* Mobile Bottom Nav */}
-            <BottomNav onLogout={logout} />
+            {/* Mobile Bottom Nav - Hidden on chat page */}
+            {!isChatPage && <BottomNav onLogout={logout} />}
         </div>
     )
 }
