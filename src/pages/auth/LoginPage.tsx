@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { useClinicStore } from '@/hooks/useClinicSettings'
+import type { Profile } from '@/types'
 import { Input } from '@/components/ui/input'
 
 const schema = z.object({
@@ -56,11 +57,13 @@ export function LoginPage() {
       // Get profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('*')
         .eq('id', authData.user.id)
         .single()
 
-      if (profile) useAuthStore.getState().setProfile(profile)
+      if (profile) {
+        useAuthStore.getState().setProfile(profile as Profile)
+      }
 
       const role = profile?.role || authData.user.user_metadata?.role || 'frontdesk'
       navigate(`/${role}`, { replace: true })
