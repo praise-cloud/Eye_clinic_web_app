@@ -42,15 +42,13 @@ export function UsersPage() {
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-            const SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
-            const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
-                body: JSON.stringify({ email: data.email, password: data.password, email_confirm: true, user_metadata: { full_name: data.full_name, role: data.role, phone: data.phone } }),
+            const { data: userData, error } = await supabase.auth.admin.createUser({
+                email: data.email,
+                password: data.password,
+                email_confirm: true,
+                user_metadata: { full_name: data.full_name, role: data.role, phone: data.phone },
             })
-            const result = await res.json()
-            if (!res.ok) throw new Error(result.msg || result.error_description || 'Failed to create user')
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })

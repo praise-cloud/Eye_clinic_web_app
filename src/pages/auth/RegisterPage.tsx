@@ -20,7 +20,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 
 // Helper to map invalid roles to valid ones
 const mapRole = (role: string | undefined): string => {
@@ -45,22 +44,15 @@ export function RegisterPage() {
     setServerError('')
     setIsLoading(true)
     try {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          email_confirm: true,
-          user_metadata: { full_name: data.full_name, role: data.role },
-        }),
+      // Use Supabase auth admin createUser method
+      const { data: userData, error: createError } = await supabase.auth.admin.createUser({
+        email: data.email,
+        password: data.password,
+        email_confirm: true,
+        user_metadata: { full_name: data.full_name, role: mapRole(data.role) },
       })
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.msg || result.error_description || 'Registration failed')
+      
+      if (createError) throw createError
 
       // Auto sign in after registration
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
