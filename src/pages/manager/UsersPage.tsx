@@ -51,7 +51,7 @@ export function UsersPage() {
                 },
             })
             if (error) throw error
-            if (!userData.user) throw new Error('Failed to create user')
+            if (!userData?.user) throw new Error('Failed to create user')
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
