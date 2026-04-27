@@ -61,7 +61,14 @@ export function UsersPage() {
             setOpen(false); reset(); setError('')
             notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/admin/users' })
         },
-        onError: (e: Error) => setError(e.message),
+        onError: (e: Error) => {
+            const msg = e.message || ''
+            if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Too many')) {
+                setError('Too many attempts. Please wait and try again.')
+            } else {
+                setError(e.message)
+            }
+        },
     })
 
     const toggleActive = useMutation({

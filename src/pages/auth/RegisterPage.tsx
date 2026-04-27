@@ -84,7 +84,10 @@ export function RegisterPage() {
       }, 50)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed.'
-      if (msg.includes('already registered') || msg.includes('already been registered')) {
+      // Handle rate limiting
+      if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Too many requests')) {
+        setServerError('Too many attempts. Please wait a moment and try again.')
+      } else if (msg.includes('already registered') || msg.includes('already been registered')) {
         setServerError('This email is already registered. Try signing in instead.')
       } else {
         setServerError(msg)
