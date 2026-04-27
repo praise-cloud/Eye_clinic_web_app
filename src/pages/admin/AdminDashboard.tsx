@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { MiniCalendar } from '@/components/calendar/MiniCalendar'
 
 export function AdminDashboard() {
     const { data: stats } = useQuery({
@@ -66,6 +67,8 @@ export function AdminDashboard() {
                     )
                 })}
             </div>
+
+            <MiniCalendar />
         </div>
     )
 }

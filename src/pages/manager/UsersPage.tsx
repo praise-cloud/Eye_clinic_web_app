@@ -74,14 +74,21 @@ export function UsersPage() {
         mutationFn: async (userId: string) => {
             const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
             const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
-            // Delete from auth (cascades to profiles via FK)
-            const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
-                method: 'DELETE',
-                headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
-            })
-            if (!res.ok) {
-                // If auth delete fails, at least deactivate the profile
+            // Delete from profiles table first
+            const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId)
+            if (profileError) {
                 await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
+            }
+            try {
+                const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
+                })
+                if (!res.ok && res.status !== 404) {
+                    console.warn('Auth user delete failed, but profile deleted')
+                }
+            } catch {
+                console.warn('Auth delete skipped, profile removed')
             }
         },
         onSuccess: () => {

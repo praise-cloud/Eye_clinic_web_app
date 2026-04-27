@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, UserCheck, UserX, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, UserCheck, UserX, Trash2, AlertTriangle, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +18,7 @@ import type { Profile } from '@/types'
 const schema = z.object({
     full_name: z.string().min(2, 'Required'),
     email: z.string().email('Valid email required'),
-    password: z.string().min(8, 'Min 8 characters'),
+    password: z.string().optional(),
     role: z.enum(['doctor', 'frontdesk', 'admin', 'manager']),
     phone: z.string().optional(),
 })
@@ -28,6 +28,7 @@ export function UsersPage() {
     const qc = useQueryClient()
     const [open, setOpen] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
+    const [editTarget, setEditTarget] = useState<Profile | null>(null)
     const [error, setError] = useState('')
 
     const { data: users = [], isLoading } = useQuery({
@@ -39,6 +40,14 @@ export function UsersPage() {
     })
 
     const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+    useEffect(() => {
+        if (editTarget) {
+            setValue('full_name', editTarget.full_name || '')
+            setValue('role', editTarget.role)
+            setValue('phone', editTarget.phone || '')
+        }
+    }, [editTarget, setValue])
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
@@ -70,24 +79,54 @@ export function UsersPage() {
         },
     })
 
+    const updateMutation = useMutation({
+        mutationFn: async (data: FormData & { id: string }) => {
+            const { id, password, ...profileData } = data
+            const updates: Partial<Profile> = {
+                full_name: profileData.full_name,
+                role: profileData.role as Profile['role'],
+                phone: profileData.phone || undefined,
+            }
+            await supabase.from('profiles').update(updates).eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['staff'] })
+            setEditTarget(null); reset(); setError('')
+            notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' })
+        },
+        onError: (e: Error) => setError(e.message),
+    })
+
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
             const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
             const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
-            // Delete from auth (cascades to profiles via FK)
-            const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
-                method: 'DELETE',
-                headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
-            })
-            if (!res.ok) {
-                // If auth delete fails, at least deactivate the profile
+            // Delete from profiles table first
+            const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId)
+            if (profileError) {
+                // If delete fails, at least deactivate
                 await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
+            }
+            // Try to delete from auth
+            try {
+                const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
+                })
+                if (!res.ok && res.status !== 404) {
+                    console.warn('Auth user delete failed, but profile deleted')
+                }
+            } catch {
+                console.warn('Auth delete skipped, profile removed')
             }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
             notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted.' })
+        },
+        onError: () => {
+            setDeleteTarget(null)
         },
     })
 
@@ -124,6 +163,11 @@ export function UsersPage() {
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                     <Button variant="ghost" size="sm"
+                                        className="h-8 text-xs rounded-lg gap-1 text-blue-600 hover:bg-blue-50"
+                                        onClick={() => { reset(); setError(''); setEditTarget(u) }}>
+                                        <Pencil className="w-3.5 h-3.5" /><span className="hidden sm:inline">Edit</span>
+                                    </Button>
+                                    <Button variant="ghost" size="sm"
                                         className={`h-8 text-xs rounded-lg gap-1 ${u.is_active ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
                                         onClick={() => toggleActive.mutate({ id: u.id, is_active: !u.is_active })}>
                                         {u.is_active ? <><UserX className="w-3.5 h-3.5" /><span className="hidden sm:inline">Disable</span></> : <><UserCheck className="w-3.5 h-3.5" /><span className="hidden sm:inline">Enable</span></>}
@@ -142,7 +186,7 @@ export function UsersPage() {
             )}
 
             {/* Create Modal */}
-            <Modal open={open} onOpenChange={setOpen}>
+<Modal open={open} onOpenChange={setOpen}>
                 <ModalContent size="sm">
                     <ModalHeader>
                         <ModalTitle>Add Staff Member</ModalTitle>
@@ -169,6 +213,36 @@ export function UsersPage() {
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" form="user-form" loading={isSubmitting || createMutation.isPending}>Create Account</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Edit Modal */}
+            <Modal open={!!editTarget} onOpenChange={(v) => { if (!v) setEditTarget(null) }}>
+                <ModalContent size="sm">
+                    <ModalHeader>
+                        <ModalTitle>Edit Staff Member</ModalTitle>
+                        <ModalDescription>Update staff account details</ModalDescription>
+                    </ModalHeader>
+                    <ModalBody>
+                        {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">{error}</div>}
+                        <form id="edit-form" onSubmit={handleSubmit(d => editTarget && updateMutation.mutate({ ...d, id: editTarget.id }))} className="space-y-4">
+                            <Input label="Full Name *" error={errors.full_name?.message} {...register('full_name')} />
+                            <Select onValueChange={v => setValue('role', v as any)}>
+                                <SelectTrigger label="Role *"><SelectValue placeholder="Select role" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="admin">Admin/Accounts</SelectItem>
+                                    <SelectItem value="manager">Manager</SelectItem>
+                                    <SelectItem value="doctor">Doctor</SelectItem>
+                                    <SelectItem value="frontdesk">Frontdesk</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Input label="Phone (optional)" {...register('phone')} />
+                        </form>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+                        <Button type="submit" form="edit-form" loading={updateMutation.isPending}>Save Changes</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

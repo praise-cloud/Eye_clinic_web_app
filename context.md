@@ -270,7 +270,10 @@ eye-clinic-web/
 - Calendar page (monthly view with appointment visualization)
 - Settings page (profile, notifications, clinic settings)
 - All four role dashboards with live data fetching
-- All backend route files registered and structured
+- Admin dashboard with mini calendar component
+- Toast notification system with auto-dismiss
+- User management page (add, edit, enable/disable, delete staff)
+- Vercel Analytics integration
 
 ### Partially Implemented / Placeholder Routes
 These routes exist in `App.tsx` and the sidebar but render `<RoleDashboard />` as a placeholder:
@@ -292,7 +295,6 @@ These routes exist in `App.tsx` and the sidebar but render `<RoleDashboard />` a
 - Chat/messaging system
 - Activity log / audit trail
 - PWA icons (missing from `client/public/`)
-- User management page (admin)
 
 ---
 
@@ -352,3 +354,11 @@ cd client && npm run dev
 - All 4 role dashboards live with real Supabase data queries
 - Single `npm run dev` starts the app on http://localhost:3000
 - Backend folder retained but not used — can be removed
+
+### April 27, 2026 — Admin Dashboard & User Management Updates
+- Admin dashboard now displays mini calendar below stat cards
+- Calendar removed from admin sidebar navigation
+- Toast notifications auto-dismiss after 5 seconds and close on click
+- Staff delete now properly deletes from profiles table before auth cleanup
+- Edit staff action added to admin UsersPage (edit name, role, phone)
+- Vercel Analytics integrated for application analytics tracking

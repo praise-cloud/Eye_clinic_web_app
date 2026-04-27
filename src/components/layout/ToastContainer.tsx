@@ -38,7 +38,8 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
 
     useEffect(() => {
         const enterTimer = setTimeout(() => setVisible(true), 50)
-        return () => { clearTimeout(enterTimer) }
+        const autoTimer = setTimeout(() => handleDismiss(), 5000)
+        return () => { clearTimeout(enterTimer); clearTimeout(autoTimer) }
     }, [notification.id])
 
     const handleDismiss = () => {
@@ -80,21 +81,25 @@ export function ToastContainer() {
     const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
 
     useEffect(() => {
+        if (notifications.length === 0) {
+            setRecentIds(new Set())
+            return
+        }
         const latest = notifications.slice(0, 3)
         const latestIds = new Set(latest.map(n => n.id))
-        if (latestIds.size > 0) {
-            setRecentIds(prev => {
-                const newIds = new Set([...prev, ...latestIds])
-                return new Set([...newIds].slice(-5))
-            })
-        }
+        setRecentIds(prev => {
+            const newIds = new Set([...prev, ...latestIds])
+            return new Set([...newIds].slice(-5))
+        })
     }, [notifications])
 
-    if (recentIds.size === 0) return null
+    const visibleToasts = notifications.slice(0, 3)
+
+    if (visibleToasts.length === 0) return null
 
     return (
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
-            {notifications.slice(0, 3).map(n => (
+            {visibleToasts.map(n => (
                 <div key={n.id} className="pointer-events-auto">
                     <ToastItem notification={n} onDismiss={(id) => { markRead(id); setRecentIds(prev => { const s = new Set(prev); s.delete(id); return s }) }} />
                 </div>
