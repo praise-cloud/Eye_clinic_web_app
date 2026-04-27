@@ -16,6 +16,7 @@ interface NotificationState {
     add: (n: Omit<AppNotification, 'id' | 'read' | 'created_at'>) => void
     markRead: (id: string) => void
     markAllRead: () => void
+    remove: (id: string) => void
     clear: () => void
 }
 
@@ -45,6 +46,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         notifications: s.notifications.map(n => ({ ...n, read: true })),
         unreadCount: 0,
     })),
+
+    remove: (id) => set(s => {
+        const notification = s.notifications.find(n => n.id === id)
+        return {
+            notifications: s.notifications.filter(n => n.id !== id),
+            unreadCount: Math.max(0, s.unreadCount - (notification && !notification.read ? 1 : 0)),
+        }
+    }),
 
     clear: () => set({ notifications: [], unreadCount: 0 }),
 }))

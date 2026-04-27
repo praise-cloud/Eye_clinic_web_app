@@ -77,21 +77,7 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
 }
 
 export function ToastContainer() {
-    const { notifications, markRead } = useNotificationStore()
-    const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
-
-    useEffect(() => {
-        if (notifications.length === 0) {
-            setRecentIds(new Set())
-            return
-        }
-        const latest = notifications.slice(0, 3)
-        const latestIds = new Set(latest.map(n => n.id))
-        setRecentIds(prev => {
-            const newIds = new Set([...prev, ...latestIds])
-            return new Set([...newIds].slice(-5))
-        })
-    }, [notifications])
+    const { notifications, remove } = useNotificationStore()
 
     const visibleToasts = notifications.slice(0, 3)
 
@@ -101,7 +87,7 @@ export function ToastContainer() {
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
             {visibleToasts.map(n => (
                 <div key={n.id} className="pointer-events-auto">
-                    <ToastItem notification={n} onDismiss={(id) => { markRead(id); setRecentIds(prev => { const s = new Set(prev); s.delete(id); return s }) }} />
+                    <ToastItem notification={n} onDismiss={(id) => remove(id)} />
                 </div>
             ))}
         </div>
