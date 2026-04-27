@@ -4,14 +4,12 @@ import App from './App'
 import './index.css'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Analytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <App />
       <Analytics />
-      <SpeedInsights />
     </ErrorBoundary>
   </React.StrictMode>
 )
