@@ -19,8 +19,6 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-
 // Helper to map invalid roles to valid ones
 const mapRole = (role: string | undefined): string => {
   const validRoles = ['doctor', 'frontdesk', 'admin', 'manager']
