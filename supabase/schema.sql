@@ -335,6 +335,17 @@ CREATE TABLE IF NOT EXISTS public.outreach_log (
   sent_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ── SETTINGS ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    key TEXT UNIQUE NOT NULL,
+    value TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_settings_key ON public.settings(key);
+
 -- ── PUSH SUBSCRIPTIONS ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.push_subscriptions (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -637,6 +648,21 @@ DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='outreach_log' AND policyname='Assistant/admin outreach') INTO _exists;
   IF NOT _exists THEN CREATE POLICY "Assistant/admin outreach" ON public.outreach_log FOR ALL TO authenticated USING (get_user_role() IN ('assistant','admin')); END IF;
+END $$;
+
+-- ── Settings Policies ───────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='settings' AND policyname='Users read own settings') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Users read own settings" ON public.settings FOR SELECT TO authenticated USING (TRUE); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='settings' AND policyname='Users manage own settings') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Users manage own settings" ON public.settings FOR ALL TO authenticated USING (TRUE); END IF;
 END $$;
 
 -- ── Push Subscriptions Policies ──────────────────────────
