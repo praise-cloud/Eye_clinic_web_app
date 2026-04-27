@@ -1,13 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import type { UserRole } from '@/types'
-
-// Helper to map invalid roles to valid ones
-const mapRole = (role: string | undefined): string => {
-  const validRoles: UserRole[] = ['doctor', 'frontdesk', 'admin', 'manager']
-  if (!role) return 'frontdesk'
-  return validRoles.includes(role as UserRole) ? role : 'frontdesk'
-}
+import { getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
 
 interface RoleGuardProps {
     children: React.ReactNode
@@ -31,9 +25,9 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
 
     if (!isAuthenticated) return <Navigate to="/login" replace />
 
-    const role = mapRole(profile?.role)
+    const role = normalizeUserRole(profile?.role)
     if (allowedRoles && !allowedRoles.includes(role as UserRole)) {
-        return <Navigate to={`/${role}`} replace />
+        return <Navigate to={getRoleDashboardPath(role)} replace />
     }
 
     return <>{children}</>

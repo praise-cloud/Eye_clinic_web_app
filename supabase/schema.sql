@@ -19,22 +19,75 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE OR REPLACE FUNCTION handle_new_user() RETURNS TRIGGER AS $$
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+UPDATE public.profiles
+SET role = CASE
+  WHEN role = 'assistant' THEN 'frontdesk'
+  WHEN role = 'accountant' THEN 'admin'
+  ELSE role
+END
+WHERE role IN ('assistant', 'accountant');
+
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_role_check
+  CHECK (role IN ('doctor', 'frontdesk', 'admin', 'manager'));
+
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  normalized_role TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, full_name, role)
+  normalized_role := COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk');
+
+  IF normalized_role = 'assistant' THEN
+    normalized_role := 'frontdesk';
+  ELSIF normalized_role = 'accountant' THEN
+    normalized_role := 'admin';
+  ELSIF normalized_role NOT IN ('doctor', 'frontdesk', 'admin', 'manager') THEN
+    normalized_role := 'frontdesk';
+  END IF;
+
+  INSERT INTO public.profiles (
+    id,
+    full_name,
+    role,
+    phone,
+    is_active
+  )
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', 'New User'),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk')
-  );
+    normalized_role,
+    NEW.raw_user_meta_data->>'phone',
+    TRUE
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    phone = COALESCE(EXCLUDED.phone, public.profiles.phone),
+    is_active = TRUE,
+    updated_at = NOW();
+
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ── PATIENTS ─────────────────────────────────────────────────
 CREATE SEQUENCE IF NOT EXISTS patient_number_seq START 1;
@@ -124,7 +177,7 @@ END $$;
 DO $$
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
+    SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'storage' AND table_name = 'buckets' AND column_name = 'name'
   ) THEN
     INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -152,7 +205,7 @@ CREATE POLICY "Admins can upload cvf-attachments"
 DO $$
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
+    SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'storage' AND table_name = 'buckets' AND column_name = 'name'
   ) THEN
     INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -249,7 +302,7 @@ CREATE TABLE IF NOT EXISTS public.glasses_inventory (
   frame_code      TEXT UNIQUE,
   color           TEXT,
   material        TEXT,
-  gender          TEXT CHECK (gender IN ('male','female','unisex')),
+  gender          TEXT CHECK (gender IN ('male','female','others')),
   quantity        INTEGER NOT NULL DEFAULT 0,
   reorder_level   INTEGER DEFAULT 5,
   purchase_price  NUMERIC(12,2),
@@ -465,6 +518,13 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 -- These are IDEMPOTENT — safe to run even if they already exist
 
 -- ── Profiles Policies ──────────────────────────────────────────────
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='Profile insert during signup') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Profile insert during signup" ON public.profiles FOR INSERT WITH CHECK (TRUE); END IF;
+END $$;
+
 DO $$
 DECLARE _exists bool;
 BEGIN

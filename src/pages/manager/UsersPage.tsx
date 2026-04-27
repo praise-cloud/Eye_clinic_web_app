@@ -38,37 +38,32 @@ export function UsersPage() {
         },
     })
 
-    const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
+    const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
+        resolver: zodResolver(schema)
+    })
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            // Use regular signUp - no admin privileges needed
-            const password = data.password ?? ''
-            if (!password) throw new Error('Password is required')
-            
-            const { data: userData, error } = await supabase.auth.signUp({
-                email: data.email,
-                password: password,
-                options: {
-                    data: { full_name: data.full_name, role: data.role, phone: data.phone },
-                },
+            // Use backend admin route — no email sent, no rate limits
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: data.email,
+                    password: data.password,
+                    full_name: data.full_name,
+                    role: data.role,
+                }),
             })
-            if (error) throw error
-            if (!userData?.user) throw new Error('Failed to create user')
+            const result = await response.json()
+            if (!response.ok || !result.success) throw new Error(result.error || 'Failed to create account')
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setOpen(false); reset(); setError('')
-            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/admin/users' })
+            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/manager/users' })
         },
-        onError: (e: Error) => {
-            const msg = e.message || ''
-            if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Too many')) {
-                setError('Too many attempts. Please wait and try again.')
-            } else {
-                setError(e.message)
-            }
-        },
+        onError: (e: Error) => setError(e.message),
     })
 
     const toggleActive = useMutation({
@@ -83,7 +78,6 @@ export function UsersPage() {
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            // Just deactivate instead of deleting - more reliable
             const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
             if (error) throw error
         },
@@ -129,7 +123,9 @@ export function UsersPage() {
                                     <Button variant="ghost" size="sm"
                                         className={`h-8 text-xs rounded-lg gap-1 ${u.is_active ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
                                         onClick={() => toggleActive.mutate({ id: u.id, is_active: !u.is_active })}>
-                                        {u.is_active ? <><UserX className="w-3.5 h-3.5" /><span className="hidden sm:inline">Disable</span></> : <><UserCheck className="w-3.5 h-3.5" /><span className="hidden sm:inline">Enable</span></>}
+                                        {u.is_active
+                                            ? <><UserX className="w-3.5 h-3.5" /><span className="hidden sm:inline">Disable</span></>
+                                            : <><UserCheck className="w-3.5 h-3.5" /><span className="hidden sm:inline">Enable</span></>}
                                     </Button>
                                     <Button variant="ghost" size="sm"
                                         className="h-8 text-xs rounded-lg gap-1 text-red-500 hover:bg-red-50"
@@ -158,12 +154,14 @@ export function UsersPage() {
                             <Input label="Email *" type="email" error={errors.email?.message} {...register('email')} />
                             <Input label="Password *" type="password" error={errors.password?.message} {...register('password')} />
                             <Select onValueChange={v => setValue('role', v as any)}>
-                                <SelectTrigger label="Role *" error={errors.role?.message}><SelectValue placeholder="Select role" /></SelectTrigger>
+                                <SelectTrigger label="Role *" error={errors.role?.message}>
+                                    <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="doctor">Doctor</SelectItem>
-                                    <SelectItem value="frontdesk">Frontdesk</SelectItem>
                                     <SelectItem value="admin">Admin/Accounts</SelectItem>
                                     <SelectItem value="manager">Manager</SelectItem>
+                                    <SelectItem value="doctor">Doctor</SelectItem>
+                                    <SelectItem value="frontdesk">Frontdesk</SelectItem>
                                 </SelectContent>
                             </Select>
                             <Input label="Phone (optional)" {...register('phone')} />
@@ -176,7 +174,7 @@ export function UsersPage() {
                 </ModalContent>
             </Modal>
 
-            {/* Delete Confirm Modal */}
+            {/* Deactivate Confirm Modal */}
             <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
                 <ModalContent size="sm">
                     <ModalHeader>

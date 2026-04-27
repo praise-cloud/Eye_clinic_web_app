@@ -9,13 +9,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useClinicStore } from '@/hooks/useClinicSettings'
 import type { Profile } from '@/types'
 import { Input } from '@/components/ui/input'
-
-// Helper to map invalid roles to valid ones
-const mapRole = (role: string | undefined): string => {
-  const validRoles = ['doctor', 'frontdesk', 'admin', 'manager']
-  if (!role) return 'frontdesk'
-  return validRoles.includes(role) ? role : 'frontdesk'
-}
+import { buildFallbackProfile, getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -51,17 +45,18 @@ export function LoginPage() {
       
       if (!mounted) return
       
-      console.log('[LoginPage useEffect] Profile:', profile?.role)
+      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(session.user)
+      console.log('[LoginPage useEffect] Profile:', resolvedProfile.role)
       useAuthStore.getState().setUser(session.user)
-      useAuthStore.getState().setProfile(profile as Profile)
+      useAuthStore.getState().setProfile(resolvedProfile)
       
-      const role = mapRole(profile?.role || session.user.user_metadata?.role)
+      const role = normalizeUserRole(resolvedProfile.role || session.user.user_metadata?.role)
       console.log('[LoginPage useEffect] Redirecting to:', role)
       
       // Use setTimeout to ensure state is fully propagated before navigation
       setTimeout(() => {
         if (mounted) {
-          navigate(`/${role}`, { replace: true })
+          navigate(getRoleDashboardPath(role), { replace: true })
         }
       }, 50)
     }
@@ -87,8 +82,6 @@ export function LoginPage() {
       const msg = authError.message?.toLowerCase() || ''
       if (msg.includes('invalid') || msg.includes('wrong') || msg.includes('credentials') || msg.includes('could not find') || msg.includes('not found')) {
         setError('Incorrect email or password.')
-      } else if (msg.includes('not confirmed')) {
-        setError('Email not confirmed. Contact admin.')
       } else {
         setError('Login failed. Please try again.')
       }
@@ -106,12 +99,11 @@ export function LoginPage() {
         .eq('id', authData.user.id)
         .single()
 
-      if (profile) {
-        useAuthStore.getState().setProfile(profile as Profile)
-      }
+      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(authData.user)
+      useAuthStore.getState().setProfile(resolvedProfile)
 
-      const role = mapRole(profile?.role || authData.user.user_metadata?.role)
-      navigate(`/${role}`, { replace: true })
+      const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
+      navigate(getRoleDashboardPath(role), { replace: true })
     }
   }
 

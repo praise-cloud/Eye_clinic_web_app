@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { useClinicStore } from '@/hooks/useClinicSettings'
+import type { Profile } from '@/types'
+import { buildFallbackProfile, getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Enter your full name'),
@@ -19,13 +21,6 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
-// Helper to map invalid roles to valid ones
-const mapRole = (role: string | undefined): string => {
-  const validRoles = ['doctor', 'frontdesk', 'admin', 'manager']
-  if (!role) return 'frontdesk'
-  return validRoles.includes(role) ? role : 'frontdesk'
-}
-
 export function RegisterPage() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
@@ -34,6 +29,32 @@ export function RegisterPage() {
   const [role, setRole] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
+  useEffect(() => {
+    let mounted = true
+
+    const redirectAuthenticatedUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!mounted || !session?.user) return
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(session.user)
+      useAuthStore.getState().setUser(session.user)
+      useAuthStore.getState().setProfile(resolvedProfile)
+      navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
+    }
+
+    redirectAuthenticatedUser()
+
+    return () => {
+      mounted = false
+    }
+  }, [navigate])
+
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
@@ -41,57 +62,63 @@ export function RegisterPage() {
   const onSubmit = async (data: FormData) => {
     setServerError('')
     setIsLoading(true)
+
     try {
-      // Use regular signUp - no admin privileges needed
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: { full_name: data.full_name, role: mapRole(data.role) },
-        },
+      // Step 1: Create confirmed user via your backend admin route (no email sent)
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          full_name: data.full_name,
+          role: normalizeUserRole(data.role),
+        }),
       })
-      
-      if (signUpError) throw signUpError
-      if (!signUpData.user) throw new Error('Registration failed')
 
-      // Auto sign in after registration
-      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      })
-      if (signInError) throw signInError
-
-      // FIX: Set user and profile in store BEFORE navigating
-      if (authData?.user) {
-        useAuthStore.getState().setUser(authData.user)
-
-        // Fetch profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single()
-
-        if (profile) {
-          useAuthStore.getState().setProfile(profile as any)
-        }
+      const result = await response.json()
+      console.log('[RegisterPage] register response:', response.status, result)
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Registration failed.')
       }
 
-      // Use setTimeout to ensure state is fully propagated before navigation
-      setTimeout(() => {
-        const role = mapRole(data.role)
-        navigate(`/${role}`, { replace: true })
-      }, 50)
+      // Step 2: Sign in — user is already confirmed, no email rate limits hit
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
+
+      if (signInError) throw new Error('Account created but sign-in failed. Please go to the login page.')
+      if (!signInData.user) throw new Error('Sign-in returned no user.')
+
+      // Step 3: Set user in store
+      useAuthStore.getState().setUser(signInData.user)
+
+      // Step 4: Fetch profile (your backend already upserted it, so it should exist)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', signInData.user.id)
+        .single()
+
+      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(signInData.user)
+      useAuthStore.getState().setProfile(resolvedProfile)
+
+      navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed.'
-      // Handle rate limiting
-      if (msg.includes('rate_limit') || msg.includes('429') || msg.includes('Too many requests')) {
-        setServerError('Too many attempts. Please wait a moment and try again.')
+      console.error('[RegisterPage] registration failed:', err)
+      if (msg.includes('auth user creation failed: database error creating new user')) {
+        setServerError('Supabase auth could not create the user record. This usually means your database trigger or auth schema is broken.')
+      } else if (msg.includes('profile sync failed:')) {
+        setServerError(msg)
       } else if (msg.includes('already registered') || msg.includes('already been registered')) {
         setServerError('This email is already registered. Try signing in instead.')
       } else {
         setServerError(msg)
       }
+    } finally {
       setIsLoading(false)
     }
   }
@@ -117,16 +144,45 @@ export function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input label="Full Name" placeholder="Dr. John Adeyemi" error={errors.full_name?.message} {...register('full_name')} />
-            <Input label="Email Address" type="email" placeholder="you@clinic.com" error={errors.email?.message} {...register('email')} />
+            <Input
+              label="Full Name"
+              placeholder="Dr. John Adeyemi"
+              error={errors.full_name?.message}
+              {...register('full_name')}
+            />
+            <Input
+              label="Email Address"
+              type="email"
+              placeholder="you@clinic.com"
+              error={errors.email?.message}
+              {...register('email')}
+            />
             <div className="relative">
-              <Input label="Password" type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters" error={errors.password?.message} {...register('password')} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-7 text-muted-foreground hover:text-foreground">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Min. 8 characters"
+                error={errors.password?.message}
+                {...register('password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-7 text-muted-foreground hover:text-foreground"
+              >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <Select value={role} onValueChange={val => { setRole(val); setValue('role', val as FormData['role'], { shouldValidate: true }) }}>
-              <SelectTrigger label="Role" error={errors.role?.message}><SelectValue placeholder="Select your role" /></SelectTrigger>
+            <Select
+              value={role}
+              onValueChange={val => {
+                setRole(val)
+                setValue('role', val as FormData['role'], { shouldValidate: true })
+              }}
+            >
+              <SelectTrigger label="Role" error={errors.role?.message}>
+                <SelectValue placeholder="Select your role" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin/Accounts</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
@@ -134,6 +190,7 @@ export function RegisterPage() {
                 <SelectItem value="frontdesk">Frontdesk</SelectItem>
               </SelectContent>
             </Select>
+
             <Button type="submit" className="w-full h-10" disabled={isLoading || isSubmitting}>
               {(isLoading || isSubmitting) ? 'Creating account...' : 'Create Account'}
             </Button>

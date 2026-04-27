@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
@@ -9,6 +9,7 @@ import { AppShell } from './components/layout/AppShell'
 import type { Profile } from './types'
 import { useRealtimeNotifications } from './hooks/useRealtimeNotifications'
 import { useClinicStore } from './hooks/useClinicSettings'
+import { buildFallbackProfile } from './lib/auth'
 
 // Pages
 import { SplashScreen } from './pages/SplashScreen'
@@ -41,12 +42,13 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
 })
 
-function AuthProvider() {
+function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setLoading } = useAuthStore()
   const [initialCheckDone, setInitialCheckDone] = useState(false)
 
   useEffect(() => {
     let mounted = true
+    setLoading(true)
 
     const withTimeout = (promise: Promise<any>, ms: number) => 
       Promise.race([
@@ -69,9 +71,9 @@ function AuthProvider() {
           setUser(session.user)
           try {
             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-            if (data) setProfile(data as Profile)
+            setProfile(data ? (data as Profile) : buildFallbackProfile(session.user))
           } catch (e) {
-            // Profile fetch failed, continue anyway
+            setProfile(buildFallbackProfile(session.user))
           }
         }
       } catch (e) {
@@ -92,13 +94,16 @@ function AuthProvider() {
       console.log('[AuthProvider] onAuthStateChange:', event, session?.user?.id)
       if (session?.user) {
         setUser(session.user)
-        supabase.from('profiles').select('*').eq('id', session.user.id).single()
-          .then(({ data }) => {
-            if (data) {
-              console.log('[AuthProvider] Profile loaded:', data.role)
-              setProfile(data as Profile)
-            }
-          })
+        void (async () => {
+          try {
+            const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+            const profile = data ? (data as Profile) : buildFallbackProfile(session.user)
+            console.log('[AuthProvider] Profile loaded:', profile.role)
+            setProfile(profile)
+          } catch {
+            setProfile(buildFallbackProfile(session.user))
+          }
+        })()
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
@@ -127,7 +132,7 @@ function AuthProvider() {
     )
   }
 
-  return null
+  return <>{children}</>
 }
 
 // Realtime notifications — mounts once after auth resolves
@@ -169,9 +174,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider />
-        <RealtimeProvider />
-        <Routes>
+        <AuthProvider>
+          <RealtimeProvider />
+          <Routes>
           {/* Public */}
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<LoginPage />} />
@@ -220,7 +225,8 @@ function App() {
           <Route path="/chat" element={<P><ChatPage /></P>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )
