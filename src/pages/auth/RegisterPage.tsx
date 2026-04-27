@@ -44,15 +44,17 @@ export function RegisterPage() {
     setServerError('')
     setIsLoading(true)
     try {
-      // Use Supabase auth admin createUser method
-      const { data: userData, error: createError } = await supabase.auth.admin.createUser({
+      // Use regular signUp - no admin privileges needed
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        email_confirm: true,
-        user_metadata: { full_name: data.full_name, role: mapRole(data.role) },
+        options: {
+          data: { full_name: data.full_name, role: mapRole(data.role) },
+        },
       })
       
-      if (createError) throw createError
+      if (signUpError) throw signUpError
+      if (!signUpData.user) throw new Error('Registration failed')
 
       // Auto sign in after registration
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({

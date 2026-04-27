@@ -51,13 +51,16 @@ export function UsersPage() {
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const { data: userData, error } = await supabase.auth.admin.createUser({
+            // Use regular signUp - no admin privileges needed
+            const { data: userData, error } = await supabase.auth.signUp({
                 email: data.email,
                 password: data.password,
-                email_confirm: true,
-                user_metadata: { full_name: data.full_name, role: data.role, phone: data.phone },
+                options: {
+                    data: { full_name: data.full_name, role: data.role, phone: data.phone },
+                },
             })
             if (error) throw error
+            if (!userData.user) throw new Error('Failed to create user')
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
