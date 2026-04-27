@@ -62,12 +62,26 @@ export function RegisterPage() {
       })
       if (signInError) throw signInError
 
-      // FIX: Set user in store BEFORE navigating
+      // FIX: Set user and profile in store BEFORE navigating
       if (authData?.user) {
         useAuthStore.getState().setUser(authData.user)
+        
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single()
+        
+        if (profile) {
+          useAuthStore.getState().setProfile(profile as any)
+        }
       }
 
-      navigate(`/${data.role}`, { replace: true })
+      // Use setTimeout to ensure state is fully propagated before navigation
+      setTimeout(() => {
+        navigate(`/${data.role}`, { replace: true })
+      }, 50)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed.'
       if (msg.includes('already registered') || msg.includes('already been registered')) {

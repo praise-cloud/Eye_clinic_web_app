@@ -27,39 +27,40 @@ export function LoginPage() {
 
   // Check for existing session on mount and redirect if already logged in
   useEffect(() => {
+    let mounted = true
+    
     const checkExistingSession = async () => {
-      try {
-        console.log('[LoginPage] Checking existing session...')
-        const { data: { session } } = await supabase.auth.getSession()
-        console.log('[LoginPage] Session found:', session?.user?.id)
-        
-        if (session?.user) {
-          // Get profile from database
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-          
-          console.log('[LoginPage] Profile:', profile?.role)
-          
-          // Set user and profile in store
-          useAuthStore.getState().setUser(session.user)
-          if (profile) {
-            useAuthStore.getState().setProfile(profile as Profile)
-          }
-          
-          // Navigate to role-specific dashboard
-          const role = profile?.role || session.user.user_metadata?.role || 'frontdesk'
-          console.log('[LoginPage] Navigating to:', role)
+      console.log('[LoginPage useEffect] Checking existing session...')
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('[LoginPage useEffect] Session:', session?.user?.id)
+      
+      if (!mounted || !session?.user) return
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+      
+      if (!mounted) return
+      
+      console.log('[LoginPage useEffect] Profile:', profile?.role)
+      useAuthStore.getState().setUser(session.user)
+      useAuthStore.getState().setProfile(profile as Profile)
+      
+      const role = profile?.role || session.user.user_metadata?.role || 'frontdesk'
+      console.log('[LoginPage useEffect] Redirecting to:', role)
+      
+      // Use setTimeout to ensure state is fully propagated before navigation
+      setTimeout(() => {
+        if (mounted) {
           navigate(`/${role}`, { replace: true })
         }
-      } catch (e) {
-        console.error('[LoginPage] Error:', e)
-        // Ignore errors, show login form
-      }
+      }, 50)
     }
     checkExistingSession()
+    
+    return () => { mounted = false }
   }, [])
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
