@@ -10,6 +10,13 @@ import { useClinicStore } from '@/hooks/useClinicSettings'
 import type { Profile } from '@/types'
 import { Input } from '@/components/ui/input'
 
+// Helper to map invalid roles to valid ones
+const mapRole = (role: string | undefined): string => {
+  const validRoles = ['doctor', 'frontdesk', 'admin', 'manager']
+  if (!role) return 'frontdesk'
+  return validRoles.includes(role) ? role : 'frontdesk'
+}
+
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -48,7 +55,7 @@ export function LoginPage() {
       useAuthStore.getState().setUser(session.user)
       useAuthStore.getState().setProfile(profile as Profile)
       
-      const role = profile?.role || session.user.user_metadata?.role || 'frontdesk'
+      const role = mapRole(profile?.role || session.user.user_metadata?.role)
       console.log('[LoginPage useEffect] Redirecting to:', role)
       
       // Use setTimeout to ensure state is fully propagated before navigation
@@ -103,7 +110,7 @@ export function LoginPage() {
         useAuthStore.getState().setProfile(profile as Profile)
       }
 
-      const role = profile?.role || authData.user.user_metadata?.role || 'frontdesk'
+      const role = mapRole(profile?.role || authData.user.user_metadata?.role)
       navigate(`/${role}`, { replace: true })
     }
   }

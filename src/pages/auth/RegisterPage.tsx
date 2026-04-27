@@ -22,6 +22,13 @@ type FormData = z.infer<typeof schema>
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 
+// Helper to map invalid roles to valid ones
+const mapRole = (role: string | undefined): string => {
+  const validRoles = ['doctor', 'frontdesk', 'admin', 'manager']
+  if (!role) return 'frontdesk'
+  return validRoles.includes(role) ? role : 'frontdesk'
+}
+
 export function RegisterPage() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
@@ -80,7 +87,8 @@ export function RegisterPage() {
 
       // Use setTimeout to ensure state is fully propagated before navigation
       setTimeout(() => {
-        navigate(`/${data.role}`, { replace: true })
+        const role = mapRole(data.role)
+        navigate(`/${role}`, { replace: true })
       }, 50)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed.'
