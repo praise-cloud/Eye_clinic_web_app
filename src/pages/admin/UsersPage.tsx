@@ -99,14 +99,38 @@ export function UsersPage() {
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            // Deactivate instead of delete to avoid FK constraint errors
-            const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
+            // Delete related records first, then delete profile
+            // Delete appointments where this user is doctor
+            await supabase.from('appointments').delete().eq('doctor_id', userId)
+            // Delete case notes where this user is doctor
+            await supabase.from('case_notes').delete().eq('doctor_id', userId)
+            // Delete prescriptions where this user is doctor
+            await supabase.from('prescriptions').delete().eq('doctor_id', userId)
+            // Delete drug dispensing records
+            await supabase.from('drug_dispensing').delete().eq('dispensed_by', userId)
+            // Delete glasses orders where this user is created_by
+            await supabase.from('glasses_orders').delete().eq('created_by', userId)
+            // Delete glasses orders where this user is dispensed_by
+            await supabase.from('glasses_orders').delete().eq('dispensed_by', userId)
+            // Delete payments where this user is received_by
+            await supabase.from('payments').delete().eq('received_by', userId)
+            // Delete push subscriptions
+            await supabase.from('push_subscriptions').delete().eq('user_id', userId)
+            // Delete outreach logs
+            await supabase.from('outreach_log').delete().eq('sent_by', userId)
+            // Delete messages where this user is sender or receiver
+            await supabase.from('messages').delete().eq('sender_id', userId)
+            await supabase.from('messages').delete().eq('receiver_id', userId)
+            // Delete audit logs for this user
+            await supabase.from('audit_logs').delete().eq('user_id', userId)
+            // Finally delete the profile
+            const { error } = await supabase.from('profiles').delete().eq('id', userId)
             if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
-            notify({ type: 'system', title: 'Account Deactivated', message: 'Staff account has been deactivated.' })
+            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted.' })
         },
         onError: (e: Error) => {
             setError(e.message)
@@ -234,18 +258,18 @@ export function UsersPage() {
             <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
                 <ModalContent size="sm">
                     <ModalHeader>
-                        <ModalTitle className="flex items-center gap-2 text-amber-600">
-                            <AlertTriangle className="w-5 h-5" />Deactivate Account
+                        <ModalTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="w-5 h-5" />Delete Account
                         </ModalTitle>
                         <ModalDescription>
-                            This will deactivate <strong>{deleteTarget?.full_name}</strong>'s account. They will not be able to log in.
+                            This will permanently delete <strong>{deleteTarget?.full_name}</strong>'s account and all their records. This cannot be undone.
                         </ModalDescription>
                     </ModalHeader>
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
                         <Button variant="destructive" loading={deleteMutation.isPending}
                             onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
-                            Deactivate
+                            Delete Permanently
                         </Button>
                     </ModalFooter>
                 </ModalContent>
