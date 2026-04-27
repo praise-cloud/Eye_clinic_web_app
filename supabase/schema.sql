@@ -138,6 +138,31 @@ CREATE POLICY "Admins can upload cvf-attachments"
   ON storage.objects FOR INSERT
   WITH CHECK ( bucket_id = 'cvf-attachments' );
 
+-- ── STORAGE BUCKET FOR CHAT FILES ────────────────────────────────
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('files', 'files', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'])
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Anyone can view files" ON storage.objects;
+CREATE POLICY "Anyone can view files"
+  ON storage.objects FOR SELECT
+  USING ( bucket_id = 'files' );
+
+DROP POLICY IF EXISTS "Authenticated users can upload files" ON storage.objects;
+CREATE POLICY "Authenticated users can upload files"
+  ON storage.objects FOR INSERT
+  WITH CHECK ( bucket_id = 'files' );
+
+DROP POLICY IF EXISTS "Users can update own files" ON storage.objects;
+CREATE POLICY "Users can update own files"
+  ON storage.objects FOR UPDATE
+  USING ( bucket_id = 'files' );
+
+DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
+CREATE POLICY "Users can delete own files"
+  ON storage.objects FOR DELETE
+  USING ( bucket_id = 'files' );
+
 -- ── PRESCRIPTIONS (GLASSES) ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.prescriptions (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -282,13 +307,17 @@ CREATE TRIGGER set_receipt_number
 
 -- ── MESSAGES ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.messages (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  sender_id   UUID NOT NULL REFERENCES public.profiles(id),
-  receiver_id UUID NOT NULL REFERENCES public.profiles(id),
-  content     TEXT NOT NULL,
-  is_read     BOOLEAN DEFAULT FALSE,
-  read_at     TIMESTAMPTZ,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sender_id         UUID NOT NULL REFERENCES public.profiles(id),
+  receiver_id       UUID NOT NULL REFERENCES public.profiles(id),
+  content           TEXT NOT NULL,
+  is_read           BOOLEAN DEFAULT FALSE,
+  read_at           TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ,
+  attachment_type   TEXT CHECK (attachment_type IN ('image', 'document')),
+  attachment_url    TEXT,
+  attachment_name   TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conversation
@@ -571,6 +600,20 @@ DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='messages' AND policyname='Send messages') INTO _exists;
   IF NOT _exists THEN CREATE POLICY "Send messages" ON public.messages FOR INSERT TO authenticated WITH CHECK (sender_id = auth.uid()); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='messages' AND policyname='Edit own messages') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Edit own messages" ON public.messages FOR UPDATE TO authenticated USING (sender_id = auth.uid()); END IF;
+END $$;
+
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='messages' AND policyname='Delete own messages') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Delete own messages" ON public.messages FOR DELETE TO authenticated USING (sender_id = auth.uid()); END IF;
 END $$;
 
 -- ── Audit Logs Policies ─────────────────────────────────

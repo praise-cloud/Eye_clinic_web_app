@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Send, Search, MessageSquare, ArrowLeft, Trash2, MoreVertical, Reply, X, Quote } from 'lucide-react'
+import { Send, Search, MessageSquare, ArrowLeft, Trash2, MoreVertical, Reply, X, Quote, Image, FileText, Pencil, Download, Eye } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Profile, Message } from '@/types'
 import { notify } from '@/store/notificationStore'
+import { Button } from '@/components/ui/button'
 
 export function ChatPage() {
     const { profile } = useAuthStore()
@@ -16,22 +17,27 @@ export function ChatPage() {
     const [search, setSearch] = useState('')
     const [hoveredMsg, setHoveredMsg] = useState<string | null>(null)
     const [replyingTo, setReplyingTo] = useState<Message | null>(null)
+    const [showOptions, setShowOptions] = useState<string | null>(null)
+    const [editingMsg, setEditingMsg] = useState<Message | null>(null)
+    const [editText, setEditText] = useState('')
+    const [showAttachments, setShowAttachments] = useState(false)
+    const [previewAttachment, setPreviewAttachment] = useState<{ type: string; url: string; name: string } | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const editInputRef = useRef<HTMLInputElement>(null)
 
     const { data: staff = [], isLoading: staffLoading } = useQuery({
         queryKey: ['staff-list'],
         queryFn: async () => {
             const { data: profiles } = await supabase.from('profiles').select('*').eq('is_active', true).neq('id', profile!.id).order('full_name')
             
-            // Get all conversations with last message time and unread count for each user
             const { data: lastMessages } = await supabase
                 .from('messages')
                 .select('sender_id, receiver_id, created_at, is_read')
                 .or(`sender_id.eq.${profile!.id},receiver_id.eq.${profile!.id}`)
                 .order('created_at', { ascending: false })
             
-            // Build maps of last message time and unread count per user
             const lastMsgMap = new Map<string, string>()
             const unreadMap = new Map<string, number>()
             
@@ -40,20 +46,17 @@ export function ChatPage() {
                 if (!lastMsgMap.has(otherId)) {
                     lastMsgMap.set(otherId, msg.created_at)
                 }
-                // Count unread messages where current user is receiver
                 if (msg.receiver_id === profile!.id && !msg.is_read) {
                     unreadMap.set(otherId, (unreadMap.get(otherId) || 0) + 1)
                 }
             })
             
-            // Sort profiles by most recent message (newest first)
             const sorted = (profiles ?? []).sort((a, b) => {
                 const aTime = lastMsgMap.get(a.id) || '1970-01-01'
                 const bTime = lastMsgMap.get(b.id) || '1970-01-01'
                 return new Date(bTime).getTime() - new Date(aTime).getTime()
             })
             
-            // Attach unread counts to profiles for display
             return sorted.map(p => ({ ...p, unreadCount: unreadMap.get(p.id) || 0 })) as Profile[] & { unreadCount: number }[]
         },
         enabled: !!profile,
@@ -76,7 +79,6 @@ export function ChatPage() {
         staleTime: 0,
     })
 
-    // Realtime
     useEffect(() => {
         if (!profile) return
         const channel = supabase.channel(`inbox:${profile.id}`)
@@ -86,19 +88,22 @@ export function ChatPage() {
                     const otherId = msg.sender_id === profile.id ? msg.receiver_id : msg.sender_id
                     qc.invalidateQueries({ queryKey: ['messages', profile.id, otherId] })
                     qc.invalidateQueries({ queryKey: ['messages', otherId, profile.id] })
-                    // If the message is from someone we ARE NOT currently chatting with, show a toast
                     if (msg.sender_id !== profile.id && activeUser?.id !== msg.sender_id) {
                         notify({
                             type: 'system',
                             title: 'New Message',
-                            message: msg.content?.slice(0, 60) + (msg.content?.length > 60 ? '...' : ''),
+                            message: msg.content?.slice(0, 60) + (msg.content?.length > 60 ? '...' : '') || 'Sent an attachment',
                             link: '/chat',
                         })
                     }
-                    // If it's from the person we're chatting with, scroll to bottom
                     if (activeUser?.id === msg.sender_id) {
                         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
                     }
+                }
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
+                if (activeUser) {
+                    qc.invalidateQueries({ queryKey: ['messages', profile.id, activeUser.id] })
                 }
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, () => {
@@ -120,82 +125,123 @@ export function ChatPage() {
 
     useEffect(() => {
         setReplyingTo(null)
+        setShowOptions(null)
+        setEditingMsg(null)
     }, [activeUser?.id])
 
+    useEffect(() => {
+        if (editingMsg) {
+            setTimeout(() => editInputRef.current?.focus(), 100)
+        }
+    }, [editingMsg])
+
+    const uploadAttachment = async (file: File): Promise<{ url: string; type: 'image' | 'document'; name: string }> => {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
+        const filePath = `chat/${profile!.id}/${fileName}`
+        
+        const { data, error } = await supabase.storage.from('files').upload(filePath, file)
+        if (error) throw error
+        
+        const { data: { publicUrl } } = supabase.storage.from('files').getPublicUrl(data.path)
+        
+        const type = file.type.startsWith('image/') ? 'image' : 'document'
+        return { url: publicUrl, type, name: file.name }
+    }
+
     const sendMutation = useMutation({
-        mutationFn: async (content: string) => {
+        mutationFn: async ({ content, attachment }: { content?: string; attachment?: { url: string; type: 'image' | 'document'; name: string } }) => {
             if (!profile || !activeUser) throw new Error('No active conversation')
-            let messageContent = content.trim()
+            let messageContent = content?.trim() || ''
             if (replyingTo) {
                 const quote = replyingTo.content.length > 80
                     ? `"${replyingTo.content.slice(0, 80)}..."`
                     : `"${replyingTo.content}"`
-                messageContent = `↩ ${quote}\n\n${content.trim()}`
+                messageContent = `↩ ${quote}\n\n${messageContent}`
             }
             const { error } = await supabase.from('messages').insert({
-                sender_id: profile.id, receiver_id: activeUser.id, content: messageContent,
+                sender_id: profile.id,
+                receiver_id: activeUser.id,
+                content: messageContent,
+                attachment_url: attachment?.url || null,
+                attachment_type: attachment?.type || null,
+                attachment_name: attachment?.name || null,
             })
             if (error) throw error
         },
         onSuccess: () => {
             setText('')
             setReplyingTo(null)
+            setShowAttachments(false)
             qc.invalidateQueries({ queryKey: ['messages', profile?.id, activeUser?.id] })
             qc.invalidateQueries({ queryKey: ['staff-list'] })
         },
     })
 
-    // Mark messages as read when opening a conversation
-    const markAsRead = useMutation({
-        mutationFn: async (otherUserId: string) => {
-            await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
-                .eq('receiver_id', profile!.id).eq('sender_id', otherUserId).eq('is_read', false)
+    const editMutation = useMutation({
+        mutationFn: async ({ id, content }: { id: string; content: string }) => {
+            const { error } = await supabase.from('messages').update({ content, updated_at: new Date().toISOString() }).eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['staff-list'] })
+            setEditingMsg(null)
+            setEditText('')
+            qc.invalidateQueries({ queryKey: ['messages', profile?.id, activeUser?.id] })
         },
     })
-
-    // Auto-mark as read when activeUser changes
-    useEffect(() => {
-        if (activeUser?.id) {
-            markAsRead.mutate(activeUser.id)
-        }
-    }, [activeUser?.id])
 
     const deleteMutation = useMutation({
         mutationFn: async (msgId: string) => {
             const { error } = await supabase.from('messages').delete().eq('id', msgId).eq('sender_id', profile!.id)
             if (error) throw error
         },
-        onMutate: async (msgId: string) => {
-            // Optimistic removal
-            await qc.cancelQueries({ queryKey: ['messages', profile?.id, activeUser?.id] })
-            const prev = qc.getQueryData(['messages', profile?.id, activeUser?.id])
-            qc.setQueryData(['messages', profile?.id, activeUser?.id], (old: Message[] = []) => old.filter(m => m.id !== msgId))
-            return { prev }
-        },
-        onError: (_err, _id, ctx: any) => {
-            if (ctx?.prev) qc.setQueryData(['messages', profile?.id, activeUser?.id], ctx.prev)
-        },
         onSuccess: () => {
             setHoveredMsg(null)
+            setShowOptions(null)
         },
     })
 
+    const markAsRead = useMutation({
+        mutationFn: async (otherUserId: string) => {
+            await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
+                .eq('receiver_id', profile!.id).eq('sender_id', otherUserId).eq('is_read', false)
+        },
+    })
+
+    useEffect(() => {
+        if (activeUser?.id) {
+            markAsRead.mutate(activeUser.id)
+        }
+    }, [activeUser?.id])
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !activeUser) return
+        
+        try {
+            const attachment = await uploadAttachment(file)
+            sendMutation.mutate({ content: text, attachment })
+        } catch (err) {
+            notify({ type: 'system', title: 'Upload Failed', message: 'Failed to upload attachment' })
+        }
+        e.target.value = ''
+    }
+
     const handleSend = useCallback(() => {
-        if (!text.trim() || !activeUser || sendMutation.isPending) return
-        sendMutation.mutate(text.trim())
-    }, [text, activeUser, sendMutation])
+        if ((!text.trim() && !showAttachments) || !activeUser || sendMutation.isPending) return
+        sendMutation.mutate({ content: text.trim() })
+    }, [text, activeUser, sendMutation, showAttachments])
+
+    const handleEditSave = () => {
+        if (!editingMsg || !editText.trim()) return
+        editMutation.mutate({ id: editingMsg.id, content: editText.trim() })
+    }
 
     const filteredStaff = staff.filter(s => s.full_name.toLowerCase().includes(search.toLowerCase()))
     const accent = getRoleAccent(profile?.role ?? 'frontdesk')
 
     const formatTime = (ts: string) =>
-        new Date(ts).toLocaleTimeString('en-NG', {
-            hour: '2-digit', minute: '2-digit',
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        })
+        new Date(ts).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })
 
     const formatDateLabel = (ts: string) => {
         const d = new Date(ts)
@@ -208,6 +254,29 @@ export function ChatPage() {
 
     return (
         <div className="flex h-[calc(100vh-64px-80px)] lg:h-[calc(100vh-64px)] -m-4 sm:-m-6 overflow-hidden bg-card rounded-2xl border border-border shadow-card">
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*,.pdf,.doc,.docx,.txt" onChange={handleFileSelect} />
+
+            {/* Attachment preview modal */}
+            {previewAttachment && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setPreviewAttachment(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setPreviewAttachment(null)} className="absolute -top-10 right-0 text-white hover:text-gray-300">
+                            <X className="w-6 h-6" />
+                        </button>
+                        {previewAttachment.type === 'image' ? (
+                            <img src={previewAttachment.url} alt={previewAttachment.name} className="max-w-full max-h-[85vh] rounded-lg" />
+                        ) : (
+                            <div className="bg-card p-8 rounded-lg text-center">
+                                <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                                <p className="text-foreground font-medium mb-2">{previewAttachment.name}</p>
+                                <a href={previewAttachment.url} download className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                                    <Download className="w-4 h-4" /> Download
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Contacts sidebar */}
             <div className={`${activeUser ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-72 border-r border-border flex-shrink-0`}>
@@ -306,38 +375,62 @@ export function ChatPage() {
                                                         <div className="flex-1 h-px bg-border" />
                                                     </div>
                                                 )}
-                                                <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-0.5 group`}
+                                                <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-0.5 group relative`}
                                                     onMouseEnter={() => setHoveredMsg(msg.id)}
-                                                    onMouseLeave={() => setHoveredMsg(null)}>
-                                                    {/* Delete button — only for own messages, shown on hover */}
-                                                    {isOwn && isHovered && (
-                                                        <button
-                                                            onClick={() => deleteMutation.mutate(msg.id)}
-                                                            className="self-center mr-1 p-1.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-red-500 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors shadow-sm"
-                                                            title="Delete message"
-                                                        >
-                                                            <Trash2 className="w-3 h-3" />
-                                                        </button>
-                                                    )}
-                                                    {/* Reply button — for all messages, shown on hover */}
-                                                    {!isOwn && isHovered && (
-                                                        <button
-                                                            onClick={() => { setReplyingTo(msg); inputRef.current?.focus() }}
-                                                            className="self-center mr-1 p-1.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-blue-500 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors shadow-sm"
-                                                            title="Reply to message"
-                                                        >
-                                                            <Reply className="w-3 h-3" />
-                                                        </button>
+                                                    onMouseLeave={() => { setHoveredMsg(null); setShowOptions(null) }}>
+                                                    {/* Options button */}
+                                                    {isHovered && (
+                                                        <div className={`absolute ${isOwn ? 'left-full' : 'right-full'} top-0 mr-2 flex items-center gap-1 bg-card border border-border rounded-lg shadow-sm p-1 z-10`}>
+                                                            <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus() }} className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-blue-500" title="Reply">
+                                                                <Reply className="w-3 h-3" />
+                                                            </button>
+                                                            {isOwn && (
+                                                                <>
+                                                                    <button onClick={() => { setEditingMsg(msg); setEditText(msg.content || '') }} className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-blue-500" title="Edit">
+                                                                        <Pencil className="w-3 h-3" />
+                                                                    </button>
+                                                                    <button onClick={() => deleteMutation.mutate(msg.id)} className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-red-500" title="Delete">
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     )}
                                                     <div className="max-w-[78%] sm:max-w-[65%]">
-                                                        <div className={`px-3.5 py-2.5 text-sm leading-relaxed break-words ${isOwn ? 'text-white rounded-2xl rounded-br-md shadow-sm' : 'bg-card border border-border text-foreground rounded-2xl rounded-bl-md shadow-sm'}`}
-                                                            style={isOwn ? { backgroundColor: accent } : {}}>
-                                                            {msg.content}
-                                                        </div>
-                                                        {showTime && (
-                                                            <p className={`text-[10px] text-muted-foreground mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
-                                                                {formatTime(msg.created_at)}
-                                                            </p>
+                                                        {/* Attachment preview */}
+                                                        {msg.attachment_url && (
+                                                            <div className="mb-2">
+                                                                {msg.attachment_type === 'image' ? (
+                                                                    <button onClick={() => setPreviewAttachment({ type: 'image', url: msg.attachment_url!, name: msg.attachment_name || 'image' })}>
+                                                                        <img src={msg.attachment_url} alt={msg.attachment_name || 'image'} className="max-w-full rounded-lg border border-border hover:opacity-90 transition-opacity cursor-pointer" />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button onClick={() => setPreviewAttachment({ type: 'document', url: msg.attachment_url!, name: msg.attachment_name || 'document' })} className="flex items-center gap-2 p-3 rounded-lg border border-border bg-card hover:bg-accent transition-colors">
+                                                                        <FileText className="w-5 h-5 text-muted-foreground" />
+                                                                        <span className="text-sm text-foreground truncate">{msg.attachment_name || 'Document'}</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {editingMsg?.id === msg.id ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <input ref={editInputRef} value={editText} onChange={e => setEditText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleEditSave(); if (e.key === 'Escape') setEditingMsg(null) }}
+                                                                    className="flex-1 px-3 py-2 text-sm rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                                                                <button onClick={handleEditSave} className="px-3 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary/90">Save</button>
+                                                                <button onClick={() => setEditingMsg(null)} className="p-2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div>
+                                                                <div className={`px-3.5 py-2.5 text-sm leading-relaxed break-words ${isOwn ? 'text-white rounded-2xl rounded-br-md shadow-sm' : 'bg-card border border-border text-foreground rounded-2xl rounded-bl-md shadow-sm'}`}
+                                                                    style={isOwn ? { backgroundColor: accent } : {}}>
+                                                                    {msg.content}
+                                                                </div>
+                                                                {showTime && (
+                                                                    <p className={`text-[10px] text-muted-foreground mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+                                                                        {formatTime(msg.created_at)}{msg.updated_at && ' · edited'}
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -365,6 +458,23 @@ export function ChatPage() {
                             )}
                             {sendMutation.isError && <p className="text-xs text-red-500 mb-2 px-1">Failed to send. Try again.</p>}
                             <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <button onClick={() => setShowAttachments(!showAttachments)} className="w-11 h-11 rounded-2xl flex items-center justify-center border border-input hover:bg-accent transition-colors">
+                                        <Image className="w-5 h-5 text-muted-foreground" />
+                                    </button>
+                                    {showAttachments && (
+                                        <div className="absolute bottom-full mb-2 left-0 bg-card border border-border rounded-xl shadow-lg p-2 flex gap-2">
+                                            <button onClick={() => fileInputRef.current?.click()} className="p-3 rounded-xl hover:bg-accent flex flex-col items-center gap-1">
+                                                <Image className="w-5 h-5 text-muted-foreground" />
+                                                <span className="text-[10px] text-muted-foreground">Photo</span>
+                                            </button>
+                                            <button onClick={() => fileInputRef.current?.click()} className="p-3 rounded-xl hover:bg-accent flex flex-col items-center gap-1">
+                                                <FileText className="w-5 h-5 text-muted-foreground" />
+                                                <span className="text-[10px] text-muted-foreground">File</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                                 <input ref={inputRef}
                                     className="flex-1 h-11 px-4 rounded-2xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-card transition-all"
                                     placeholder={`Message ${activeUser.full_name.split(' ')[0]}...`}

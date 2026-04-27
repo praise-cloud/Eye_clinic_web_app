@@ -188,6 +188,10 @@ export interface Message {
   created_at: string
   sender?: Profile
   receiver?: Profile
+  attachment_type?: 'image' | 'document' | null
+  attachment_url?: string | null
+  attachment_name?: string | null
+  updated_at?: string
 }
 
 export interface OutreachLog {
