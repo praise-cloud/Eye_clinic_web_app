@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -24,6 +24,43 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
+
+  // Check for existing session on mount and redirect if already logged in
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        console.log('[LoginPage] Checking existing session...')
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('[LoginPage] Session found:', session?.user?.id)
+        
+        if (session?.user) {
+          // Get profile from database
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+          
+          console.log('[LoginPage] Profile:', profile?.role)
+          
+          // Set user and profile in store
+          useAuthStore.getState().setUser(session.user)
+          if (profile) {
+            useAuthStore.getState().setProfile(profile as Profile)
+          }
+          
+          // Navigate to role-specific dashboard
+          const role = profile?.role || session.user.user_metadata?.role || 'frontdesk'
+          console.log('[LoginPage] Navigating to:', role)
+          navigate(`/${role}`, { replace: true })
+        }
+      } catch (e) {
+        console.error('[LoginPage] Error:', e)
+        // Ignore errors, show login form
+      }
+    }
+    checkExistingSession()
+  }, [])
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
 

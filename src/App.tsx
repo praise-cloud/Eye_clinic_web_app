@@ -8,6 +8,7 @@ import { RoleGuard } from './components/layout/RoleGuard'
 import { AppShell } from './components/layout/AppShell'
 import type { Profile } from './types'
 import { useRealtimeNotifications } from './hooks/useRealtimeNotifications'
+import { useClinicStore } from './hooks/useClinicSettings'
 
 // Pages
 import { SplashScreen } from './pages/SplashScreen'
@@ -88,17 +89,23 @@ function AuthProvider() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[AuthProvider] onAuthStateChange:', event, session?.user?.id)
       if (session?.user) {
         setUser(session.user)
         supabase.from('profiles').select('*').eq('id', session.user.id).single()
           .then(({ data }) => {
-            if (data) setProfile(data as Profile)
+            if (data) {
+              console.log('[AuthProvider] Profile loaded:', data.role)
+              setProfile(data as Profile)
+            }
           })
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
       }
-      setLoading(false)
+      if (event !== 'TOKEN_REFRESHED') {
+        setLoading(false)
+      }
     })
 
     return () => {
@@ -138,6 +145,14 @@ const P = ({ roles, children }: { roles?: Profile['role'][]; children: React.Rea
 
 function App() {
   const { setTheme } = useUIStore()
+  const fetchSettings = useClinicStore(s => s.fetchSettings)
+  const { isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSettings()
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('ui-storage')
