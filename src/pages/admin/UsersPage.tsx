@@ -52,9 +52,12 @@ export function UsersPage() {
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
             // Use regular signUp - no admin privileges needed
+            const password = data.password ?? ''
+            if (!password) throw new Error('Password is required')
+            
             const { data: userData, error } = await supabase.auth.signUp({
                 email: data.email,
-                password: data.password,
+                password: password,
                 options: {
                     data: { full_name: data.full_name, role: data.role, phone: data.phone },
                 },
