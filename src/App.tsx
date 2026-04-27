@@ -30,7 +30,9 @@ import { GlassesPrescriptionPage } from './pages/frontdesk/GlassesPrescriptionPa
 import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
-import { AuditPage } from './pages/manager/AuditPage'
+import { TransactionHistoryPage } from './pages/manager/TransactionHistoryPage'
+import { MessagesPage } from './pages/manager/MessagesPage'
+import { ManagerSettings } from './pages/manager/ManagerSettings'
 import { PaymentsPage } from './pages/admin/PaymentsPage'
 import { DailySummaryPage } from './pages/admin/DailySummaryPage'
 import { SubscriptionsPage } from './pages/admin/SubscriptionsPage'
@@ -215,11 +217,12 @@ function App() {
           <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
           <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />
 
-          {/* Manager — audit logs, reports, create accounts */}
+          {/* Manager — dashboard, transactions, messages, settings */}
           <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />
-          <Route path="/manager/audit" element={<P roles={['manager']}><AuditPage /></P>} />
-          <Route path="/manager/reports" element={<P roles={['manager']}><ReportsPage /></P>} />
-          <Route path="/manager/users" element={<P roles={['manager']}><UsersPage /></P>} />
+          <Route path="/appointments" element={<P roles={['manager']}><AppointmentsPage /></P>} />
+          <Route path="/manager/transactions" element={<P roles={['manager']}><TransactionHistoryPage /></P>} />
+          <Route path="/manager/messages" element={<P roles={['manager']}><MessagesPage /></P>} />
+          <Route path="/manager/settings" element={<P roles={['manager']}><ManagerSettings /></P>} />
 
           {/* Shared chat */}
           <Route path="/chat" element={<P><ChatPage /></P>} />

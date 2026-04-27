@@ -7,7 +7,7 @@ import { getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 
 interface Appointment {
   id: string
-  appointment_date: string
+  scheduled_at: string
   status: string
 }
 
@@ -28,13 +28,13 @@ export function MiniCalendar({ compact = false }: { compact?: boolean }) {
   const { data: appointments = [] } = useQuery({
     queryKey: ['admin-calendar', year, month],
     queryFn: async () => {
-      const startDate = new Date(year, month, 1).toISOString().split('T')[0]
-      const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+      const startDate = new Date(year, month, 1).toISOString()
+      const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
       const { data } = await supabase
         .from('appointments')
-        .select('id, appointment_date, status')
-        .gte('appointment_date', startDate)
-        .lte('appointment_date', endDate)
+        .select('id, scheduled_at, status')
+        .gte('scheduled_at', startDate)
+        .lte('scheduled_at', endDate)
       return (data ?? []) as Appointment[]
     },
   })
@@ -51,7 +51,7 @@ export function MiniCalendar({ compact = false }: { compact?: boolean }) {
 
   const getAppointmentsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return appointments.filter(apt => apt.appointment_date === dateStr)
+    return appointments.filter(apt => apt.scheduled_at.startsWith(dateStr))
   }
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))

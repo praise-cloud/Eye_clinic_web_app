@@ -545,6 +545,14 @@ BEGIN
   IF NOT _exists THEN CREATE POLICY "Admin manages profiles" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin'); END IF;
 END $$;
 
+-- Manager-specific: Own profile update
+DO $$
+DECLARE _exists bool;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='Manager update own profile') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Manager update own profile" ON public.profiles FOR UPDATE TO authenticated USING (get_user_role() = 'manager' AND id = auth.uid()); END IF;
+END $$;
+
 -- ── Patients Policies ─────────────────────────────────────
 DO $$
 DECLARE _exists bool;
@@ -553,29 +561,29 @@ BEGIN
   IF NOT _exists THEN CREATE POLICY "All staff view patients" ON public.patients FOR SELECT TO authenticated USING (TRUE); END IF;
 END $$;
 
-DROP POLICY IF EXISTS "Assistant/admin create patients" ON public.patients;
-DROP POLICY IF EXISTS "Assistant/admin update patients" ON public.patients;
-DROP POLICY IF EXISTS "Assistant/admin delete patients" ON public.patients;
+DROP POLICY IF EXISTS "Frontdesk/admin create patients" ON public.patients;
+DROP POLICY IF EXISTS "Frontdesk/admin update patients" ON public.patients;
+DROP POLICY IF EXISTS "Frontdesk/admin delete patients" ON public.patients;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Frontdesk/admin create patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin create patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk', 'admin', 'manager')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Frontdesk/admin update patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin update patients" ON public.patients FOR UPDATE TO authenticated USING (get_user_role() IN ('frontdesk', 'admin', 'manager')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='patients' AND policyname='Frontdesk/admin delete patients') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin delete patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('frontdesk', 'admin', 'manager')); END IF;
 END $$;
 
 -- ── Appointments Policies ────────────────────────────────────
@@ -586,21 +594,25 @@ BEGIN
   IF NOT _exists THEN CREATE POLICY "All staff view appointments" ON public.appointments FOR SELECT TO authenticated USING (TRUE); END IF;
 END $$;
 
+DROP POLICY IF EXISTS "Staff manage appointments" ON public.appointments;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='appointments' AND policyname='Staff manage appointments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor','frontdesk','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor', 'frontdesk', 'admin', 'manager')); END IF;
 END $$;
 
 -- ── Case Notes Policies ───────────────────────────────────────
+DROP POLICY IF EXISTS "Doctors/admin view notes" ON public.case_notes;
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='case_notes' AND policyname='Doctors/admin view notes') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Doctors/admin view notes" ON public.case_notes FOR SELECT TO authenticated USING (get_user_role() IN ('doctor','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Doctors/admin view notes" ON public.case_notes FOR SELECT TO authenticated USING (get_user_role() IN ('doctor', 'admin', 'manager')); END IF;
 END $$;
 
+DROP POLICY IF EXISTS "Doctors create notes" ON public.case_notes;
 DO $$
 DECLARE _exists bool;
 BEGIN
@@ -608,6 +620,7 @@ BEGIN
   IF NOT _exists THEN CREATE POLICY "Doctors create notes" ON public.case_notes FOR INSERT TO authenticated WITH CHECK (get_user_role() = 'doctor' AND doctor_id = auth.uid()); END IF;
 END $$;
 
+DROP POLICY IF EXISTS "Doctors update own notes" ON public.case_notes;
 DO $$
 DECLARE _exists bool;
 BEGIN
@@ -689,14 +702,14 @@ DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Finance view payments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Finance view payments" ON public.payments FOR SELECT TO authenticated USING (get_user_role() IN ('frontdesk','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Finance view payments" ON public.payments FOR SELECT TO authenticated USING (get_user_role() IN ('frontdesk', 'admin', 'manager')); END IF;
 END $$;
 
 DO $$
 DECLARE _exists bool;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='payments' AND policyname='Frontdesk/admin insert payments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk','admin')); END IF;
+  IF NOT _exists THEN CREATE POLICY "Frontdesk/admin insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk', 'admin', 'manager')); END IF;
 END $$;
 
 DO $$

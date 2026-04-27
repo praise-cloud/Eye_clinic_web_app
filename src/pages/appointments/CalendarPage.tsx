@@ -1,19 +1,19 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody } from '@/components/ui/modal'
 
 interface Appointment {
   id: string
   patient_id: string
   doctor_id: string
-  appointment_date: string
-  appointment_time: string
+  scheduled_at: string
   appointment_type: string
   status: string
   notes?: string
@@ -51,12 +51,12 @@ export function CalendarPage() {
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ['appointments-calendar', year, month],
     queryFn: async () => {
-      const startDate = new Date(year, month, 1).toISOString().split('T')[0]
-      const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+      const startDate = new Date(year, month, 1).toISOString()
+      const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
       let q = supabase.from('appointments').select('*, patient:patients(first_name, last_name, phone)')
-        .gte('appointment_date', startDate)
-        .lte('appointment_date', endDate)
-        .order('appointment_time', { ascending: true })
+        .gte('scheduled_at', startDate)
+        .lte('scheduled_at', endDate)
+        .order('scheduled_at', { ascending: true })
       if (profile?.role === 'doctor') {
         q = q.eq('doctor_id', profile.id)
       }
@@ -83,11 +83,11 @@ export function CalendarPage() {
 
   const getAppointmentsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return appointments.filter(apt => apt.appointment_date === dateStr)
+    return appointments.filter(apt => apt.scheduled_at.startsWith(dateStr))
   }
 
   const selectedAppointments = selectedDate
-    ? appointments.filter(apt => apt.appointment_date === selectedDate)
+    ? appointments.filter(apt => apt.scheduled_at.startsWith(selectedDate))
     : []
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
@@ -183,16 +183,20 @@ export function CalendarPage() {
         </CardContent>
       </Card>
 
-      {/* Selected day appointments */}
-      {selectedDate && (
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold text-foreground mb-3">
-              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
-                weekday: 'long', month: 'long', day: 'numeric'
+      {/* Selected day appointments - Modal Popup */}
+      <Modal open={!!selectedDate} onOpenChange={(open) => !open && setSelectedDate(null)}>
+        <ModalContent size="lg">
+          <ModalHeader>
+            <ModalTitle>
+              {selectedDate && new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
               })}
-            </h3>
-
+            </ModalTitle>
+            <ModalDescription>
+              {selectedAppointments.length} appointment{selectedAppointments.length !== 1 ? 's' : ''} scheduled
+            </ModalDescription>
+          </ModalHeader>
+          <ModalBody>
             {isLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
@@ -203,32 +207,33 @@ export function CalendarPage() {
                 <p className="text-sm">No appointments</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-96 overflow-y-auto">
                 {selectedAppointments.map(apt => (
                   <Link
                     key={apt.id}
                     to={`/patients/${apt.patient_id}`}
+                    onClick={() => setSelectedDate(null)}
                     className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-accent transition-colors"
                   >
-                    <div className={`w-2 h-full rounded-full ${statusColors[apt.status] || 'bg-gray-400'}`} />
+                    <div className={`w-2 h-12 rounded-full ${statusColors[apt.status] || 'bg-gray-400'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground truncate">
                         {apt.patient?.first_name} {apt.patient?.last_name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {apt.appointment_time} • {apt.appointment_type.replace('_', ' ')}
+                        {new Date(apt.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {apt.appointment_type.replace('_', ' ')}
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full border ${statusBg[apt.status] || 'bg-gray-50 border-gray-200'}`}>
-                      {apt.status}
+                    <span className={`text-xs px-2 py-1 rounded-full border capitalize ${statusBg[apt.status] || 'bg-gray-50 border-gray-200'}`}>
+                      {apt.status.replace('_', ' ')}
                     </span>
                   </Link>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </div>
   )
 }
