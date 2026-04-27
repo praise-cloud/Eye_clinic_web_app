@@ -20,7 +20,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
+const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 
 export function RegisterPage() {
   const navigate = useNavigate()
