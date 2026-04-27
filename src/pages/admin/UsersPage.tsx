@@ -99,14 +99,14 @@ export function UsersPage() {
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            // Delete from profiles table (removes staff from UI)
-            const { error } = await supabase.from('profiles').delete().eq('id', userId)
+            // Deactivate instead of delete to avoid FK constraint errors
+            const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
             if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
-            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been deleted.' })
+            notify({ type: 'system', title: 'Account Deactivated', message: 'Staff account has been deactivated.' })
         },
         onError: (e: Error) => {
             setError(e.message)
@@ -234,18 +234,18 @@ export function UsersPage() {
             <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
                 <ModalContent size="sm">
                     <ModalHeader>
-                        <ModalTitle className="flex items-center gap-2 text-red-600">
-                            <AlertTriangle className="w-5 h-5" />Delete Account
+                        <ModalTitle className="flex items-center gap-2 text-amber-600">
+                            <AlertTriangle className="w-5 h-5" />Deactivate Account
                         </ModalTitle>
                         <ModalDescription>
-                            This will permanently delete <strong>{deleteTarget?.full_name}</strong>'s account and remove them from the staff list.
+                            This will deactivate <strong>{deleteTarget?.full_name}</strong>'s account. They will not be able to log in.
                         </ModalDescription>
                     </ModalHeader>
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
                         <Button variant="destructive" loading={deleteMutation.isPending}
                             onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
-                            Delete Permanently
+                            Deactivate
                         </Button>
                     </ModalFooter>
                 </ModalContent>
