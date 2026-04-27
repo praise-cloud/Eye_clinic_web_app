@@ -11,8 +11,13 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name   TEXT NOT NULL,
-  role        TEXT NOT NULL CHECK (role IN ('doctor','assistant','admin','accountant')),
+  role        TEXT NOT NULL CHECK (role IN ('doctor','assistant','frontdesk','admin','manager','accountant')),
   phone       TEXT,
+  avatar_url  TEXT,
+  is_active   BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
   avatar_url  TEXT,
   is_active   BOOLEAN DEFAULT TRUE,
   created_at  TIMESTAMPTZ DEFAULT NOW(),
