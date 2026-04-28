@@ -38,14 +38,14 @@ export function TransactionHistoryPage() {
   const [page, setPage] = useState(1)
   const limit = 20
 
-  const { data: payments = [], isLoading } = useQuery({
+  const { data: payments = { data: [], count: 0 }, isLoading } = useQuery({
     queryKey: ['transactions', typeFilter, dateFilter, page],
     queryFn: async () => {
       let query = supabase
         .from('payments')
         .select('*, patient:patients(first_name, last_name), profiles!received_by(full_name)', { count: 'exact' })
         .order('paid_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1)
+        .range((page -1) * limit, page * limit - 1)
 
       if (dateFilter === 'today') {
         const today = format(new Date(), 'yyyy-MM-dd')
@@ -69,7 +69,7 @@ export function TransactionHistoryPage() {
     },
   })
 
-  const filteredPayments = payments.data?.filter(p => {
+  const filteredPayments = payments.data?.filter((p: any) => {
     if (!search) return true
     const patientName = `${p.patient?.first_name} ${p.patient?.last_name}`.toLowerCase()
     const receiptNumber = p.receipt_number?.toLowerCase() || ''
@@ -108,14 +108,14 @@ export function TransactionHistoryPage() {
     }).format(amount)
   }
 
-  const totalAmount = filteredPayments.reduce((sum, p) => sum + Number(p.amount), 0)
+  const totalAmount = filteredPayments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Transaction History</h1>
-          <p className="text-sm text-muted-foreground">{payments.count} transactions</p>
+          <p className="text-sm text-muted-foreground">{payments.count ?? 0} transactions</p>
         </div>
         <Button variant="outline" size="sm" className="gap-2">
           <Download className="w-4 h-4" />
@@ -225,7 +225,7 @@ export function TransactionHistoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPayments.map(payment => (
+                     {filteredPayments.map((payment: any) => (
                       <tr key={payment.id} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="py-3 px-4">
                           <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
@@ -265,9 +265,9 @@ export function TransactionHistoryPage() {
 
               {/* Pagination */}
               <div className="flex items-center justify-between p-4 border-t">
-                <p className="text-sm text-muted-foreground">
-                  Showing {(page - 1) * limit + 1} to {Math.min(page * limit, payments.count)} of {payments.count}
-                </p>
+                   <p className="text-sm text-muted-foreground">
+                     Showing {(page - 1) * limit + 1} to {Math.min(page * limit, payments.count ?? 0)} of {payments.count ?? 0}
+                   </p>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -280,8 +280,8 @@ export function TransactionHistoryPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={page * limit >= payments.count}
+                     onClick={() => setPage(p => p + 1)}
+                     disabled={page * limit >= (payments.count ?? 0)}
                   >
                     Next
                   </Button>

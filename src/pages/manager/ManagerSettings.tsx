@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Save, User, Settings, Bell, Check } from 'lucide-react'
 import { notify } from '@/store/notificationStore'
+import type { Profile } from '@/types'
 
 export function ManagerSettings() {
-  const { profile, updateProfile } = useAuthStore()
+  const { profile, setProfile } = useAuthStore()
   const qc = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
@@ -41,13 +42,13 @@ export function ManagerSettings() {
       if (error) throw error
     },
     onSuccess: () => {
-      updateProfile({ ...profile, full_name: formData.full_name, phone: formData.phone })
+      setProfile({ ...(profile as Profile), full_name: formData.full_name, phone: formData.phone })
       setIsEditing(false)
       qc.invalidateQueries({ queryKey: ['staff'] })
-      notify({ type: 'success', title: 'Profile Updated', message: 'Your profile has been saved.' })
+      notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been saved.' })
     },
     onError: (error: Error) => {
-      notify({ type: 'error', title: 'Error', message: error.message })
+      notify({ type: 'system', title: 'Error', message: error.message })
     },
   })
 
@@ -56,7 +57,7 @@ export function ManagerSettings() {
       localStorage.setItem('manager-settings', JSON.stringify(managerSettings))
     },
     onSuccess: () => {
-      notify({ type: 'success', title: 'Settings Saved', message: 'Your preferences have been saved.' })
+      notify({ type: 'system', title: 'Settings Saved', message: 'Your preferences have been saved.' })
     },
   })
 
@@ -132,7 +133,7 @@ export function ManagerSettings() {
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">Email</label>
-              <Input value={profile?.email || 'N/A'} disabled className="mt-1" />
+              <Input value={(profile as any)?.email || 'N/A'} disabled className="mt-1" />
               <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
             </div>
           </div>

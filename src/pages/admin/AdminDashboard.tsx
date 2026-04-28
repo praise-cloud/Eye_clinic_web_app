@@ -1,11 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
-import { Users, DollarSign, Calendar, AlertTriangle, UserCog, Package, TrendingUp } from 'lucide-react'
+import { Users, DollarSign, Calendar, AlertTriangle, UserCog, Package, TrendingUp, ChevronRight, Clock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { MiniCalendar } from '@/components/calendar/MiniCalendar'
 import { ActivityFeed } from '@/components/admin/ActivityFeed'
+
+const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'info' | 'destructive'> = {
+    pending: 'warning', confirmed: 'info', arrived: 'success',
+    in_progress: 'default', completed: 'success', cancelled: 'destructive',
+}
 
 export function AdminDashboard() {
     const { data: stats } = useQuery({
@@ -27,6 +35,21 @@ export function AdminDashboard() {
                 todayRevenue: todayRevenue?.data?.total_revenue ?? 0,
                 todayGlassesRevenue: todayRevenue?.data?.glasses_revenue ?? 0,
             }
+        },
+    })
+
+    const { data: todayAppointments = [], isLoading: aptsLoading } = useQuery({
+        queryKey: ['admin-today-appointments'],
+        queryFn: async () => {
+            const today = new Date().toISOString().split('T')[0]
+            const { data } = await supabase
+                .from('appointments')
+                .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles!doctor_id(full_name)')
+                .gte('scheduled_at', `${today}T00:00:00`)
+                .lte('scheduled_at', `${today}T23:59:59`)
+                .order('scheduled_at', { ascending: true })
+                .limit(20)
+            return data ?? []
         },
     })
 
@@ -69,9 +92,56 @@ export function AdminDashboard() {
                 })}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <MiniCalendar compact />
-                <ActivityFeed compact />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm sm:text-base">Today's Appointments</CardTitle>
+                                <Link to="/admin/appointments">
+                                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary">View all <ChevronRight className="w-3 h-3" /></Button>
+                                </Link>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {aptsLoading ? (
+                                <div className="p-4 space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-xl" />)}</div>
+                            ) : todayAppointments.length === 0 ? (
+                                <div className="text-center py-10 text-foreground400">
+                                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                    <p className="text-sm">No appointments today</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-slate-50">
+                                    {todayAppointments.map((apt: any) => (
+                                        <Link key={apt.id} to={`/patients/${apt.patient_id}`} className="flex items-center justify-between px-4 py-3 hover:bg-accent transition-colors">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                                    {apt.patient?.first_name?.[0]}{apt.patient?.last_name?.[0]}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold text-foreground900 truncate">{apt.patient?.first_name} {apt.patient?.last_name}</p>
+                                                    <p className="text-xs text-foreground400 flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {new Date(apt.scheduled_at).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })} · Dr. {apt.doctor?.full_name}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Badge variant={statusVariant[apt.status] ?? 'default'} className="flex-shrink-0 text-xs ml-2">
+                                                {apt.status.replace('_', ' ')}
+                                            </Badge>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="space-y-5">
+                    <MiniCalendar compact />
+                    <ActivityFeed compact />
+                </div>
             </div>
         </div>
     )

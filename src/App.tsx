@@ -212,13 +212,17 @@ function App() {
           <Route path="/admin/calendar" element={<P roles={['admin']}><CalendarPage /></P>} />
           <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
           <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
+          <Route path="/admin/appointments" element={<P roles={['admin']}><AppointmentsPage /></P>} />
+          <Route path="/admin/calendar" element={<P roles={['admin']}><CalendarPage /></P>} />
           <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
           <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
           <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
           <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />
 
-          {/* Manager — dashboard, transactions, messages, settings */}
+          {/* Manager — dashboard, appointments, transactions, messages, settings */}
           <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />
+          <Route path="/manager/appointments" element={<P roles={['manager']}><AppointmentsPage /></P>} />
+          <Route path="/manager/calendar" element={<P roles={['manager']}><CalendarPage /></P>} />
           <Route path="/appointments" element={<P roles={['manager']}><AppointmentsPage /></P>} />
           <Route path="/manager/transactions" element={<P roles={['manager']}><TransactionHistoryPage /></P>} />
           <Route path="/manager/messages" element={<P roles={['manager']}><MessagesPage /></P>} />

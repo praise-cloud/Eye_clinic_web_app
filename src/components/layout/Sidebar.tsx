@@ -37,6 +37,8 @@ const navByRole: Record<UserRole, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { label: 'Patients', href: '/admin/patients', icon: Users },
+    { label: 'Appointments', href: '/admin/appointments', icon: Calendar },
+    { label: 'Calendar', href: '/admin/calendar', icon: Calendar },
     { label: 'Inventory', href: '/admin/inventory', icon: Package },
     { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { label: 'Payments', href: '/admin/payments', icon: DollarSign },
@@ -46,7 +48,8 @@ const navByRole: Record<UserRole, NavItem[]> = {
   ],
   manager: [
     { label: 'Dashboard', href: '/manager', icon: LayoutDashboard },
-    { label: 'Appointments', href: '/appointments', icon: Calendar },
+    { label: 'Appointments', href: '/manager/appointments', icon: Calendar },
+    { label: 'Calendar', href: '/manager/calendar', icon: Calendar },
     { label: 'Patients', href: '/patients', icon: Users },
     { label: 'Transaction History', href: '/manager/transactions', icon: DollarSign },
     { label: 'Messages', href: '/manager/messages', icon: MessageSquare },
