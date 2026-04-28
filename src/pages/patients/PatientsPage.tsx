@@ -27,9 +27,6 @@ const schema = z.object({
     gender: z.enum(['male', 'female', 'other']).optional(),
     address: z.string().optional(),
     occupation: z.string().optional(),
-    next_of_kin_name: z.string().optional(),
-    next_of_kin_phone: z.string().optional(),
-    allergies: z.string().optional(),
     subscription_type: z.enum(['none', 'basic', 'standard', 'premium']).optional(),
 })
 type FormData = z.infer<typeof schema>
@@ -111,7 +108,7 @@ export function PatientsPage() {
     const openNew = () => { setEditPatient(null); reset(); setOpen(true) }
     const openEdit = (p: Patient) => {
         setEditPatient(p)
-        reset({ first_name: p.first_name, last_name: p.last_name, phone: p.phone, email: p.email, date_of_birth: p.date_of_birth, gender: p.gender, address: p.address, occupation: p.occupation, next_of_kin_name: p.next_of_kin_name, next_of_kin_phone: p.next_of_kin_phone, allergies: p.allergies, subscription_type: p.subscription_type })
+        reset({ first_name: p.first_name, last_name: p.last_name, phone: p.phone, email: p.email, date_of_birth: p.date_of_birth, gender: p.gender, address: p.address, occupation: p.occupation, subscription_type: p.subscription_type })
         setOpen(true)
     }
 
@@ -238,27 +235,19 @@ export function PatientsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Input label="Address" {...register('address')} />
                             <div className="grid grid-cols-2 gap-3">
+                                <Input label="Address" {...register('address')} />
                                 <Input label="Occupation" {...register('occupation')} />
-                                <Input label="Allergies" {...register('allergies')} />
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Input label="Next of Kin" {...register('next_of_kin_name')} />
-                                <Input label="Kin Phone" {...register('next_of_kin_phone')} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Select onValueChange={v => setValue('subscription_type', v as any)}>
-                                    <SelectTrigger label="Subscription"><SelectValue placeholder="None" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="basic">Basic</SelectItem>
-                                        <SelectItem value="standard">Standard</SelectItem>
-                                        <SelectItem value="premium">Premium</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Input label="Allergies" {...register('allergies')} />
-                            </div>
+                            <Select onValueChange={v => setValue('subscription_type', v as any)}>
+                                <SelectTrigger label="Subscription"><SelectValue placeholder="None" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="basic">Basic</SelectItem>
+                                    <SelectItem value="standard">Standard</SelectItem>
+                                    <SelectItem value="premium">Premium</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </form>
                     </ModalBody>
                     <ModalFooter>

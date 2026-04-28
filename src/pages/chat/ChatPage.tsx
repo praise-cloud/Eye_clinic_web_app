@@ -22,25 +22,27 @@ export function ChatPage() {
     const [editText, setEditText] = useState('')
     const [showAttachments, setShowAttachments] = useState(false)
     const [previewAttachment, setPreviewAttachment] = useState<{ type: string; url: string; name: string } | null>(null)
+    const [pendingAttachment, setPendingAttachment] = useState<{ file: File; previewUrl?: string; type: 'image' | 'document'; name: string } | null>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const editInputRef = useRef<HTMLInputElement>(null)
+    const optionsMenuRef = useRef<HTMLDivElement>(null)
 
     const { data: staff = [], isLoading: staffLoading } = useQuery({
         queryKey: ['staff-list'],
         queryFn: async () => {
             const { data: profiles } = await supabase.from('profiles').select('*').eq('is_active', true).neq('id', profile!.id).order('full_name')
-            
+
             const { data: lastMessages } = await supabase
                 .from('messages')
                 .select('sender_id, receiver_id, created_at, is_read')
                 .or(`sender_id.eq.${profile!.id},receiver_id.eq.${profile!.id}`)
                 .order('created_at', { ascending: false })
-            
+
             const lastMsgMap = new Map<string, string>()
             const unreadMap = new Map<string, number>()
-            
+
             lastMessages?.forEach(msg => {
                 const otherId = msg.sender_id === profile!.id ? msg.receiver_id : msg.sender_id
                 if (!lastMsgMap.has(otherId)) {
@@ -50,13 +52,13 @@ export function ChatPage() {
                     unreadMap.set(otherId, (unreadMap.get(otherId) || 0) + 1)
                 }
             })
-            
+
             const sorted = (profiles ?? []).sort((a, b) => {
                 const aTime = lastMsgMap.get(a.id) || '1970-01-01'
                 const bTime = lastMsgMap.get(b.id) || '1970-01-01'
                 return new Date(bTime).getTime() - new Date(aTime).getTime()
             })
-            
+
             return sorted.map(p => ({ ...p, unreadCount: unreadMap.get(p.id) || 0 })) as Profile[] & { unreadCount: number }[]
         },
         enabled: !!profile,
@@ -127,7 +129,21 @@ export function ChatPage() {
         setReplyingTo(null)
         setShowOptions(null)
         setEditingMsg(null)
+        setPendingAttachment(null)
     }, [activeUser?.id])
+
+    // Close options menu on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (optionsMenuRef.current && !optionsMenuRef.current.contains(e.target as Node)) {
+                setShowOptions(null)
+            }
+        }
+        if (showOptions) {
+            document.addEventListener('mousedown', handler)
+            return () => document.removeEventListener('mousedown', handler)
+        }
+    }, [showOptions])
 
     useEffect(() => {
         if (editingMsg) {
@@ -139,12 +155,12 @@ export function ChatPage() {
         const fileExt = file.name.split('.').pop()
         const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
         const filePath = `chat/${profile!.id}/${fileName}`
-        
+
         const { data, error } = await supabase.storage.from('files').upload(filePath, file)
         if (error) throw error
-        
+
         const { data: { publicUrl } } = supabase.storage.from('files').getPublicUrl(data.path)
-        
+
         const type = file.type.startsWith('image/') ? 'image' : 'document'
         return { url: publicUrl, type, name: file.name }
     }
@@ -214,23 +230,36 @@ export function ChatPage() {
         }
     }, [activeUser?.id])
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file || !activeUser) return
-        
-        try {
-            const attachment = await uploadAttachment(file)
-            sendMutation.mutate({ content: text, attachment })
-        } catch (err) {
-            notify({ type: 'system', title: 'Upload Failed', message: 'Failed to upload attachment' })
-        }
+
+        const type = file.type.startsWith('image/') ? 'image' : 'document'
+        const previewUrl = type === 'image' ? URL.createObjectURL(file) : undefined
+
+        setPendingAttachment({ file, previewUrl, type, name: file.name })
+        setShowAttachments(false)
         e.target.value = ''
     }
 
-    const handleSend = useCallback(() => {
-        if ((!text.trim() && !showAttachments) || !activeUser || sendMutation.isPending) return
-        sendMutation.mutate({ content: text.trim() })
-    }, [text, activeUser, sendMutation, showAttachments])
+    const handleSend = async () => {
+        if ((!text.trim() && !pendingAttachment) || !activeUser || sendMutation.isPending) return
+
+        let attachment: { url: string; type: 'image' | 'document'; name: string } | undefined
+
+        if (pendingAttachment) {
+            try {
+                attachment = await uploadAttachment(pendingAttachment.file)
+                if (pendingAttachment.previewUrl) URL.revokeObjectURL(pendingAttachment.previewUrl)
+                setPendingAttachment(null)
+            } catch (err) {
+                notify({ type: 'system', title: 'Upload Failed', message: 'Failed to upload attachment' })
+                return
+            }
+        }
+
+        sendMutation.mutate({ content: text.trim(), attachment })
+    }
 
     const handleEditSave = () => {
         if (!editingMsg || !editText.trim()) return
@@ -364,7 +393,6 @@ export function ChatPage() {
                                         const isOwn = msg.sender_id === profile?.id
                                         const showDate = i === 0 || new Date(msg.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
                                         const showTime = i === messages.length - 1 || messages[i + 1].sender_id !== msg.sender_id || new Date(messages[i + 1].created_at).getTime() - new Date(msg.created_at).getTime() > 60000
-                                        const isHovered = hoveredMsg === msg.id
 
                                         return (
                                             <div key={msg.id}>
@@ -375,24 +403,28 @@ export function ChatPage() {
                                                         <div className="flex-1 h-px bg-border" />
                                                     </div>
                                                 )}
-                                                <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-0.5 group relative`}
-                                                    onMouseEnter={() => setHoveredMsg(msg.id)}
-                                                    onMouseLeave={() => { setHoveredMsg(null); setShowOptions(null) }}>
-                                                    {/* Options button */}
-                                                    {isHovered && (
-                                                        <div className={`absolute ${isOwn ? 'left-full' : 'right-full'} top-0 mr-2 flex items-center gap-1 bg-card border border-border rounded-lg shadow-sm p-1 z-10`}>
-                                                            <button onClick={() => { setReplyingTo(msg); inputRef.current?.focus() }} className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-blue-500" title="Reply">
-                                                                <Reply className="w-3 h-3" />
+                                                <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-0.5 group relative items-start`}>
+                                                    {/* Options button — own messages on left */}
+                                                    {isOwn && (
+                                                        <div className="relative flex items-center self-center mr-1" ref={showOptions === msg.id ? optionsMenuRef : undefined}>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setShowOptions(showOptions === msg.id ? null : msg.id) }}
+                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-accent"
+                                                            >
+                                                                <MoreVertical className="w-4 h-4 text-muted-foreground" />
                                                             </button>
-                                                            {isOwn && (
-                                                                <>
-                                                                    <button onClick={() => { setEditingMsg(msg); setEditText(msg.content || '') }} className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-blue-500" title="Edit">
-                                                                        <Pencil className="w-3 h-3" />
+                                                            {showOptions === msg.id && (
+                                                                <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-card border border-border rounded-xl shadow-lg p-1.5 flex flex-col gap-1 min-w-[120px] z-20">
+                                                                    <button onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setShowOptions(null); inputRef.current?.focus() }} className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent text-foreground text-left">
+                                                                        <Reply className="w-3.5 h-3.5" /> Reply
                                                                     </button>
-                                                                    <button onClick={() => deleteMutation.mutate(msg.id)} className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-red-500" title="Delete">
-                                                                        <Trash2 className="w-3 h-3" />
+                                                                    <button onClick={(e) => { e.stopPropagation(); setEditingMsg(msg); setEditText(msg.content || ''); setShowOptions(null) }} className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent text-foreground text-left">
+                                                                        <Pencil className="w-3.5 h-3.5" /> Edit
                                                                     </button>
-                                                                </>
+                                                                    <button onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(msg.id); setShowOptions(null) }} className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent text-red-500 text-left">
+                                                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </div>
                                                     )}
@@ -433,6 +465,24 @@ export function ChatPage() {
                                                             </div>
                                                         )}
                                                     </div>
+                                                    {/* Options button — received messages on right */}
+                                                    {!isOwn && (
+                                                        <div className="relative flex items-center self-center ml-1" ref={showOptions === msg.id ? optionsMenuRef : undefined}>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setShowOptions(showOptions === msg.id ? null : msg.id) }}
+                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-accent"
+                                                            >
+                                                                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                                                            </button>
+                                                            {showOptions === msg.id && (
+                                                                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-card border border-border rounded-xl shadow-lg p-1.5 flex flex-col gap-1 min-w-[120px] z-20">
+                                                                    <button onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setShowOptions(null); inputRef.current?.focus() }} className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent text-foreground text-left">
+                                                                        <Reply className="w-3.5 h-3.5" /> Reply
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )
@@ -444,6 +494,22 @@ export function ChatPage() {
 
                         {/* Input */}
                         <div className="p-3 border-t border-border bg-card flex-shrink-0">
+                            {pendingAttachment && (
+                                <div className="mb-2 px-3 py-2 rounded-xl bg-muted border border-border flex items-center gap-3">
+                                    {pendingAttachment.type === 'image' && pendingAttachment.previewUrl ? (
+                                        <img src={pendingAttachment.previewUrl} alt="" className="w-10 h-10 rounded-lg object-cover border border-border" />
+                                    ) : (
+                                        <FileText className="w-5 h-5 text-muted-foreground" />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-foreground truncate">{pendingAttachment.name}</p>
+                                        <p className="text-xs text-muted-foreground">{pendingAttachment.type === 'image' ? 'Photo' : 'Document'} ready to send</p>
+                                    </div>
+                                    <button onClick={() => setPendingAttachment(null)} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-red-500 transition-colors">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            )}
                             {replyingTo && (
                                 <div className="mb-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 flex items-start gap-2">
                                     <Quote className="w-3.5 h-3.5 text-blue-500 flex-shrink-0 mt-0.5" />
@@ -477,13 +543,13 @@ export function ChatPage() {
                                 </div>
                                 <input ref={inputRef}
                                     className="flex-1 h-11 px-4 rounded-2xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-card transition-all"
-                                    placeholder={`Message ${activeUser.full_name.split(' ')[0]}...`}
+                                    placeholder={`Message ${activeUser?.full_name?.split(' ')[0] ?? ''}...`}
                                     value={text}
                                     onChange={e => setText(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                                     maxLength={2000}
                                 />
-                                <button onClick={handleSend} disabled={!text.trim() || sendMutation.isPending}
+                                <button onClick={handleSend} disabled={(!text.trim() && !pendingAttachment) || sendMutation.isPending}
                                     className="w-11 h-11 rounded-2xl flex items-center justify-center text-white disabled:opacity-40 transition-all hover:opacity-90 active:scale-95 flex-shrink-0 shadow-sm"
                                     style={{ backgroundColor: accent }}>
                                     <Send className="w-4 h-4" />
