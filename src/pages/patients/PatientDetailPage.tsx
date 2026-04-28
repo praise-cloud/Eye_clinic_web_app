@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
@@ -86,6 +86,7 @@ export function PatientDetailPage() {
     const { id } = useParams<{ id: string }>()
     const { profile } = useAuthStore()
     const navigate = useNavigate()
+    const qc = useQueryClient()
     const [tab, setTab] = useState('overview')
 
     const { data: patient, isLoading } = useQuery({
@@ -97,17 +98,17 @@ export function PatientDetailPage() {
         enabled: !!id,
     })
 
-    const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
+    const { data: appointments = [], isLoading: appointmentsLoading, error: appointmentsError } = useQuery({
         queryKey: ['patient-appointments', id],
         queryFn: async () => {
-            const { data } = await supabase.from('appointments')
-                .select('*, doctor:profiles(full_name)')
+            const { data, error } = await supabase.from('appointments')
+                .select('*, doctor:profiles!doctor_id(full_name)')
                 .eq('patient_id', id!).order('scheduled_at', { ascending: false }).limit(20)
+            if (error) throw error
             return (data ?? []) as Appointment[]
         },
         enabled: !!id && tab === 'appointments',
     })
-
     const { data: caseNotes = [], isError: caseNotesError, isLoading: caseNotesLoading } = useQuery({
         queryKey: ['patient-notes', id],
         queryFn: async () => {
@@ -239,7 +240,7 @@ export function PatientDetailPage() {
                         <div className="space-y-2 text-sm">
                             {patient.gender && <div className="flex justify-between"><span className="text-foreground400 text-xs">Gender</span><span className="capitalize text-sm">{patient.gender}</span></div>}
                             {patient.date_of_birth && <div className="flex justify-between"><span className="text-foreground400 text-xs">DOB</span><span className="text-sm">{formatDate(patient.date_of_birth)}</span></div>}
-                            
+
                             {patient.phone && <div className="flex items-center gap-2 text-foreground500 text-xs"><Phone className="w-3 h-3" />{patient.phone}</div>}
                             {patient.email && <div className="flex items-center gap-2 text-foreground500 text-xs"><Mail className="w-3 h-3" /><span className="truncate">{patient.email}</span></div>}
                             {patient.address && <div className="flex items-start gap-2 text-foreground500 text-xs"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />{patient.address}</div>}
@@ -281,6 +282,15 @@ export function PatientDetailPage() {
                                     <div className="text-center py-10 text-foreground400">
                                         <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
                                         <p className="text-sm">Loading appointments...</p>
+                                    </div>
+                                ) : appointmentsError ? (
+                                    <div className="text-center py-10">
+                                        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+                                            <AlertTriangle className="w-8 h-8 text-red-300" />
+                                        </div>
+                                        <p className="text-sm text-red-500 font-medium">Failed to load appointments</p>
+                                        <p className="text-xs text-red-400 mt-1 max-w-md mx-auto">{(appointmentsError as Error)?.message || 'Unknown error. Check console for details.'}</p>
+                                        <Button className="mt-3" size="sm" variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ['patient-appointments', id] })}>Retry</Button>
                                     </div>
                                 ) : appointments.length === 0 ? (
                                     <div className="text-center py-10 text-foreground400">

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, User, Stethoscope, FileText } from 'lucide-react'
+import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, User, Stethoscope, FileText, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/button'
@@ -119,11 +119,11 @@ export function AppointmentsPage() {
     const [open, setOpen] = useState(false)
     const [patientDisplay, setPatientDisplay] = useState('')
 
-    const { data: appointments = [], isLoading } = useQuery({
+    const { data: appointments = [], isLoading, error: appointmentsError } = useQuery({
         queryKey: ['appointments', statusFilter],
         queryFn: async () => {
             let q = supabase.from('appointments')
-                .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles(full_name)')
+                .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles!doctor_id(full_name)')
                 .order('scheduled_at', { ascending: false }).limit(200)
             if (statusFilter !== 'all') q = q.eq('status', statusFilter)
             if (profile?.role === 'doctor') q = q.eq('doctor_id', profile.id)
@@ -202,6 +202,13 @@ export function AppointmentsPage() {
 
             {isLoading ? (
                 <div className="space-y-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-2xl" />)}</div>
+            ) : appointmentsError ? (
+                <div className="text-center py-20">
+                    <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4"><AlertTriangle className="w-8 h-8 text-red-400" /></div>
+                    <p className="text-red-500 font-medium">Failed to load appointments</p>
+                    <p className="text-sm text-red-400 mt-1 max-w-md mx-auto">{(appointmentsError as Error)?.message || 'Unknown error. Check console for details.'}</p>
+                    <Button className="mt-5 gap-1.5" size="sm" variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ['appointments'] })}>Retry</Button>
+                </div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-20">
                     <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4"><Calendar className="w-8 h-8 text-foreground300" /></div>

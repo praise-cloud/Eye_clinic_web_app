@@ -25,16 +25,20 @@ interface Appointment {
 }
 
 const statusColors: Record<string, string> = {
-  scheduled: 'bg-blue-500',
-  confirmed: 'bg-green-500',
+  pending: 'bg-amber-500',
+  confirmed: 'bg-blue-500',
+  arrived: 'bg-emerald-500',
+  in_progress: 'bg-slate-500',
   completed: 'bg-gray-400',
   cancelled: 'bg-red-500',
   no_show: 'bg-orange-500',
 }
 
 const statusBg: Record<string, string> = {
-  scheduled: 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-  confirmed: 'bg-green-50 dark:bg-green-950 text-green-600 dark:text-green-300 border-green-200 dark:border-green-800',
+  pending: 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+  confirmed: 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+  arrived: 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+  in_progress: 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700',
   completed: 'bg-gray-50 dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700',
   cancelled: 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-300 border-red-200 dark:border-red-800',
   no_show: 'bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800',

@@ -90,10 +90,12 @@ export async function fetchAppointments(options: {
   let q = supabase
     .from('appointments')
     .select('*, patient:patients(first_name, last_name, phone)')
-    .order('appointment_time', { ascending: true })
+    .order('scheduled_at', { ascending: true })
 
   if (options.date) {
-    q = q.eq('appointment_date', options.date)
+    const startOfDay = `${options.date}T00:00:00`
+    const endOfDay = `${options.date}T23:59:59`
+    q = q.gte('scheduled_at', startOfDay).lte('scheduled_at', endOfDay)
   }
   if (options.status) {
     q = q.eq('status', options.status)
@@ -170,6 +172,8 @@ export async function updatePrescriptionStatus(id: string, status: string): Prom
 // Fetch dashboard stats
 export async function fetchDashboardStats(role: string): Promise<Record<string, number>> {
   const today = new Date().toISOString().split('T')[0]
+  const startOfDay = `${today}T00:00:00`
+  const endOfDay = `${today}T23:59:59`
 
   const [
     { count: patientsCount },
@@ -178,7 +182,7 @@ export async function fetchDashboardStats(role: string): Promise<Record<string, 
     { count: lowStock },
   ] = await Promise.all([
     supabase.from('patients').select('*', { count: 'exact', head: true }),
-    supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('appointment_date', today),
+    supabase.from('appointments').select('*', { count: 'exact', head: true }).gte('scheduled_at', startOfDay).lte('scheduled_at', endOfDay),
     supabase.from('prescriptions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('pharmacy_drugs').select('*', { count: 'exact', head: true }).lt('quantity_in_stock', 10),
   ])

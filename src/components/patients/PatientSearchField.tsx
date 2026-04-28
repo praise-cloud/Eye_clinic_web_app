@@ -33,16 +33,20 @@ export function PatientSearchField({
     const { data: results = [] } = useQuery({
         queryKey: ['patient-search-field', query],
         queryFn: async () => {
-            if (query.length < 2) return []
-            const { data } = await supabase
+            let q = supabase
                 .from('patients')
                 .select('id,first_name,last_name,patient_number,phone,gender,date_of_birth')
-                .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,patient_number.ilike.%${query}%,phone.ilike.%${query}%`)
                 .order('first_name')
-                .limit(10)
+                .limit(50)
+
+            if (query.trim().length > 0) {
+                q = q.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,patient_number.ilike.%${query}%,phone.ilike.%${query}%`)
+            }
+
+            const { data } = await q
             return (data ?? []) as Patient[]
         },
-        enabled: query.length >= 2 && open,
+        enabled: open,
         staleTime: 30000,
     })
 
@@ -100,12 +104,12 @@ export function PatientSearchField({
                 )}
 
                 {/* Dropdown */}
-                {open && query.length >= 2 && (
+                {open && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-card-xl z-50 overflow-hidden max-h-56 overflow-y-auto scrollbar-thin">
                         {results.length === 0 ? (
                             <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400">
                                 <User className="w-4 h-4" />
-                                No patients found for "{query}"
+                                {query.trim().length > 0 ? `No patients found for "${query}"` : 'No patients available'}
                             </div>
                         ) : (
                             results.map(p => (

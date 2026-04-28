@@ -39,7 +39,7 @@ export function AssistantDashboard() {
             const today = new Date().toISOString().split('T')[0]
             const { data } = await supabase
                 .from('appointments')
-                .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles(full_name)')
+                .select('*, patient:patients(first_name,last_name,patient_number), doctor:profiles!doctor_id(full_name)')
                 .gte('scheduled_at', `${today}T00:00:00`)
                 .lte('scheduled_at', `${today}T23:59:59`)
                 .order('scheduled_at', { ascending: true })

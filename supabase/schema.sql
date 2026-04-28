@@ -517,41 +517,20 @@ ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 -- These are IDEMPOTENT — safe to run even if they already exist
 
 -- ── Profiles Policies ──────────────────────────────────────────────
-DO $$
-DECLARE _exists bool;
-BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='Profile insert during signup') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Profile insert during signup" ON public.profiles FOR INSERT WITH CHECK (TRUE); END IF;
-END $$;
+DROP POLICY IF EXISTS "Profile insert during signup" ON public.profiles;
+CREATE POLICY "Profile insert during signup" ON public.profiles FOR INSERT WITH CHECK (TRUE);
 
-DO $$
-DECLARE _exists bool;
-BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='Staff read profiles') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Staff read profiles" ON public.profiles FOR SELECT TO authenticated USING (TRUE); END IF;
-END $$;
+DROP POLICY IF EXISTS "Staff read profiles" ON public.profiles;
+CREATE POLICY "Staff read profiles" ON public.profiles FOR SELECT TO authenticated USING (TRUE);
 
-DO $$
-DECLARE _exists bool;
-BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='Own profile update') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Own profile update" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid()); END IF;
-END $$;
+DROP POLICY IF EXISTS "Own profile update" ON public.profiles;
+CREATE POLICY "Own profile update" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
 
-DO $$
-DECLARE _exists bool;
-BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='Admin manages profiles') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Admin manages profiles" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin'); END IF;
-END $$;
+DROP POLICY IF EXISTS "Admin manages profiles" ON public.profiles;
+CREATE POLICY "Admin manages profiles" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin');
 
--- Manager-specific: Own profile update
-DO $$
-DECLARE _exists bool;
-BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='Manager update own profile') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Manager update own profile" ON public.profiles FOR UPDATE TO authenticated USING (get_user_role() = 'manager' AND id = auth.uid()); END IF;
-END $$;
+DROP POLICY IF EXISTS "Manager update own profile" ON public.profiles;
+CREATE POLICY "Manager update own profile" ON public.profiles FOR UPDATE TO authenticated USING (get_user_role() = 'manager' AND id = auth.uid());
 
 -- ── Patients Policies ─────────────────────────────────────
 DO $$
@@ -587,21 +566,11 @@ BEGIN
 END $$;
 
 -- ── Appointments Policies ────────────────────────────────────
-DO $$
-DECLARE _exists bool;
-BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='appointments' AND policyname='All staff view appointments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "All staff view appointments" ON public.appointments FOR SELECT TO authenticated USING (TRUE); END IF;
-END $$;
+DROP POLICY IF EXISTS "All staff view appointments" ON public.appointments;
+CREATE POLICY "All staff view appointments" ON public.appointments FOR SELECT TO authenticated USING (TRUE);
 
 DROP POLICY IF EXISTS "Staff manage appointments" ON public.appointments;
-
-DO $$
-DECLARE _exists bool;
-BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='appointments' AND policyname='Staff manage appointments') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor', 'frontdesk', 'admin', 'manager')); END IF;
-END $$;
+CREATE POLICY "Staff manage appointments" ON public.appointments FOR ALL TO authenticated USING (get_user_role() IN ('doctor', 'frontdesk', 'admin', 'manager'));
 
 -- ── Case Notes Policies ───────────────────────────────────────
 DROP POLICY IF EXISTS "Doctors/admin view notes" ON public.case_notes;
