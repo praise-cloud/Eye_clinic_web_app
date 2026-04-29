@@ -22,8 +22,10 @@ const bottomNavByRole: Record<UserRole, { label: string; href: string; icon: Rea
     admin: [
         { label: 'Home', href: '/admin', icon: LayoutDashboard },
         { label: 'Patients', href: '/admin/patients', icon: Users },
+        { label: 'Inventory', href: '/admin/inventory', icon: Package },
         { label: 'Chat', href: '/chat', icon: MessageSquare },
     ],
+
 
     manager: [
         { label: 'Home', href: '/manager', icon: LayoutDashboard },

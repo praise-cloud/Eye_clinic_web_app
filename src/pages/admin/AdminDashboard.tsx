@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Users, DollarSign, TrendingUp } from 'lucide-react'
+import { Users, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,12 +12,14 @@ export function AdminDashboard() {
         queryKey: ['admin-stats'],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
-            const [patients, todayRevenue] = await Promise.all([
+            const [patients, lowStock, todayRevenue] = await Promise.all([
                 supabase.from('patients').select('id', { count: 'exact' }),
+                supabase.from('drugs').select('id', { count: 'exact' }).lte('quantity', 10),
                 supabase.from('daily_summary').select('total_revenue, glasses_revenue').eq('summary_date', today).single(),
             ])
             return {
                 totalPatients: patients.count ?? 0,
+                lowStockAlerts: lowStock.count ?? 0,
                 todayRevenue: todayRevenue?.data?.total_revenue ?? 0,
                 todayGlassesRevenue: todayRevenue?.data?.glasses_revenue ?? 0,
             }
@@ -28,6 +30,7 @@ export function AdminDashboard() {
         { label: 'Total Patients', value: stats?.totalPatients ?? 0, icon: Users, color: 'text-blue-600 bg-blue-50', href: '/admin/patients' },
         { label: "Today's Revenue", value: formatCurrency(stats?.todayRevenue ?? 0), icon: DollarSign, color: 'text-emerald-600 bg-emerald-50', href: '/admin/reports' },
         { label: "Today's Glasses", value: formatCurrency(stats?.todayGlassesRevenue ?? 0), icon: TrendingUp, color: 'text-purple-600 bg-purple-50', href: '/admin/reports' },
+        { label: 'Low Stock', value: stats?.lowStockAlerts ?? 0, icon: AlertTriangle, color: 'text-red-600 bg-red-50', href: '/admin/inventory' },
     ]
 
     return (

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Package, Glasses, MoreHorizontal, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -64,6 +64,7 @@ export function InventoryPage() {
     const [editDrug, setEditDrug] = useState<Drug | null>(null)
     const [editFrame, setEditFrame] = useState<GlassesInventory | null>(null)
     const [editOthers, setEditOthers] = useState<any | null>(null)
+    const [deleteConfirm, setDeleteConfirm] = useState<{type: 'drug'|'frame'|'others', item: any}|null>(null)
 
     const { data: drugs = [], isLoading: drugsLoading } = useQuery({
         queryKey: ['drugs'],
@@ -112,14 +113,47 @@ export function InventoryPage() {
 
     const saveOthers = useMutation({
         mutationFn: async (data: OthersForm) => {
-            if (editFrame) await supabase.from('inventory_others').update(data).eq('id', editFrame.id)
+            if (editOthers) await supabase.from('inventory_others').update(data).eq('id', editOthers.id)
             else await supabase.from('inventory_others').insert(data)
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['others-inventory'] })
             setOthersDrawer(false)
             othersForm.reset()
-            notify({ type: 'system', title: editFrame ? 'Item Updated' : 'Item Added', message: editFrame ? 'Inventory item has been updated.' : 'A new item has been added to inventory.', link: '/admin/inventory' })
+            notify({ type: 'system', title: editOthers ? 'Item Updated' : 'Item Added', message: editOthers ? 'Inventory item has been updated.' : 'A new item has been added to inventory.', link: '/admin/inventory' })
+        },
+    })
+
+    const deleteDrug = useMutation({
+        mutationFn: async (id: string) => {
+            await supabase.from('drugs').delete().eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['drugs'] })
+            setDeleteConfirm(null)
+            notify({ type: 'system', title: 'Drug Deleted', message: 'The drug has been removed from inventory.', link: '/admin/inventory' })
+        },
+    })
+
+    const deleteFrame = useMutation({
+        mutationFn: async (id: string) => {
+            await supabase.from('glasses_inventory').delete().eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
+            setDeleteConfirm(null)
+            notify({ type: 'system', title: 'Frame Deleted', message: 'The frame has been removed from inventory.', link: '/admin/inventory' })
+        },
+    })
+
+    const deleteOthers = useMutation({
+        mutationFn: async (id: string) => {
+            await supabase.from('inventory_others').delete().eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['others-inventory'] })
+            setDeleteConfirm(null)
+            notify({ type: 'system', title: 'Item Deleted', message: 'The item has been removed from inventory.', link: '/admin/inventory' })
         },
     })
 
@@ -127,6 +161,14 @@ export function InventoryPage() {
         setEditDrug(d)
         drugForm.reset({ name: d.name, generic_name: d.generic_name, category: d.category, unit: d.unit, quantity: d.quantity, reorder_level: d.reorder_level, purchase_price: d.purchase_price, selling_price: d.selling_price, supplier: d.supplier, expiry_date: d.expiry_date })
         setDrugDrawer(true)
+    }
+
+    const handleDelete = () => {
+        if (!deleteConfirm) return
+        const { type, item } = deleteConfirm
+        if (type === 'drug') deleteDrug.mutate(item.id)
+        else if (type === 'frame') deleteFrame.mutate(item.id)
+        else if (type === 'others') deleteOthers.mutate(item.id)
     }
 
     return (
@@ -167,7 +209,12 @@ export function InventoryPage() {
                                             <td className="px-4 py-2.5 text-muted-foreground">{d.unit}</td>
                                             <td className="px-4 py-2.5">{formatCurrency(d.selling_price)}</td>
                                             <td className="px-4 py-2.5 text-muted-foreground">{d.expiry_date || '—'}</td>
-                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditDrug(d)}>Edit</Button></td>
+                                            <td className="px-4 py-2.5">
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEditDrug(d)}>Edit</Button>
+                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirm({ type: 'drug', item: d })}><Trash2 className="w-3.5 h-3.5" /></Button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -197,7 +244,12 @@ export function InventoryPage() {
                                                 {f.quantity <= f.reorder_level && <Badge variant="warning" className="ml-2 text-xs">Low</Badge>}
                                             </td>
                                             <td className="px-4 py-2.5">{formatCurrency(f.selling_price)}</td>
-                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditFrame(f); frameForm.reset({ frame_name: f.frame_name, frame_brand: f.frame_brand, frame_code: f.frame_code, color: f.color, material: f.material, gender: f.gender, quantity: f.quantity, reorder_level: f.reorder_level, purchase_price: f.purchase_price, selling_price: f.selling_price }); setFrameDrawer(true) }}>Edit</Button></td>
+                                            <td className="px-4 py-2.5">
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditFrame(f); frameForm.reset({ frame_name: f.frame_name, frame_brand: f.frame_brand, frame_code: f.frame_code, color: f.color, material: f.material, gender: f.gender, quantity: f.quantity, reorder_level: f.reorder_level, purchase_price: f.purchase_price, selling_price: f.selling_price }); setFrameDrawer(true) }}>Edit</Button>
+                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirm({ type: 'frame', item: f })}><Trash2 className="w-3.5 h-3.5" /></Button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -227,7 +279,12 @@ export function InventoryPage() {
                                             </td>
                                             <td className="px-4 py-2.5 text-muted-foreground">{o.unit}</td>
                                             <td className="px-4 py-2.5">{formatCurrency(o.selling_price)}</td>
-                                            <td className="px-4 py-2.5"><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditOthers(o); othersForm.reset({ name: o.name, category: o.category, unit: o.unit, quantity: o.quantity, reorder_level: o.reorder_level, purchase_price: o.purchase_price, selling_price: o.selling_price }); setOthersDrawer(true) }}>Edit</Button></td>
+                                            <td className="px-4 py-2.5">
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditOthers(o); othersForm.reset({ name: o.name, category: o.category, unit: o.unit, quantity: o.quantity, reorder_level: o.reorder_level, purchase_price: o.purchase_price, selling_price: o.selling_price }); setOthersDrawer(true) }}>Edit</Button>
+                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirm({ type: 'others', item: o })}><Trash2 className="w-3.5 h-3.5" /></Button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -335,6 +392,20 @@ export function InventoryPage() {
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setOthersDrawer(false)}>Cancel</Button>
                         <Button type="submit" form="others-form" loading={saveOthers.isPending}>{editOthers ? 'Save Changes' : 'Add Item'}</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+                <ModalContent size="sm">
+                    <ModalHeader><ModalTitle>Confirm Delete</ModalTitle></ModalHeader>
+                    <ModalBody>
+                        <p className="text-sm text-muted-foreground">Are you sure you want to delete <strong>{deleteConfirm?.item?.name || deleteConfirm?.item?.frame_name}</strong>? This action cannot be undone.</p>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+                        <Button variant="destructive" loading={deleteDrug.isPending || deleteFrame.isPending || deleteOthers.isPending} onClick={handleDelete}>Delete</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
