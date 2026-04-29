@@ -623,36 +623,42 @@ CREATE TRIGGER on_auth_user_created
 -- =============================================
 -- 9. ADD TO REALTIME PUBLICATION
 -- =============================================
-DO $$
-BEGIN
-  -- Check and add each table individually
+-- Use DO blocks with exception handling for each table
+DO $$ BEGIN
+  -- messages
   BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-  EXCEPTION WHEN OTHERS THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
 
+  -- notifications
   BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-  EXCEPTION WHEN OTHERS THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
 
+  -- appointments
   BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments;
-  EXCEPTION WHEN OTHERS THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
 
+  -- drugs
   BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.drugs;
-  EXCEPTION WHEN OTHERS THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
 
+  -- glasses_inventory
   BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.glasses_inventory;
-  EXCEPTION WHEN OTHERS THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
 
+  -- payments
   BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.payments;
-  EXCEPTION WHEN OTHERS THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
 
+  -- case_notes
   BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.case_notes;
-  EXCEPTION WHEN OTHERS THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
 END $$;
 
 -- =============================================
