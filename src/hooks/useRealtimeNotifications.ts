@@ -11,19 +11,38 @@ export function useRealtimeNotifications() {
 
         const channels: ReturnType<typeof supabase.channel>[] = []
 
-        // ── EVERYONE: New chat message directed to me ──────────────────
+        // Helper to save notification to DB
+        const saveNotification = async (userId: string, notification: {
+            type: string
+            title: string
+            message: string
+            link?: string
+        }) => {
+            await supabase.from('notifications').insert({
+                user_id: userId,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                link: notification.link,
+                read: false,
+            })
+        }
+
+        // ── EVERYONE: New chat message directed to me ────────────────
         const msgChannel = supabase
             .channel(`msg-inbox:${profile.id}`)
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'messages',
                 filter: `receiver_id=eq.${profile.id}`,
             }, (payload: any) => {
-                notify({
-                    type: 'system',
+                const notification = {
+                    type: 'system' as const,
                     title: 'New Message',
                     message: payload.new?.content?.slice(0, 80) || 'You have a new message.',
                     link: '/chat',
-                })
+                }
+                notify(notification, profile.id)
+                saveNotification(profile.id, notification)
             })
             .subscribe()
         channels.push(msgChannel)
@@ -36,12 +55,14 @@ export function useRealtimeNotifications() {
                     event: 'INSERT', schema: 'public', table: 'appointments',
                     filter: `doctor_id=eq.${profile.id}`,
                 }, () => {
-                    notify({
-                        type: 'appointment',
+                    const notification = {
+                        type: 'appointment' as const,
                         title: 'New Appointment',
                         message: 'A new appointment has been scheduled for you.',
                         link: '/doctor/appointments',
-                    })
+                    }
+                    notify(notification, profile.id)
+                    saveNotification(profile.id, notification)
                 })
                 .subscribe()
             channels.push(aptInsert)
@@ -54,12 +75,14 @@ export function useRealtimeNotifications() {
                     filter: `doctor_id=eq.${profile.id}`,
                 }, (payload: any) => {
                     if (payload.new?.status === 'arrived') {
-                        notify({
-                            type: 'appointment',
+                        const notification = {
+                            type: 'appointment' as const,
                             title: '🔔 Patient Has Arrived',
                             message: 'Your patient has arrived and is waiting.',
                             link: '/doctor/appointments',
-                        })
+                        }
+                        notify(notification, profile.id)
+                        saveNotification(profile.id, notification)
                     }
                 })
                 .subscribe()
@@ -73,12 +96,14 @@ export function useRealtimeNotifications() {
                 .on('postgres_changes', {
                     event: 'INSERT', schema: 'public', table: 'prescriptions',
                 }, () => {
-                    notify({
-                        type: 'prescription',
+                    const notification = {
+                        type: 'prescription' as const,
                         title: 'New Prescription',
                         message: 'A doctor has issued a new prescription to dispense.',
                         link: '/frontdesk/dispensing',
-                    })
+                    }
+                    notify(notification, profile.id)
+                    saveNotification(profile.id, notification)
                 })
                 .subscribe()
             channels.push(rxChannel)
@@ -90,12 +115,14 @@ export function useRealtimeNotifications() {
                     event: 'UPDATE', schema: 'public', table: 'glasses_orders',
                 }, (payload: any) => {
                     if (payload.new?.status === 'ready') {
-                        notify({
-                            type: 'glasses',
+                        const notification = {
+                            type: 'glasses' as const,
                             title: '👓 Glasses Ready',
                             message: `Order ${payload.new.order_number} is ready for collection.`,
                             link: '/frontdesk/glasses-orders',
-                        })
+                        }
+                        notify(notification, profile.id)
+                        saveNotification(profile.id, notification)
                     }
                 })
                 .subscribe()
@@ -118,21 +145,25 @@ export function useRealtimeNotifications() {
                     const crossedReorderLevel = oldQty !== undefined && oldQty > reorderLevel && newQty <= reorderLevel
                     const stillLow = oldQty !== undefined && oldQty <= reorderLevel && newQty <= reorderLevel && newQty < oldQty
                     if (crossedReorderLevel) {
-                        notify({
-                            type: 'low_stock',
+                        const notification = {
+                            type: 'low_stock' as const,
                             title: '⚠️ Low Stock Alert',
                             message: `${drug.name}: dropped to ${newQty} ${drug.unit ?? 'units'} (reorder at ${reorderLevel})`,
                             link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
-                        })
+                        }
+                        notify(notification, profile.id)
+                        saveNotification(profile.id, notification)
                     } else if (stillLow && newQty === 0) {
-                        notify({
-                            type: 'low_stock',
+                        const notification = {
+                            type: 'low_stock' as const,
                             title: '🚨 Out of Stock',
                             message: `${drug.name} is now out of stock!`,
                             link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
-                        })
+                        }
+                        notify(notification, profile.id)
+                        saveNotification(profile.id, notification)
                     }
-})
+                })
                 .subscribe()
             channels.push(stockChannel)
 
@@ -150,38 +181,44 @@ export function useRealtimeNotifications() {
                     if (newQty === undefined || newQty === null) return
                     const crossedReorderLevel = oldQty !== undefined && oldQty > reorderLevel && newQty <= reorderLevel
                     if (crossedReorderLevel) {
-                        notify({
-                            type: 'low_stock',
+                        const notification = {
+                            type: 'low_stock' as const,
                             title: '👓 Low Stock Alert',
                             message: `${frame.frame_name}: only ${newQty} left (reorder at ${reorderLevel})`,
                             link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
-                        })
+                        }
+                        notify(notification, profile.id)
+                        saveNotification(profile.id, notification)
                     } else if (oldQty > 0 && newQty === 0) {
-                        notify({
-                            type: 'low_stock',
+                        const notification = {
+                            type: 'low_stock' as const,
                             title: '🚨 Out of Stock',
                             message: `${frame.frame_name} is now out of stock!`,
                             link: profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory',
-                        })
+                        }
+                        notify(notification, profile.id)
+                        saveNotification(profile.id, notification)
                     }
-})
+                })
                 .subscribe()
             channels.push(glassesStockChannel)
         }
 
-        // ── ACCOUNTANT + ADMIN: New payment recorded ──────────────────
-        if (['admin', 'admin'].includes(profile.role)) {
+        // ── ADMIN: New payment recorded ──────────────────────────
+        if (['admin'].includes(profile.role)) {
             const payChannel = supabase
                 .channel(`pay-new:${profile.role}`)
                 .on('postgres_changes', {
                     event: 'INSERT', schema: 'public', table: 'payments',
                 }, (payload: any) => {
-                    notify({
-                        type: 'payment',
+                    const notification = {
+                        type: 'payment' as const,
                         title: 'Payment Recorded',
                         message: `A new payment has been recorded.`,
-                        link: profile.role === 'admin' ? '/admin/payments' : '/admin/reports',
-                    })
+                        link: '/admin/payments',
+                    }
+                    notify(notification, profile.id)
+                    saveNotification(profile.id, notification)
                 })
                 .subscribe()
             channels.push(payChannel)
@@ -195,12 +232,14 @@ export function useRealtimeNotifications() {
                     event: 'INSERT', schema: 'public', table: 'patients',
                 }, (payload: any) => {
                     const p = payload.new
-                    notify({
-                        type: 'patient',
+                    const notification = {
+                        type: 'patient' as const,
                         title: 'New Patient Registered',
                         message: `${p.first_name} ${p.last_name} has been registered.`,
                         link: '/admin/patients',
-                    })
+                    }
+                    notify(notification, profile.id)
+                    saveNotification(profile.id, notification)
                 })
                 .subscribe()
             channels.push(patientChannel)
@@ -214,12 +253,14 @@ export function useRealtimeNotifications() {
                     event: 'INSERT', schema: 'public', table: 'case_notes',
                 }, () => {
                     if (profile.role === 'admin') {
-                        notify({
-                            type: 'prescription',
+                        const notification = {
+                            type: 'prescription' as const,
                             title: 'Case Note Created',
                             message: 'A doctor has written a new case note.',
                             link: '/admin/audit',
-                        })
+                        }
+                        notify(notification, profile.id)
+                        saveNotification(profile.id, notification)
                     }
                 })
                 .subscribe()

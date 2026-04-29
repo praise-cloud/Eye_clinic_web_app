@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { X, CheckCircle2, AlertTriangle, Info, Calendar, Pill, Package, DollarSign, User, Glasses } from 'lucide-react'
 import { useNotificationStore, type AppNotification } from '@/store/notificationStore'
 import { Link } from 'react-router-dom'
+import { supabase } from '@/lib/supabase'
 
 const typeIcon: Record<AppNotification['type'], React.ElementType> = {
     appointment: Calendar,
@@ -45,7 +46,11 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
     const handleDismiss = () => {
         if (exiting) return
         setExiting(true)
-        setTimeout(() => onDismiss(notification.id), 300)
+        setTimeout(() => {
+            onDismiss(notification.id)
+            // Mark as read in DB
+            supabase.from('notifications').update({ read: true }).eq('id', notification.id)
+        }, 300)
     }
 
     const content = (
@@ -79,15 +84,18 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
 export function ToastContainer() {
     const { notifications, remove } = useNotificationStore()
 
-    const visibleToasts = notifications.slice(0, 3)
+    // Only show the 3 most recent unread notifications
+    const visibleToasts = notifications
+        .filter(n => !n.read)
+        .slice(0, 3)
 
-    if (visibleToasts.length === 0) return null
+    if (visibleToasts.length === 0) return null;
 
     return (
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
             {visibleToasts.map(n => (
                 <div key={n.id} className="pointer-events-auto">
-                    <ToastItem notification={n} onDismiss={(id) => remove(id)} />
+                    <ToastItem notification={n} onDismiss={(id) => remove(id, n.user_id!)} />
                 </div>
             ))}
         </div>

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, X, CheckCheck, Calendar, Pill, Package, DollarSign, User, Glasses, AlertTriangle, Info } from 'lucide-react'
-import { useNotificationStore, type AppNotification } from '@/store/notificationStore'
-import { Link } from 'react-router-dom'
+import { Bell, X, CheckCheck, Calendar, Pill, Package, DollarSign, User, Glasses, AlertTriangle, Info, Link } from 'lucide-react'
+import { useNotificationStore, AppNotification } from '@/store/notificationStore'
 import { cn } from '@/lib/utils'
+import { useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 
 const typeIcon: Record<AppNotification['type'], React.ElementType> = {
     appointment: Calendar,
@@ -37,10 +38,55 @@ function timeAgo(dateStr: string): string {
 }
 
 export function NotificationBell() {
-    const { notifications, unreadCount, markRead, markAllRead, clear } = useNotificationStore()
+    const { notifications, unreadCount, setNotifications, setUnreadCount } = useNotificationStore()
     const [open, setOpen] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
+    const qc = useQueryClient()
 
+    // Fetch notifications from DB on mount
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(50)
+
+            if (!error && data) {
+                setNotifications(data as AppNotification[])
+            }
+        }
+
+        fetchNotifications()
+
+        // Subscribe to new notifications via realtime
+        const channel = supabase
+            .channel('notifications-bell')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'notifications',
+            }, (payload: any) => {
+                const newNotification = payload.new as AppNotification
+                // Only add if it's for current user
+                supabase.auth.getUser().then(({ data: { user } }) => {
+                    if (user && newNotification.user_id === user.id) {
+                        setNotifications([newNotification, ...notifications].slice(0, 50))
+                    }
+                })
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [])
+
+    // Close dropdown on outside click
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -49,14 +95,48 @@ export function NotificationBell() {
         return () => document.removeEventListener('mousedown', handler)
     }, [])
 
-    const handleOpen = () => {
-        setOpen(!open)
+    const handleMarkRead = async (id: string) => {
+        const { error } = await supabase.from('notifications').update({ read: true }).eq('id', id)
+        if (!error) {
+            setNotifications(
+                notifications.map(n => n.id === id ? { ...n, read: true } : n)
+            )
+        }
+    }
+
+    const handleMarkAllRead = async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('user_id', user.id)
+            .eq('read', false)
+
+        if (!error) {
+            setNotifications(notifications.map(n => ({ ...n, read: true })))
+        }
+    }
+
+    const handleClearAll = async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('user_id', user.id)
+
+        if (!error) {
+            setNotifications([])
+        }
     }
 
     return (
         <div className="relative" ref={ref}>
             <button
-                onClick={handleOpen}
+                onClick={() => setOpen(!open)}
                 className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors"
                 aria-label="Notifications"
             >
@@ -80,12 +160,12 @@ export function NotificationBell() {
                         </div>
                         <div className="flex items-center gap-1">
                             {unreadCount > 0 && (
-                                <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 px-2 py-1 rounded-lg hover:bg-accent transition-colors">
+                                <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 px-2 py-1 rounded-lg hover:bg-accent transition-colors">
                                     <CheckCheck className="w-3.5 h-3.5" />Mark all read
                                 </button>
                             )}
                             {notifications.length > 0 && (
-                                <button onClick={clear} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                                <button onClick={handleClearAll} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
@@ -104,12 +184,11 @@ export function NotificationBell() {
                             notifications.map(n => {
                                 const Icon = typeIcon[n.type]
                                 const colorClass = typeColor[n.type]
-                                const content = (
+                                return (
                                     <div
                                         key={n.id}
-                                        onClick={() => markRead(n.id)}
                                         className={cn(
-                                            'flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors cursor-pointer border-b border-slate-50 last:border-0',
+                                            'flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors border-b border-slate-50 last:border-0',
                                             !n.read && 'bg-blue-50/40'
                                         )}
                                     >
@@ -118,17 +197,38 @@ export function NotificationBell() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">
-                                                <p className={cn('text-sm leading-snug', !n.read ? 'font-semibold text-foreground' : 'font-medium text-foreground00')}>
+                                                <p className={cn('text-sm leading-snug', !n.read ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
                                                     {n.title}
                                                 </p>
                                                 <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5">{timeAgo(n.created_at)}</span>
                                             </div>
                                             <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
+                                            {n.link && (
+                                                <a
+                                                    href={n.link}
+                                                    className="inline-flex items-center gap-1 mt-1.5 text-xs text-primary hover:underline"
+                                                    onClick={() => setOpen(false)}
+                                                >
+                                                    View details →
+                                                </a>
+                                            )}
                                         </div>
-                                        {!n.read && <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />}
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            {!n.read && (
+                                                <button
+                                                    onClick={() => handleMarkRead(n.id)}
+                                                    className="p-1 rounded hover:bg-slate-100"
+                                                    title="Mark as read"
+                                                >
+                                                    <CheckCheck className="w-3.5 h-3.5 text-slate-400" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {!n.read && (
+                                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
+                                        )}
                                     </div>
                                 )
-                                return n.link ? <Link key={n.id} to={n.link} onClick={() => setOpen(false)}>{content}</Link> : <div key={n.id}>{content}</div>
                             })
                         )}
                     </div>

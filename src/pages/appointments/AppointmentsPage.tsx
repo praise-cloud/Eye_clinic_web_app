@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, User, Stethoscope, FileText, AlertTriangle } from 'lucide-react'
+import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, User, Stethoscope, FileText, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/button'
@@ -37,7 +37,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'warnin
     no_show: { label: 'No Show', variant: 'destructive', dot: 'bg-red-400' },
 }
 
-function AppointmentCard({ apt, onStatusUpdate }: { apt: Appointment; onStatusUpdate: (id: string, status: string) => void }) {
+function AppointmentCard({ apt, onStatusUpdate, onDelete }: { apt: Appointment; onStatusUpdate: (id: string, status: string) => void; onDelete: (id: string) => void }) {
     const [expanded, setExpanded] = useState(false)
     const cfg = statusConfig[apt.status] ?? statusConfig.pending
 
@@ -102,6 +102,9 @@ function AppointmentCard({ apt, onStatusUpdate }: { apt: Appointment; onStatusUp
                             {apt.status === 'arrived' && <Button size="sm" className="h-8 text-xs rounded-xl" onClick={() => onStatusUpdate(apt.id, 'in_progress')}><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Begin</Button>}
                             {apt.status === 'in_progress' && <Button size="sm" className="h-8 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700" onClick={() => onStatusUpdate(apt.id, 'completed')}><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Complete</Button>}
                             {['pending', 'confirmed'].includes(apt.status) && <Button size="sm" variant="ghost" className="h-8 text-xs rounded-xl text-red-500 hover:bg-red-50" onClick={() => onStatusUpdate(apt.id, 'cancelled')}><XCircle className="w-3.5 h-3.5 mr-1" />Cancel</Button>}
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(apt.id)}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                             <Link to={`/patients/${apt.patient_id}`}><Button size="sm" variant="ghost" className="h-8 text-xs rounded-xl text-blue-600 hover:bg-blue-50"><FileText className="w-3.5 h-3.5 mr-1" />View Patient</Button></Link>
                         </div>
                     </div>
@@ -118,6 +121,7 @@ export function AppointmentsPage() {
     const [statusFilter, setStatusFilter] = useState('all')
     const [open, setOpen] = useState(false)
     const [patientDisplay, setPatientDisplay] = useState('')
+    const [deleteId, setDeleteId] = useState<string | null>(null)
 
     const { data: appointments = [], isLoading, error: appointmentsError } = useQuery({
         queryKey: ['appointments', statusFilter],
@@ -166,6 +170,20 @@ export function AppointmentsPage() {
             if (error) throw error
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from('appointments').delete().eq('id', id)
+            if (error) throw error
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['appointments'] })
+            qc.invalidateQueries({ queryKey: ['appointments-calendar'] })
+            qc.invalidateQueries({ queryKey: ['admin-calendar'] })
+            setDeleteId(null)
+            notify({ type: 'system', title: 'Appointment Deleted', message: 'The appointment has been permanently deleted.' })
+        },
     })
 
     const filtered = appointments.filter(a => {
@@ -217,7 +235,7 @@ export function AppointmentsPage() {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {filtered.map(apt => <AppointmentCard key={apt.id} apt={apt} onStatusUpdate={(id, status) => updateStatus.mutate({ id, status })} />)}
+                    {filtered.map(apt => <AppointmentCard key={apt.id} apt={apt} onStatusUpdate={(id, status) => updateStatus.mutate({ id, status })} onDelete={(id) => setDeleteId(id)} />)}
                 </div>
             )}
 
@@ -257,6 +275,32 @@ export function AppointmentsPage() {
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" form="apt-form" loading={isSubmitting || createMutation.isPending}>Book Appointment</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+                <ModalContent size="sm">
+                    <ModalHeader>
+                        <ModalTitle className="text-red-600 flex items-center gap-2">
+                            <Trash2 className="w-5 h-5" />Delete Appointment
+                        </ModalTitle>
+                        <ModalDescription className="text-red-500/80">
+                            This action is <strong>permanent</strong> and cannot be undone.
+                        </ModalDescription>
+                    </ModalHeader>
+                    <div className="px-6 py-3 bg-red-50 border border-red-100 rounded-xl mx-6 mb-2">
+                        <p className="text-xs text-red-600">
+                            The appointment will be permanently deleted from the system.
+                        </p>
+                    </div>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setDeleteId(null)} disabled={deleteMutation.isPending}>Cancel</Button>
+                        <Button variant="destructive" loading={deleteMutation.isPending}
+                            onClick={() => deleteId && deleteMutation.mutate(deleteId)}>
+                            Yes, Delete Appointment
+                        </Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

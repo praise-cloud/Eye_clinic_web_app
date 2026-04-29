@@ -36,6 +36,8 @@ import { ManagerSettings } from './pages/manager/ManagerSettings'
 import { PaymentsPage } from './pages/admin/PaymentsPage'
 import { DailySummaryPage } from './pages/admin/DailySummaryPage'
 import { SubscriptionsPage } from './pages/admin/SubscriptionsPage'
+import { AuditPage } from './pages/admin/AuditPage'
+import { NotificationsPage } from './pages/notifications/NotificationsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ChatPage } from './pages/chat/ChatPage'
 import { OutreachPage } from './pages/frontdesk/OutreachPage'
@@ -218,6 +220,7 @@ function App() {
           <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
           <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
           <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />
+          <Route path="/admin/audit" element={<P roles={['admin']}><AuditPage /></P>} />
 
           {/* Manager — dashboard, appointments, transactions, messages, settings */}
           <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />
@@ -230,6 +233,9 @@ function App() {
 
           {/* Shared chat */}
           <Route path="/chat" element={<P><ChatPage /></P>} />
+
+          {/* Notifications - all authenticated users */}
+          <Route path="/notifications" element={<P><NotificationsPage /></P>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
