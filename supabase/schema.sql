@@ -460,6 +460,49 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ── AUDIT TRIGGERS ───────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.audit_trigger_function()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.audit_logs (user_id, action, table_name, record_id, old_data, new_data)
+  VALUES (
+    auth.uid(),
+    TG_OP,
+    TG_TABLE_NAME,
+    CASE TG_OP WHEN 'DELETE' THEN OLD.id ELSE NEW.id END,
+    CASE TG_OP WHEN 'INSERT' THEN NULL ELSE row_to_json(OLD)::jsonb END,
+    CASE TG_OP WHEN 'DELETE' THEN NULL ELSE row_to_json(NEW)::jsonb END
+  );
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Apply audit triggers to sensitive tables
+DROP TRIGGER IF EXISTS audit_patients ON public.patients;
+CREATE TRIGGER audit_patients
+  AFTER INSERT OR UPDATE OR DELETE ON public.patients
+  FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+
+DROP TRIGGER IF EXISTS audit_payments ON public.payments;
+CREATE TRIGGER audit_payments
+  AFTER INSERT OR UPDATE OR DELETE ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+
+DROP TRIGGER IF EXISTS audit_drug_dispensing ON public.drug_dispensing;
+CREATE TRIGGER audit_drug_dispensing
+  AFTER INSERT OR UPDATE OR DELETE ON public.drug_dispensing
+  FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+
+DROP TRIGGER IF EXISTS audit_case_notes ON public.case_notes;
+CREATE TRIGGER audit_case_notes
+  AFTER INSERT OR UPDATE OR DELETE ON public.case_notes
+  FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+
+DROP TRIGGER IF EXISTS audit_glasses_orders ON public.glasses_orders;
+CREATE TRIGGER audit_glasses_orders
+  AFTER INSERT OR UPDATE OR DELETE ON public.glasses_orders
+  FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+
 -- ── VIEWS ────────────────────────────────────────────────────
 CREATE OR REPLACE VIEW public.daily_summary AS
 SELECT
@@ -718,11 +761,14 @@ BEGIN
 END $$;
 
 -- ── Audit Logs Policies ─────────────────────────────────
+-- Drop old restrictive policy if exists (migration fix)
+DROP POLICY IF EXISTS "Admin views audit" ON public.audit_logs;
+
 DO $$
 DECLARE _exists bool;
 BEGIN
-  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='audit_logs' AND policyname='Admin views audit') INTO _exists;
-  IF NOT _exists THEN CREATE POLICY "Admin views audit" ON public.audit_logs FOR SELECT TO authenticated USING (get_user_role() = 'admin'); END IF;
+  SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='audit_logs' AND policyname='Admin and manager view audit') INTO _exists;
+  IF NOT _exists THEN CREATE POLICY "Admin and manager view audit" ON public.audit_logs FOR SELECT TO authenticated USING (get_user_role() IN ('admin', 'manager')); END IF;
 END $$;
 
 DO $$

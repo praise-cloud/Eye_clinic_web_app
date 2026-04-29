@@ -62,8 +62,8 @@ profiles table CHECK constraint has old roles.
 ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 
 -- Add new constraint with 4 roles
-ALTER TABLE public.profiles 
-  ADD CONSTRAINT profiles_role_check 
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_role_check
   CHECK (role IN ('doctor','frontdesk','admin','manager'));
 ```
 
@@ -81,7 +81,7 @@ ALTER TABLE public.profiles
 ```sql
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "appointments_insert" ON public.appointments;
-CREATE POLICY "appointments_insert" ON public.appointments 
+CREATE POLICY "appointments_insert" ON public.appointments
   FOR INSERT WITH CHECK (true);
 ```
 
@@ -117,14 +117,47 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 
 ### Symptoms
 - Admin dashboard shows no recent activity
+- Manager audit page shows no logs
 
 ### Cause
-audit_logs table or triggers not created.
+audit_logs table exists but triggers may not be applied, or RLS policy blocks manager access.
 
 ### Fix
-The schema.sql should create audit_logs automatically. Verify:
+The schema.sql now includes audit triggers. Run it in Supabase SQL Editor, then verify:
 ```sql
+-- Check audit_logs table exists
 SELECT COUNT(*) FROM public.audit_logs;
+
+-- Check triggers exist
+SELECT * FROM pg_trigger WHERE tgname LIKE 'audit_%';
+
+-- Check manager can read audit logs (run as manager)
+SELECT get_user_role(); -- should return 'manager'
+SELECT COUNT(*) FROM public.audit_logs;
+```
+
+If triggers are missing, re-run the audit trigger section from schema.sql:
+```sql
+CREATE OR REPLACE FUNCTION public.audit_trigger_function()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.audit_logs (user_id, action, table_name, record_id, old_data, new_data)
+  VALUES (
+    auth.uid(), TG_OP, TG_TABLE_NAME,
+    CASE TG_OP WHEN 'DELETE' THEN OLD.id ELSE NEW.id END,
+    CASE TG_OP WHEN 'INSERT' THEN NULL ELSE row_to_json(OLD)::jsonb END,
+    CASE TG_OP WHEN 'DELETE' THEN NULL ELSE row_to_json(NEW)::jsonb END
+  );
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Apply to tables
+CREATE TRIGGER audit_patients AFTER INSERT OR UPDATE OR DELETE ON public.patients FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+CREATE TRIGGER audit_payments AFTER INSERT OR UPDATE OR DELETE ON public.payments FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+CREATE TRIGGER audit_drug_dispensing AFTER INSERT OR UPDATE OR DELETE ON public.drug_dispensing FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+CREATE TRIGGER audit_case_notes AFTER INSERT OR UPDATE OR DELETE ON public.case_notes FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
+CREATE TRIGGER audit_glasses_orders AFTER INSERT OR UPDATE OR DELETE ON public.glasses_orders FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
 ```
 
 ---
@@ -214,7 +247,12 @@ ON CONFLICT (key) DO NOTHING;
 - `set_patient_number` — auto-generates patient number
 - `set_order_number` — auto-generates glasses order number
 - `set_receipt_number` — auto-generates receipt number
-- `on_drug_dispensed` — auto-reduces drug stock
+- `on_drug_dispensed` — auto-reduces drug stock on dispense
+- `audit_patients` — logs patient changes to audit_logs
+- `audit_payments` — logs payment changes to audit_logs
+- `audit_drug_dispensing` — logs dispensing changes to audit_logs
+- `audit_case_notes` — logs case note changes to audit_logs
+- `audit_glasses_orders` — logs glasses order changes to audit_logs
 
 ---
 
