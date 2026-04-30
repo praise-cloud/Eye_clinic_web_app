@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { Plus, FileText, Search, Trash2, Eye, ChevronDown, ChevronUp, Upload, X, File } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Plus, FileText, Search, Trash2, Eye, ChevronDown, ChevronUp, Upload, X, File, Stethoscope, Calendar, User, DollarSign, RotateCcw, Save, Pill } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/button'
@@ -14,25 +14,61 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { formatDate } from '@/lib/utils'
 import { encryptText, decryptText } from '@/lib/crypto'
-import type { CaseNote } from '@/types'
+import type { CaseNote, Patient } from '@/types'
 import { notify } from '@/store/notificationStore'
 
+/* ───────── Zod schema ───────── */
 const schema = z.object({
     patient_id: z.string().min(1, 'Select a patient'),
+    visiting_date: z.string().optional(),
     chief_complaint: z.string().min(1, 'Required'),
     history: z.string().optional(),
-    examination: z.string().optional(),
+    ophthalmoscopy_notes: z.string().optional(),
+    previous_rx: z.string().optional(),
+    externals: z.string().optional(),
+    unaided_dist_re: z.string().optional(),
+    unaided_dist_le: z.string().optional(),
+    unaided_near_re: z.string().optional(),
+    unaided_near_le: z.string().optional(),
+    aided_dist_re: z.string().optional(),
+    aided_dist_le: z.string().optional(),
+    aided_near_re: z.string().optional(),
+    aided_near_le: z.string().optional(),
+    objective_re_va: z.string().optional(),
+    objective_le_va: z.string().optional(),
+    subjective_re_add: z.string().optional(),
+    subjective_re_va: z.string().optional(),
+    subjective_le_add: z.string().optional(),
+    subjective_le_va: z.string().optional(),
+    ret: z.boolean().optional(),
+    autoref: z.boolean().optional(),
+    tonometry_re: z.string().optional(),
+    tonometry_le: z.string().optional(),
+    tonometry_time: z.string().optional(),
     diagnosis: z.string().optional(),
+    recommendation: z.string().optional(),
     treatment_plan: z.string().optional(),
-    follow_up_date: z.string().optional(),
-    va_od: z.string().optional(),
-    va_os: z.string().optional(),
-    iop_od: z.string().optional(),
-    iop_os: z.string().optional(),
-    cvf_od: z.string().optional(),
-    cvf_os: z.string().optional(),
+    final_rx_od: z.string().optional(),
+    final_rx_os: z.string().optional(),
+    lens_type: z.string().optional(),
+    next_visiting_date: z.string().optional(),
+    outstanding_bill: z.string().optional(),
 })
 type FormData = z.infer<typeof schema>
+
+/* ───────── helpers ───────── */
+function calculateAge(dob?: string): number | null {
+    if (!dob) return null
+    const birth = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+    return age
+}
+
+/* ───────── NoteCard ───────── */
+const ENCRYPTED_FIELDS = ['history', 'ophthalmoscopy_notes', 'externals', 'diagnosis', 'recommendation'] as const
 
 function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) => void }) {
     const [expanded, setExpanded] = useState(false)
@@ -44,14 +80,17 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
         if (!expanded && note.is_encrypted && Object.keys(decrypted).length === 0) {
             setDecrypting(true)
             const result: Record<string, string> = {}
-            for (const field of ['history', 'examination', 'diagnosis'] as const) {
-                if (note[field]) result[field] = await decryptText(note[field]!)
+            for (const field of ENCRYPTED_FIELDS) {
+                const val = note[field as keyof CaseNote]
+                if (val && typeof val === 'string') result[field] = await decryptText(val)
             }
             setDecrypted(result)
             setDecrypting(false)
         }
         setExpanded(!expanded)
     }
+
+    const d = (field: string, raw?: string | null) => decrypted[field] || raw || ''
 
     return (
         <div className="bg-card rounded-2xl border border-border shadow-card hover:shadow-card-md transition-all">
@@ -63,10 +102,11 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
                                 {(note.patient as any)?.first_name} {(note.patient as any)?.last_name}
                             </Link>
                             <span className="text-xs text-slate-400 font-mono">{(note.patient as any)?.patient_number}</span>
+                            {note.visiting_date && <span className="text-xs text-slate-400"><Calendar className="w-3 h-3 inline mr-0.5" />{formatDate(note.visiting_date)}</span>}
                         </div>
                         <p className="text-sm text-slate-600 mt-1 font-medium">{note.chief_complaint}</p>
-                        {note.treatment_plan && !expanded && (
-                            <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">Treatment: {note.treatment_plan}</p>
+                        {note.diagnosis && !expanded && (
+                            <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">Dx: {note.diagnosis}</p>
                         )}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -81,82 +121,42 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
                 </div>
 
                 {expanded && (
-                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
                         {decrypting ? (
                             <div className="flex items-center gap-2 text-xs text-slate-400"><Eye className="w-3.5 h-3.5" />Decrypting...</div>
                         ) : (
                             <>
-                                {(decrypted.history || note.history) && (
-                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">History</p><p className="text-sm text-slate-700">{decrypted.history || note.history}</p></div>
+                                {/* Patient Info */}
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    {note.visiting_date && <div><span className="text-slate-400">Visiting Date:</span> <span className="text-slate-700">{formatDate(note.visiting_date)}</span></div>}
+                                    {note.next_visiting_date && <div><span className="text-slate-400">Next Visit:</span> <span className="text-slate-700">{formatDate(note.next_visiting_date)}</span></div>}
+                                    {note.outstanding_bill !== undefined && note.outstanding_bill !== null && (
+                                        <div><span className="text-slate-400">Outstanding Bill:</span> <span className="text-slate-700">{note.outstanding_bill}</span></div>
+                                    )}
+                                </div>
+
+                                {/* Case Details */}
+                                {(d('history', note.history)) && (
+                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Case History</p><p className="text-sm text-slate-700 whitespace-pre-wrap">{d('history', note.history)}</p></div>
                                 )}
-                                {(decrypted.examination || note.examination) && (
-                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Examination</p><p className="text-sm text-slate-700">{decrypted.examination || note.examination}</p></div>
-                                )}
-                                {(decrypted.diagnosis || note.diagnosis) && (
-                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Diagnosis</p><p className="text-sm text-slate-700">{decrypted.diagnosis || note.diagnosis}</p></div>
-                                )}
-                                {note.treatment_plan && (
-                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Treatment Plan</p><p className="text-sm text-slate-700">{note.treatment_plan}</p></div>
-                                )}
-                                {note.follow_up_date && (
-                                    <div><p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Follow-up Date</p><p className="text-sm text-slate-700">{formatDate(note.follow_up_date)}</p></div>
-                                )}
-                                {note.cvf_attachment_url && (
-                                    <div>
-                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">CVF Attachment</p>
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => setShowPdf(true)}
-                                                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                                                <File className="w-4 h-4" />View Document
-                                            </button>
-                                            <a href={note.cvf_attachment_url} target="_blank" rel="noopener noreferrer" 
-                                                className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
-                                                <Eye className="w-4 h-4" />Download
-                                            </a>
-                                        </div>
+
+                                {/* Ophthalmoscopy */}
+                                {(d('ophthalmoscopy_notes', note.ophthalmoscopy_notes) || d('externals', note.externals) || note.previous_rx) && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ophthalmoscopy / Examinations</p>
+                                        {note.previous_rx && <p className="text-sm text-slate-700"><span className="text-slate-400 text-xs">Previous Rx:</span> {note.previous_rx}</p>}
+                                        {d('externals', note.externals) && <p className="text-sm text-slate-700"><span className="text-slate-400 text-xs">Externals:</span> {d('externals', note.externals)}</p>}
+                                        {d('ophthalmoscopy_notes', note.ophthalmoscopy_notes) && <p className="text-sm text-slate-700 whitespace-pre-wrap">{d('ophthalmoscopy_notes', note.ophthalmoscopy_notes)}</p>}
                                     </div>
                                 )}
-                            </>
-                        )}
-                    </div>
-                )}
-            </div>
 
-            {/* PDF Viewer Modal */}
-            {showPdf && note.cvf_attachment_url && (
-                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowPdf(false)}>
-                    <div className="bg-card shadow-xl w-full max-w-4xl h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="font-semibold">CVF Document</h3>
-                            <button onClick={() => setShowPdf(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                            <iframe src={note.cvf_attachment_url} className="w-full h-full" title="CVF Document" />
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
-
-export function CaseNotesPage() {
-    const { profile } = useAuthStore()
-    const qc = useQueryClient()
-    const [open, setOpen] = useState(false)
-    const [deleteId, setDeleteId] = useState<string | null>(null)
-    const [patientDisplay, setPatientDisplay] = useState('')
-    const [search, setSearch] = useState('')
-    const [cvfFile, setCvfFile] = useState<File | null>(null)
-
-    const { data: notes = [], isLoading } = useQuery({
-        queryKey: ['case-notes', profile?.id],
-        queryFn: async () => {
-            const { data } = await supabase.from('case_notes')
-                .select('*, patient:patients(first_name,last_name,patient_number)')
-                .eq('doctor_id', profile!.id)
+                                {/* Visual Acuity */}
+                                {(note.unaided_dist_re || note.unaided_dist_le || note.unaided_near_re || note.unaided_near_le ||
+                                  note.aided_dist_re || note.aided_dist_le || note.aided_near_re || note.aided_near_le) && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Visual Acuity</p>
+                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                            <div className="space-y-1">
                 .order('created_at', { ascending: false })
             return (data ?? []) as CaseNote[]
         },
@@ -172,7 +172,6 @@ export function CaseNotesPage() {
             .from('cvf-attachments')
             .upload(fileName, file)
         if (uploadError) {
-            console.error('CVF upload error:', uploadError)
             return null
         }
         const { data } = supabase.storage.from('cvf-attachments').getPublicUrl(fileName)
@@ -182,7 +181,7 @@ export function CaseNotesPage() {
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
             let cvfAttachmentUrl: string | null = null
-            
+
             if (cvfFile) {
                 cvfAttachmentUrl = await uploadCvfFile(cvfFile, data.patient_id)
             }
@@ -321,7 +320,7 @@ export function CaseNotesPage() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {/* CVF Attachment */}
                                 <div className="mt-3 pt-3 border-t border-slate-100">
                                     <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">CVF Document Attachment (optional)</p>

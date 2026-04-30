@@ -15,7 +15,6 @@ export function useAuth() {
       signOut()
       window.location.href = '/login'
     } catch (error) {
-      console.error('Logout error:', error)
       signOut()
       window.location.href = '/login'
     }

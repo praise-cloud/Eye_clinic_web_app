@@ -77,7 +77,6 @@ export function RegisterPage() {
       })
 
       const result = await response.json()
-      console.log('[RegisterPage] register response:', response.status, result)
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Registration failed.')
       }

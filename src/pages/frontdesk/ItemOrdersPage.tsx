@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Package, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -31,6 +31,7 @@ export function ItemOrdersPage() {
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [patientSearch, setPatientSearch] = useState('')
     const [selectedItem, setSelectedItem] = useState<any | null>(null)
+    const [quantity, setQuantity] = useState(1)
 
     const { data: dispenses = [], isLoading } = useQuery({
         queryKey: ['inventory-dispensing'],
@@ -60,7 +61,9 @@ export function ItemOrdersPage() {
         },
     })
 
-    const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
+    const { register, handleSubmit, setValue, reset, watch, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
+    const watchedQuantity = watch('quantity')
+    useEffect(() => { setQuantity(watchedQuantity ?? 1) }, [watchedQuantity])
 
     const dispenseMutation = useMutation({
         mutationFn: async (data: FormData) => {
@@ -186,7 +189,7 @@ export function ItemOrdersPage() {
                                 <div>
                                     <label className="text-xs font-medium uppercase tracking-wide">Total</label>
                                     <div className="mt-1.5 h-9 px-3 rounded-md border border-input bg-muted flex items-center text-sm font-medium">
-                                        {selectedItem ? formatCurrency((selectedItem.selling_price ?? 0) * (parseInt((document.getElementById('qty-input') as HTMLInputElement)?.value || '0') || 0)) : '₦0.00'}
+                                        {selectedItem ? formatCurrency((selectedItem.selling_price ?? 0) * quantity) : '₦0.00'}
                                     </div>
                                 </div>
                             </div>

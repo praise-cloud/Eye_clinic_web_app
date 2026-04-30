@@ -49,16 +49,22 @@ A Progressive Web Application (PWA) for managing eye clinic operations, built fo
 - `profiles` — extends Supabase Auth users; stores role, name, phone, status
 - `patients` — patient records with demographics, contact info, client type
 - `appointments` — linked to patient + doctor; status: scheduled/completed/cancelled/no_show
-- `pharmacy_drugs` — drug inventory with stock levels, pricing, expiry
-- `prescriptions` — doctor-issued prescriptions; status: pending/dispensed/cancelled
-- `pharmacy_dispensations` — records of drug dispensing events
-- `inventory` — non-drug clinic inventory items
-- `revenue` — financial transactions by source (pharmacy, consultation, tests, glasses)
-- `chat` — internal messaging between staff
-- `notifications` — per-user notification records
-- `case_notes` — doctor clinical notes with visual acuity, IOP, CVF, diagnosis, recommendation
-- `tests` — eye test records (machine type, raw data, report status)
+- `drugs` — pharmacy drug inventory with stock levels, pricing, expiry
+- `glasses_inventory` — frame inventory (frame_name, brand, color, price, quantity)
+- `inventory_others` — non-drug inventory items (name, category, unit, price)
+- `prescriptions` — glasses prescriptions with OD/OS values; status: pending/dispensed
+- `glasses_orders` — glasses orders linked to patients + frames; status: pending/in_lab/ready/dispensed
+- `drug_dispensing` — records of drug dispensing events
+- `inventory_dispensing` — records of non-drug inventory dispensing to patients
+- `payments` — financial transactions by type (consultation, drug, glasses_deposit, glasses_balance)
+- `messages` — internal messaging between staff with attachment support
+- `notifications` — per-user notification records (DB-backed)
+- `case_notes` — doctor clinical notes (AES-GCM encrypted option)
+- `daily_summary` — daily reports table (new_patients, revenue by source)
+- `outreach_log` — SMS/email/WhatsApp outreach tracking
+- `audit_logs` — audit trail for INSERT/UPDATE/DELETE actions
 - `settings` — key/value clinic configuration
+- `push_subscriptions` — web push notification subscriptions
 
 ### Auto-trigger
 On new Supabase Auth user signup → `handle_new_user()` trigger creates a `profiles` row using metadata (first_name, last_name, role).
@@ -85,50 +91,64 @@ eye-clinic-web/
 │       ├── App.tsx                  # Routes + ProtectedRoute + RoleDashboard
 │       ├── components/
 │       │   ├── layout/
-│       │   │   ├── Layout.tsx
+│       │   │   ├── AppShell.tsx
 │       │   │   ├── Sidebar.tsx      # Role-based nav items
-│       │   │   └── Header.tsx       # Search, notifications, user menu
-│       │   └── ui/                  # Avatar, Badge, Button, Card, Input, Modal
+│       │   │   ├── Header.tsx      # Search, notifications, user menu
+│       │   │   └── ToastContainer.tsx # Toast notifications
+│       │   └── ui/                  # Avatar, Badge, Button, Card, Input, Modal, Select, etc.
 │       ├── hooks/
-│       │   └── useAuth.ts           # login, register, logout, checkAuth
+│       │   ├── useAuth.ts           # login, register, logout
+│       │   ├── useRealtimeNotifications.ts
+│       │   └── useClinicSettings.ts
 │       ├── pages/
-│       │   ├── admin/Dashboard.tsx
-│       │   ├── doctor/Dashboard.tsx
-│       │   ├── assistant/Dashboard.tsx
-│       │   ├── accountant/Dashboard.tsx
-│       │   ├── auth/LoginPage.tsx
-│       │   ├── auth/RegisterPage.tsx
-│       │   ├── patients/PatientsPage.tsx
-│       │   ├── patients/PatientDetailPage.tsx
-│       │   ├── appointments/AppointmentsPage.tsx
-│       │   ├── calendar/CalendarPage.tsx
-│       │   └── settings/SettingsPage.tsx
+│       │   ├── admin/
+│       │   │   ├── AdminDashboard.tsx
+│       │   │   ├── AuditPage.tsx
+│       │   │   ├── InventoryPage.tsx
+│       │   │   ├── PaymentsPage.tsx
+│       │   │   ├── ReportsPage.tsx
+│       │   │   ├── UsersPage.tsx
+│       │   │   └── ...
+│       │   ├── frontdesk/
+│       │   │   ├── FrontdeskDashboard.tsx
+│       │   │   ├── GlassesOrdersPage.tsx
+│       │   │   ├── ItemOrdersPage.tsx   # NEW: Inventory item dispensing
+│       │   │   ├── DispensingPage.tsx
+│       │   │   ├── OutreachPage.tsx
+│       │   │   └── ...
+│       │   ├── doctor/
+│       │   ├── manager/
+│       │   ├── auth/
+│       │   ├── patients/
+│       │   ├── appointments/
+│       │   ├── calendar/
+│       │   ├── notifications/
+│       │   ├── chat/
+│       │   └── settings/
 │       ├── services/
-│       │   ├── api.ts               # Axios instance with auth interceptors
+│       │   ├── api.ts               # Axios instance (legacy)
 │       │   └── supabase.ts          # Supabase client
 │       ├── stores/
-│       │   └── authStore.ts         # Zustand auth store
-│       └── types/index.ts           # All TypeScript interfaces
-├── server/
-│   └── src/
-│       ├── index.js                 # Express app entry point
-│       ├── routes/
-│       │   ├── auth.js
-│       │   ├── patients.js
-│       │   ├── appointments.js
-│       │   ├── prescriptions.js
-│       │   ├── pharmacy.js
-│       │   ├── dashboard.js
-│       │   ├── inventory.js
-│       │   ├── revenue.js
-│       │   ├── chat.js
-│       │   ├── notifications.js
-│       │   ├── settings.js
-│       │   └── users.js
-│       └── services/
-│           └── supabase.js
+│       │   ├── authStore.ts         # Zustand auth store
+│       │   ├── notificationStore.ts  # DB-backed notifications
+│       │   └── uiStore.ts
+│       └── types/                  # NEW: Reusable type system
+│           ├── index.ts             # Barrel file exporting all types
+│           ├── profile.ts           # UserRole, Profile
+│           ├── patient.ts           # Patient
+│           ├── appointment.ts       # Appointment
+│           ├── prescription.ts      # Prescription (OD/OS)
+│           ├── case-note.ts         # CaseNote (clinical notes)
+│           ├── inventory.ts         # Drug, GlassesInventory, InventoryOthers
+│           ├── glasses-order.ts     # GlassesOrder
+│           ├── payment.ts            # Payment
+│           ├── message.ts           # Message (chat)
+│           ├── notification.ts      # AppNotification
+│           └── models.ts            # Shared models (DailySummary, DrugDispensing, etc.)
+├── server/                      # Legacy Express backend (not used)
 └── supabase/
-    └── schema.sql
+    ├── schema.sql              # Full DB schema (tables, RLS, triggers)
+    └── schema-fixed.sql         # Daily summary fix
 ```
 
 ---
@@ -266,24 +286,54 @@ eye-clinic-web/
 - Role-based routing and sidebar navigation
 - Patients list page with search, filter, CSV export
 - Patient detail page with tabbed view (visits, prescriptions, tests)
-- Appointments list page with search and status filter
+- Appointments list page with search and status filter + delete functionality
 - Calendar page (monthly view with appointment visualization)
 - Settings page (profile, notifications, clinic settings)
 - All four role dashboards with live data fetching
 - Admin dashboard with mini calendar component
-- Toast notification system with auto-dismiss
+- Toast notification system with auto-dismiss (DB-backed notifications)
 - User management page (add, edit, enable/disable, delete staff)
+- Activity Log / Audit Trail page (`/admin/audit`)
+- Inventory management (drugs, glasses, others) with create/edit/delete + error handling
+- Glasses Orders (frontdesk) with edit/delete/status advancement + inventory deduction
+- Item Dispensing page (`/frontdesk/item-orders`) for non-drug inventory items
 - Vercel Analytics integration
+- Chat system with photo/document attachments + edit/delete own messages
+- Reusable type system (`src/types/` with separate files per domain)
+- Code cleanup: removed duplicate `assistant/` folder, removed console statements
 
-### Partially Implemented / Placeholder Routes
-These routes exist in `App.tsx` and the sidebar but render `<RoleDashboard />` as a placeholder:
-- `/case-studies` — Doctor case studies (admin view)
-- `/revenue` — Revenue page (accountant/admin)
-- `/inventory` — Inventory management page
-- `/pharmacy` — Pharmacy management page
-- `/prescriptions` — Prescriptions management page
-- `/case-notes` — Case notes page (doctor)
-- `/messages` — Internal chat/messaging
+### Pages & Features
+
+**Frontdesk Dashboard**
+- Stats: new patients today, appointments today, low stock alerts
+- Today's appointments list with patient + doctor info
+- Low stock drug alerts
+
+**Glasses Orders (`/frontdesk/glasses-orders`)**
+- Create new glasses orders (select patient, frame, lens type, deposit)
+- Edit existing orders (all fields)
+- Advance status: pending → in_lab → ready → dispensed
+- On dispense: reduces frame inventory, creates payment record
+- Delete orders (except dispensed)
+
+**Glasses Prescriptions (`/frontdesk/prescriptions`)**
+- Record new prescriptions (OD/OS values, PD, lens type)
+- Edit pending prescriptions
+- Delete pending prescriptions
+- Mark as dispensed
+
+**Item Dispensing (`/frontdesk/item-orders`)**
+- Dispense non-drug inventory items to patients
+- Select patient + item + quantity
+- Auto-calculates total, reduces inventory on dispense
+- Delete dispensing records
+
+**Inventory (`/admin/inventory`)**
+- Three tabs: Drugs, Glasses, Items (others)
+- Add/edit/delete for all inventory types
+- Error handling with toast notifications
+- Glasses: frame_name, brand, color, material, price
+- Others: name, category, unit, price
 
 ### Not Yet Implemented
 - `Add Patient` form (`/patients/new`)
@@ -291,10 +341,19 @@ These routes exist in `App.tsx` and the sidebar but render `<RoleDashboard />` a
 - `New Appointment` form (`/appointments/new`)
 - `Appointment Detail` page (`/appointments/:id`)
 - `New Case Note` form (`/case-notes/new`)
-- Notification system (bell icon shows static "No new notifications")
-- Chat/messaging system
-- Activity log / audit trail
+- Revenue page (`/admin/reports` exists but may need enhancement)
 - PWA icons (missing from `client/public/`)
+- Prescription management page for doctors (`/doctor/prescriptions`)
+
+### Known Issues / Fixes Applied
+- **Glasses deletion failing**: Fixed in schema.sql — `glasses_orders.frame_id` now has `ON DELETE SET NULL`
+- **Inventory "others" creation failing**: Fixed — RLS policies now have `WITH CHECK` clause
+- **daily_summary RLS error**: Fixed — schema safely drops/recreates as table (not view)
+- **Mutations silent failures**: Fixed — all mutations now check for Supabase errors and show toast notifications
+- **BOOLEAN typos in schema.sql**: Fixed — all occurrences changed to BOOLEAN
+- **Duplicate `assistant/` folder**: Deleted — all files now in `frontdesk/` only
+- **Console statements**: Removed from App.tsx, LoginPage, RegisterPage, CaseNotesPage, useAuth
+- **Reusable types**: Refactored into `src/types/` with separate files (profile.ts, patient.ts, appointment.ts, etc.)
 
 ---
 

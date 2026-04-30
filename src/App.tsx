@@ -26,7 +26,6 @@ import { CalendarPage } from './pages/appointments/CalendarPage'
 import { CaseNotesPage } from './pages/doctor/CaseNotesPage'
 import { DispensingPage } from './pages/frontdesk/DispensingPage'
 import { GlassesOrdersPage } from './pages/frontdesk/GlassesOrdersPage'
-import { GlassesPrescriptionPage } from './pages/frontdesk/GlassesPrescriptionPage'
 import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
@@ -96,14 +95,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[AuthProvider] onAuthStateChange:', event, session?.user?.id)
       if (session?.user) {
         setUser(session.user)
         void (async () => {
           try {
             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
             const profile = data ? (data as Profile) : buildFallbackProfile(session.user)
-            console.log('[AuthProvider] Profile loaded:', profile.role)
             setProfile(profile)
           } catch {
             setProfile(buildFallbackProfile(session.user))
