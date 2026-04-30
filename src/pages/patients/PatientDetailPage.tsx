@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2 } from 'lucide-react'
@@ -26,7 +26,7 @@ function DecryptedNote({ note }: { note: CaseNote }) {
         if (Object.keys(decrypted).length > 0) { setExpanded(!expanded); return }
         setLoading(true)
         const result: Record<string, string> = {}
-        for (const field of ['history', 'examination', 'diagnosis'] as const) {
+        for (const field of ['history', 'ophthalmoscopy_notes', 'externals', 'diagnosis', 'recommendation'] as const) {
             if (note[field]) {
                 try { result[field] = await decryptText(note[field]!) } catch { result[field] = note[field]! }
             }
@@ -59,9 +59,17 @@ function DecryptedNote({ note }: { note: CaseNote }) {
                         <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">History</p>
                             <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.history || note.history}</p></div>
                     )}
-                    {(decrypted.examination || note.examination) && (
-                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Examination</p>
-                            <p className="text-sm text-foreground bg-muted rounded-xl p-3 whitespace-pre-line">{decrypted.examination || note.examination}</p></div>
+                    {(decrypted.ophthalmoscopy_notes || note.ophthalmoscopy_notes) && (
+                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Ophthalmoscopy</p>
+                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.ophthalmoscopy_notes || note.ophthalmoscopy_notes}</p></div>
+                    )}
+                    {note.previous_rx && (
+                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Previous Rx</p>
+                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{note.previous_rx}</p></div>
+                    )}
+                    {(decrypted.externals || note.externals) && (
+                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Externals</p>
+                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.externals || note.externals}</p></div>
                     )}
                     {(decrypted.diagnosis || note.diagnosis) && (
                         <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Diagnosis</p>
@@ -109,7 +117,7 @@ export function PatientDetailPage() {
         },
         enabled: !!id && tab === 'appointments',
     })
-    const { data: caseNotes = [], isError: caseNotesError, isLoading: caseNotesLoading } = useQuery({
+    const { data: caseNotes = [], error: caseNotesError, isLoading: caseNotesLoading } = useQuery({
         queryKey: ['patient-notes', id],
         queryFn: async () => {
             const { data, error } = await supabase.from('case_notes')
@@ -150,7 +158,6 @@ export function PatientDetailPage() {
         { id: 'payments', label: 'Payments', icon: CreditCard },
     ]
 
-    // Back navigation based on role
     const backHref = profile?.role === 'frontdesk' ? '/frontdesk/patients'
         : profile?.role === 'doctor' ? '/doctor/patients'
             : profile?.role === 'admin' ? '/admin/patients'
@@ -314,7 +321,7 @@ export function PatientDetailPage() {
                         </Card>
                     )}
 
-                    {/* Case Notes — visible to all roles, decryptable */}
+                    {/* Case Notes */}
                     {tab === 'notes' && (
                         <div className="space-y-3">
                             {caseNotesError ? (
@@ -375,25 +382,25 @@ export function PatientDetailPage() {
                                                     <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Right Eye (OD)</p>
                                                     <div className="grid grid-cols-4 gap-1 text-center bg-muted rounded-xl p-2">
                                                         {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
-                                                        <p className="font-medium">{rx.re_sphere ?? '—'}</p>
-                                                        <p className="font-medium">{rx.re_cylinder ?? '—'}</p>
-                                                        <p className="font-medium">{rx.re_axis ?? '—'}</p>
-                                                        <p className="font-medium">{rx.re_add ?? '—'}</p>
+                                                            <p className="font-medium">{rx.re_sphere ?? '—'}</p>
+                                                            <p className="font-medium">{rx.re_cylinder ?? '—'}</p>
+                                                            <p className="font-medium">{rx.re_axis ?? '—'}</p>
+                                                            <p className="font-medium">{rx.re_add ?? '—'}</p>
+                                                        </div>
+                                                        {rx.re_va && <p className="text-foreground500 mt-1">VA: {rx.re_va}</p>}
                                                     </div>
-                                                    {rx.re_va && <p className="text-foreground500 mt-1">VA: {rx.re_va}</p>}
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Left Eye (OS)</p>
-                                                    <div className="grid grid-cols-4 gap-1 text-center bg-muted rounded-xl p-2">
-                                                        {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
-                                                        <p className="font-medium">{rx.le_sphere ?? '—'}</p>
-                                                        <p className="font-medium">{rx.le_cylinder ?? '—'}</p>
-                                                        <p className="font-medium">{rx.le_axis ?? '—'}</p>
-                                                        <p className="font-medium">{rx.le_add ?? '—'}</p>
+                                                    <div>
+                                                        <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Left Eye (OS)</p>
+                                                        <div className="grid grid-cols-4 gap-1 text-center bg-muted rounded-xl p-2">
+                                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
+                                                            <p className="font-medium">{rx.le_sphere ?? '—'}</p>
+                                                            <p className="font-medium">{rx.le_cylinder ?? '—'}</p>
+                                                            <p className="font-medium">{rx.le_axis ?? '—'}</p>
+                                                            <p className="font-medium">{rx.le_add ?? '—'}</p>
+                                                        </div>
+                                                        {rx.le_va && <p className="text-foreground500 mt-1">VA: {rx.le_va}</p>}
                                                     </div>
-                                                    {rx.le_va && <p className="text-foreground500 mt-1">VA: {rx.le_va}</p>}
                                                 </div>
-                                            </div>
                                             {rx.notes && <p className="text-xs text-foreground400 mt-2">{rx.notes}</p>}
                                         </CardContent>
                                     </Card>

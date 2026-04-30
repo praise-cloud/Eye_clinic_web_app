@@ -932,7 +932,8 @@ END $$;
 -- =============================================
 -- LOW STOCK DRUGS VIEW
 -- =============================================
-CREATE OR REPLACE VIEW public.low_stock_drugs AS
+DROP VIEW IF EXISTS public.low_stock_drugs CASCADE;
+CREATE VIEW public.low_stock_drugs AS
 SELECT d.*
 FROM public.drugs d
 WHERE d.quantity <= d.reorder_level
