@@ -294,7 +294,7 @@ export function CaseNotesPage() {
         const fileExt = file.name.split('.').pop()
         const fileName = `${patientId}/${Date.now()}.${fileExt}`
         const { error: uploadError } = await supabase.storage.from('cvf-attachments').upload(fileName, file)
-        if (uploadError) { console.error('CVF upload error:', uploadError); return null }
+        if (uploadError) { return null }
         const { data } = supabase.storage.from('cvf-attachments').getPublicUrl(fileName)
         return data.publicUrl
     }

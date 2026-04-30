@@ -26,44 +26,40 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
 
-  // Check for existing session on mount and redirect if already logged in
-  useEffect(() => {
-    let mounted = true
-    
-    const checkExistingSession = async () => {
-      console.log('[LoginPage useEffect] Checking existing session...')
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('[LoginPage useEffect] Session:', session?.user?.id)
-      
-      if (!mounted || !session?.user) return
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-      
-      if (!mounted) return
-      
-      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(session.user)
-      console.log('[LoginPage useEffect] Profile:', resolvedProfile.role)
-      useAuthStore.getState().setUser(session.user)
-      useAuthStore.getState().setProfile(resolvedProfile)
-      
-      const role = normalizeUserRole(resolvedProfile.role || session.user.user_metadata?.role)
-      console.log('[LoginPage useEffect] Redirecting to:', role)
-      
-      // Use setTimeout to ensure state is fully propagated before navigation
-      setTimeout(() => {
-        if (mounted) {
-          navigate(getRoleDashboardPath(role), { replace: true })
+    // Check for existing session on mount and redirect if already logged in
+    useEffect(() => {
+        let mounted = true
+        const checkSession = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession()
+                if (error) throw error
+                if (session?.user && mounted) {
+                    // Get profile from API
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single()
+                    
+                    const resolvedProfile = (profile as Profile) ?? buildFallbackProfile(session.user)
+                    if (resolvedProfile) {
+                        const { setProfile, setUser } = useAuthStore.getState()
+                        setProfile(resolvedProfile)
+                        setUser(session.user)
+                        const role = resolvedProfile.role
+                        if (role === 'doctor') navigate('/doctor', { replace: true })
+                        else if (role === 'frontdesk') navigate('/frontdesk', { replace: true })
+                        else if (role === 'admin') navigate('/admin', { replace: true })
+                        else if (role === 'manager') navigate('/manager', { replace: true })
+                    }
+                }
+            } catch (err) {
+                // Session check failed
+            }
         }
-      }, 50)
-    }
-    checkExistingSession()
-    
-    return () => { mounted = false }
-  }, [])
+        checkSession()
+        return () => { mounted = false }
+    }, [])
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
 

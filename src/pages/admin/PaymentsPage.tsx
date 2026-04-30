@@ -72,7 +72,7 @@ export function PaymentsPage() {
             qc.invalidateQueries({ queryKey: ['payments'] })
             notify({ type: 'system', title: 'Payment Deleted', message: 'Payment record has been removed.' })
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete payment.' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Check RLS policies.` }) },
     })
 
     const filtered = payments.filter(p => {
