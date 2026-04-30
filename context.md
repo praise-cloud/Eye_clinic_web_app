@@ -14,16 +14,15 @@ A Progressive Web Application (PWA) for managing eye clinic operations, built fo
 - React Router 7
 - TailwindCSS 3
 - Zustand 5 (state management)
-- Axios (HTTP client)
-- Supabase JS SDK (auth + real-time)
+- Supabase JS SDK (auth + real-time + database)
 - Lucide React (icons)
 - date-fns
+- TanStack Query (React Query)
+- react-hook-form + zod (form validation)
+- Recharts (charts)
 
 ### Backend (`server/`)
-- Node.js + Express 4
-- Supabase JS SDK (database queries)
-- JSON Web Tokens (`jsonwebtoken`)
-- CORS, dotenv
+- Legacy Express backend (no longer used — architecture is now pure Supabase PWA)
 
 ### Database
 - Supabase PostgreSQL
@@ -64,6 +63,7 @@ A Progressive Web Application (PWA) for managing eye clinic operations, built fo
 - `outreach_log` — SMS/email/WhatsApp outreach tracking
 - `audit_logs` — audit trail for INSERT/UPDATE/DELETE actions
 - `settings` — key/value clinic configuration
+- `push_subscriptions` — web push notification subscriptions
 - `push_subscriptions` — web push notification subscriptions
 
 ### Auto-trigger
@@ -167,9 +167,9 @@ eye-clinic-web/
 - Today's appointments list (links to patient detail)
 - Quick action links: Patients, Case Notes, Prescriptions, Calendar
 
-**Assistant Dashboard**
-- Stats: pending prescriptions count, low stock drugs count
-- Pending prescriptions list with inline "Dispense" button
+**Frontdesk Dashboard**
+- Stats: new patients today, appointments today, low stock alerts
+- Today's appointments list with patient + doctor info
 - Low stock drug alerts list
 
 **Accountant Dashboard**
@@ -211,37 +211,23 @@ eye-clinic-web/
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/register` | Register |
-| GET | `/api/auth/me` | Current user profile |
-| POST | `/api/auth/refresh` | Refresh JWT |
-| GET | `/api/patients` | List patients (search, filter, limit) |
-| GET | `/api/patients/:id` | Patient detail |
-| POST | `/api/patients` | Create patient |
-| PUT | `/api/patients/:id` | Update patient |
-| DELETE | `/api/patients/:id` | Delete patient |
-| GET | `/api/appointments` | List appointments (date range, status filter) |
-| GET | `/api/appointments/today` | Today's appointments |
-| GET | `/api/appointments/:id` | Appointment detail |
-| POST | `/api/appointments` | Create appointment |
-| PUT | `/api/appointments/:id` | Update appointment |
-| GET | `/api/prescriptions` | List prescriptions |
-| GET | `/api/prescriptions/pending` | Pending prescriptions |
-| POST | `/api/prescriptions` | Create prescription |
-| PUT | `/api/prescriptions/:id/status` | Update prescription status |
-| GET | `/api/pharmacy/drugs` | List drugs |
-| GET | `/api/pharmacy/drugs/low-stock` | Low stock drugs |
-| POST | `/api/pharmacy/dispense` | Dispense drug |
-| GET | `/api/dashboard/stats` | Dashboard statistics |
-| GET | `/api/revenue/today` | Today's revenue |
-| GET | `/api/revenue/monthly` | Monthly revenue |
-| GET | `/api/inventory` | Inventory items |
-| GET | `/api/notifications` | User notifications |
-| GET/PUT | `/api/settings` | Clinic settings |
-| GET/PUT | `/api/users/profile` | User profile |
-| GET | `/api/health` | Health check |
+The app now uses **Supabase directly** — no Express backend. All data operations go through Supabase JS SDK.
+
+| Method | Supabase Query | Description |
+|--------|---------------|-------------|
+| SELECT | `supabase.from('patients').select()` | List patients (search, filter) |
+| INSERT | `supabase.from('patients').insert()` | Create patient |
+| UPDATE | `supabase.from('patients').update()` | Update patient |
+| DELETE | `supabase.from('patients').delete()` | Delete patient |
+| SELECT | `supabase.from('appointments').select()` | List appointments |
+| SELECT | `supabase.from('prescriptions').select()` | List prescriptions |
+| SELECT | `supabase.from('drugs').select()` | List drugs |
+| SELECT | `supabase.from('glasses_orders').select()` | List glasses orders |
+| INSERT | `supabase.from('inventory_dispensing').insert()` | Dispense inventory item |
+| SELECT | `supabase.from('notifications').select()` | User notifications |
+| INSERT | `supabase.from('messages').insert()` | Send message |
+
+RLS policies control access — all tables have Row Level Security enabled.
 
 ---
 
@@ -296,18 +282,20 @@ eye-clinic-web/
 - Activity Log / Audit Trail page (`/admin/audit`)
 - Inventory management (drugs, glasses, others) with create/edit/delete + error handling
 - Glasses Orders (frontdesk) with edit/delete/status advancement + inventory deduction
+- Glasses Prescriptions (frontdesk) with edit/delete/dispense + error handling
 - Item Dispensing page (`/frontdesk/item-orders`) for non-drug inventory items
 - Vercel Analytics integration
 - Chat system with photo/document attachments + edit/delete own messages
 - Reusable type system (`src/types/` with separate files per domain)
 - Code cleanup: removed duplicate `assistant/` folder, removed console statements
+- Schema fixes: `ON DELETE SET NULL` for glasses orders, RLS `WITH CHECK` clauses, `BOOLEAN` typos fixed
 
 ### Pages & Features
 
 **Frontdesk Dashboard**
 - Stats: new patients today, appointments today, low stock alerts
 - Today's appointments list with patient + doctor info
-- Low stock drug alerts
+- Low stock drug alerts list
 
 **Glasses Orders (`/frontdesk/glasses-orders`)**
 - Create new glasses orders (select patient, frame, lens type, deposit)
@@ -315,12 +303,6 @@ eye-clinic-web/
 - Advance status: pending → in_lab → ready → dispensed
 - On dispense: reduces frame inventory, creates payment record
 - Delete orders (except dispensed)
-
-**Glasses Prescriptions (`/frontdesk/prescriptions`)**
-- Record new prescriptions (OD/OS values, PD, lens type)
-- Edit pending prescriptions
-- Delete pending prescriptions
-- Mark as dispensed
 
 **Item Dispensing (`/frontdesk/item-orders`)**
 - Dispense non-drug inventory items to patients
@@ -343,6 +325,7 @@ eye-clinic-web/
 - `New Case Note` form (`/case-notes/new`)
 - Revenue page (`/admin/reports` exists but may need enhancement)
 - PWA icons (missing from `client/public/`)
+- Prescription management page for doctors (`/doctor/prescriptions`)
 - Prescription management page for doctors (`/doctor/prescriptions`)
 
 ### Known Issues / Fixes Applied
@@ -430,3 +413,6 @@ cd client && npm run dev
 - Updated messages table schema with attachment fields and updated_at
 - Added storage bucket 'files' for chat attachments
 - Added RLS policies for message edit/delete and file uploads
+
+
+### May 2, 2026 � Comprehensive Bug Fixes & Features`n- **Glasses deletion fixed**: glasses_orders.frame_id now has ON DELETE SET NULL`n- **Inventory "others" creation fixed**: RLS policies now have WITH CHECK clause`n- **daily_summary RLS error fixed**: Schema safely drops/recreates as table (not view)`n- **BOOLEAN typos fixed**: All occurrences changed to BOOLEAN in schema.sql`n- **Duplicate assistant/ folder deleted**: All files now only in frontdesk/`n- **Glasses Prescription page removed**: Removed from sidebar, routes, and deleted file`n- **Edit/Delete added to Glasses Orders**: Frontdesk can now edit and delete glasses orders`n- **Edit/Delete added to Prescriptions**: Frontdesk can now edit and delete prescriptions`n- **Item Dispensing page created**: New /frontdesk/item-orders for non-drug inventory items`n- **Reusable types system**: Refactored into src/types/ with separate files per domain`n- **Console statements removed**: Cleaned from App.tsx, LoginPage, RegisterPage, CaseNotesPage, useAuth`n- **Error handling added**: All mutations now check for Supabase errors and show toast notifications`n- **Build passes cleanly**: No TypeScript errors`n`n### Current Application State (May 2, 2026)`n- **Architecture**: Pure Supabase PWA (no Express backend)`n- **Database**: 16 tables + RLS policies + triggers + audit logs`n- **Frontend**: React 18 + TypeScript + Vite 6 + TanStack Query`n- **UI**: TailwindCSS 3 + shadcn/ui components + Lucide React icons`n- **State**: Zustand stores (auth, notifications, UI)`n- **Forms**: react-hook-form + zod validation`n- **Charts**: Recharts for admin reports`n- **PWA**: vite-plugin-pwa for offline support`n- **Analytics**: Vercel Analytics integration`n

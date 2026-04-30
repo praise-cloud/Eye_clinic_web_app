@@ -17,6 +17,7 @@ export interface CaseNote {
   // Ophthalmology fields
   visiting_date?: string
   ophthalmoscopy_notes?: string
+  previous_rx?: string
   externals?: string
   unaided_dist_re?: string
   unaided_dist_le?: string

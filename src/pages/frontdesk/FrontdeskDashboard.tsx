@@ -60,7 +60,7 @@ export function FrontdeskDashboard() {
     const statCards = [
         { label: 'New Patients', value: stats?.newPatients ?? 0, icon: Users, color: 'text-teal-600 bg-teal-50', href: '/frontdesk/patients' },
         { label: 'Appointments', value: stats?.appointments ?? 0, icon: Calendar, color: 'text-blue-600 bg-blue-50', href: '/frontdesk/appointments' },
-        { label: 'Low Stock', value: stats?.lowStock ?? 0, icon: Package, color: 'text-red-600 bg-red-50', href: '/frontdesk/inventory' },
+        { label: 'Low Stock', value: stats?.lowStock ?? 0, icon: Package, color: 'text-red-600 bg-red-50', href: '' },
     ]
 
     return (
@@ -73,19 +73,35 @@ export function FrontdeskDashboard() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
                 {statCards.map(stat => (
-                    <Link key={stat.label} to={stat.href}>
-                        <Card className="hover:shadow-card-md transition-all cursor-pointer">
-                            <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-                                <div className={`p-2 sm:p-2.5 rounded-xl flex-shrink-0 ${stat.color}`}>
-                                    <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-xs text-foreground500 truncate">{stat.label}</p>
-                                    <p className="text-xl sm:text-2xl font-bold text-foreground900">{isLoading ? '—' : stat.value}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </Link>
+                    <div key={stat.label} className={stat.href ? '' : 'cursor-default'}>
+                        {stat.href ? (
+                            <Link to={stat.href}>
+                                <Card className="hover:shadow-card-md transition-all cursor-pointer">
+                                    <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+                                        <div className={`p-2 sm:p-2.5 rounded-xl flex-shrink-0 ${stat.color}`}>
+                                            <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-xs text-foreground500 truncate">{stat.label}</p>
+                                            <p className="text-xl sm:text-2xl font-bold text-foreground900">{isLoading ? '—' : stat.value}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        ) : (
+                            <Card className="transition-all">
+                                <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+                                    <div className={`p-2 sm:p-2.5 rounded-xl flex-shrink-0 ${stat.color}`}>
+                                        <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs text-foreground500 truncate">{stat.label}</p>
+                                        <p className="text-xl sm:text-2xl font-bold text-foreground900">{isLoading ? '—' : stat.value}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                 ))}
             </div>
 
@@ -139,15 +155,12 @@ export function FrontdeskDashboard() {
                 {/* Low Stock */}
                 <Card>
                     <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm flex items-center gap-1.5">
-                                <Package className="w-4 h-4 text-amber-500" />Low Stock
-                            </CardTitle>
-                            <Link to="/frontdesk/inventory">
-                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary">Manage <ChevronRight className="w-3 h-3" /></Button>
-                            </Link>
-                        </div>
-                    </CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm flex items-center gap-1.5">
+                                    <Package className="w-4 h-4 text-amber-500" />Low Stock
+                                </CardTitle>
+                            </div>
+                        </CardHeader>
                     <CardContent className="p-0">
                         {lowStockDrugs.length === 0 ? (
                             <p className="text-center py-6 text-sm text-foreground400">All stock levels OK ✓</p>

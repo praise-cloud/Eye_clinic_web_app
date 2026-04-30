@@ -176,6 +176,15 @@ DO $$ BEGIN IF NOT EXISTS (
 INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk', 'admin'));
 END IF;
 END $$;
+DO $$ BEGIN IF NOT EXISTS (
+  SELECT 1
+  FROM pg_policies
+  WHERE tablename = 'inventory_dispensing'
+    AND policyname = 'Frontdesk/admin delete dispensing'
+) THEN CREATE POLICY "Frontdesk/admin delete dispensing" ON public.inventory_dispensing FOR
+DELETE TO authenticated USING (get_user_role() IN ('frontdesk', 'admin'));
+END IF;
+END $$;
 -- GLASSES ORDERS
 CREATE TABLE IF NOT EXISTS public.glasses_orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -920,6 +929,16 @@ WHEN duplicate_object THEN NULL;
 WHEN OTHERS THEN NULL;
 END;
 END $$;
+-- =============================================
+-- LOW STOCK DRUGS VIEW
+-- =============================================
+CREATE OR REPLACE VIEW public.low_stock_drugs AS
+SELECT d.*
+FROM public.drugs d
+WHERE d.quantity <= d.reorder_level
+  AND d.quantity > 0
+ORDER BY d.quantity ASC;
+
 -- =============================================
 -- COMPLETE!
 -- =============================================

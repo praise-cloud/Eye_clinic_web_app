@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, DollarSign, Search } from 'lucide-react'
+import { Plus, DollarSign, Search, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -63,6 +63,18 @@ export function PaymentsPage() {
         },
     })
 
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from('payments').delete().eq('id', id)
+            if (error) throw error
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['payments'] })
+            notify({ type: 'system', title: 'Payment Deleted', message: 'Payment record has been removed.' })
+        },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete payment.' }) },
+    })
+
     const filtered = payments.filter(p => {
         if (!search) return true
         const name = `${(p.patient as any)?.first_name} ${(p.patient as any)?.last_name}`.toLowerCase()
@@ -112,7 +124,16 @@ export function PaymentsPage() {
                                             <span>·</span><span>{formatDate(p.paid_at)}</span>
                                         </div>
                                     </div>
-                                    <p className="text-base font-bold text-emerald-600 flex-shrink-0">{formatCurrency(p.amount)}</p>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <p className="text-base font-bold text-emerald-600">{formatCurrency(p.amount)}</p>
+                                        <button
+                                            onClick={() => { if (confirm('Delete this payment record?')) deleteMutation.mutate(p.id) }}
+                                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all"
+                                            title="Delete payment"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
