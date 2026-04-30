@@ -41,6 +41,7 @@ import { NotificationsPage } from './pages/notifications/NotificationsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ChatPage } from './pages/chat/ChatPage'
 import { OutreachPage } from './pages/frontdesk/OutreachPage'
+import { ItemOrdersPage } from './pages/frontdesk/ItemOrdersPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
@@ -203,10 +204,10 @@ function App() {
           <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
           <Route path="/frontdesk/appointments" element={<P roles={['frontdesk']}><AppointmentsPage /></P>} />
           <Route path="/frontdesk/calendar" element={<P roles={['frontdesk']}><CalendarPage /></P>} />
-          <Route path="/frontdesk/dispensing" element={<P roles={['frontdesk']}><DispensingPage /></P>} />
-          <Route path="/frontdesk/glasses-orders" element={<P roles={['frontdesk']}><GlassesOrdersPage /></P>} />
-          <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
-          <Route path="/frontdesk/prescriptions" element={<P roles={['frontdesk']}><GlassesPrescriptionPage /></P>} />
+           <Route path="/frontdesk/dispensing" element={<P roles={['frontdesk']}><DispensingPage /></P>} />
+           <Route path="/frontdesk/glasses-orders" element={<P roles={['frontdesk']}><GlassesOrdersPage /></P>} />
+           <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
+           <Route path="/frontdesk/item-orders" element={<P roles={['frontdesk']}><ItemOrdersPage /></P>} />
 
           {/* Admin/Accounts — combined admin + accountant */}
           <Route path="/admin" element={<P roles={['admin']}><AdminDashboard /></P>} />

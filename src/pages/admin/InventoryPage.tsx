@@ -87,8 +87,11 @@ export function InventoryPage() {
 
     const saveDrug = useMutation({
         mutationFn: async (data: DrugForm) => {
-            if (editDrug) await supabase.from('drugs').update(data).eq('id', editDrug.id)
-            else await supabase.from('drugs').insert(data)
+            const query = editDrug
+                ? supabase.from('drugs').update(data).eq('id', editDrug.id)
+                : supabase.from('drugs').insert(data)
+            const { error } = await query
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['drugs'] })
@@ -96,12 +99,16 @@ export function InventoryPage() {
             drugForm.reset()
             notify({ type: 'low_stock', title: editDrug ? 'Drug Updated' : 'Drug Added', message: editDrug ? 'Drug inventory item has been updated.' : 'A new drug has been added to inventory.', link: '/admin/inventory' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to save drug.', link: '/admin/inventory' }) },
     })
 
     const saveFrame = useMutation({
         mutationFn: async (data: FrameForm) => {
-            if (editFrame) await supabase.from('glasses_inventory').update(data).eq('id', editFrame.id)
-            else await supabase.from('glasses_inventory').insert(data)
+            const query = editFrame
+                ? supabase.from('glasses_inventory').update(data).eq('id', editFrame.id)
+                : supabase.from('glasses_inventory').insert(data)
+            const { error } = await query
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
@@ -109,12 +116,16 @@ export function InventoryPage() {
             frameForm.reset()
             notify({ type: 'glasses', title: editFrame ? 'Frame Updated' : 'Frame Added', message: editFrame ? 'Glasses frame has been updated.' : 'A new frame has been added to inventory.', link: '/admin/inventory' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to save frame.', link: '/admin/inventory' }) },
     })
 
     const saveOthers = useMutation({
         mutationFn: async (data: OthersForm) => {
-            if (editOthers) await supabase.from('inventory_others').update(data).eq('id', editOthers.id)
-            else await supabase.from('inventory_others').insert(data)
+            const query = editOthers
+                ? supabase.from('inventory_others').update(data).eq('id', editOthers.id)
+                : supabase.from('inventory_others').insert(data)
+            const { error } = await query
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['others-inventory'] })
@@ -122,39 +133,46 @@ export function InventoryPage() {
             othersForm.reset()
             notify({ type: 'system', title: editOthers ? 'Item Updated' : 'Item Added', message: editOthers ? 'Inventory item has been updated.' : 'A new item has been added to inventory.', link: '/admin/inventory' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to save item.', link: '/admin/inventory' }) },
     })
 
     const deleteDrug = useMutation({
         mutationFn: async (id: string) => {
-            await supabase.from('drugs').delete().eq('id', id)
+            const { error } = await supabase.from('drugs').delete().eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['drugs'] })
             setDeleteConfirm(null)
             notify({ type: 'system', title: 'Drug Deleted', message: 'The drug has been removed from inventory.', link: '/admin/inventory' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete drug.', link: '/admin/inventory' }) },
     })
 
     const deleteFrame = useMutation({
         mutationFn: async (id: string) => {
-            await supabase.from('glasses_inventory').delete().eq('id', id)
+            const { error } = await supabase.from('glasses_inventory').delete().eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
             setDeleteConfirm(null)
             notify({ type: 'system', title: 'Frame Deleted', message: 'The frame has been removed from inventory.', link: '/admin/inventory' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete frame. It may be referenced by existing orders.', link: '/admin/inventory' }) },
     })
 
     const deleteOthers = useMutation({
         mutationFn: async (id: string) => {
-            await supabase.from('inventory_others').delete().eq('id', id)
+            const { error } = await supabase.from('inventory_others').delete().eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['others-inventory'] })
             setDeleteConfirm(null)
             notify({ type: 'system', title: 'Item Deleted', message: 'The item has been removed from inventory.', link: '/admin/inventory' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete item.', link: '/admin/inventory' }) },
     })
 
     const openEditDrug = (d: Drug) => {

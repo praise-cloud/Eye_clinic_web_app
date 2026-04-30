@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Calendar, FileText, Pill,
   Package, DollarSign, MessageSquare, Settings, LogOut,
-  ClipboardList, UserCog, BarChart3, Send, ChevronRight
+  ClipboardList, UserCog, BarChart3, Send, ChevronRight, Package2
 } from 'lucide-react'
 import { cn, getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -28,9 +28,9 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Appointments', href: '/frontdesk/appointments', icon: Calendar },
     { label: 'Calendar', href: '/frontdesk/calendar', icon: Calendar },
     { label: 'Drug Dispensing', href: '/frontdesk/dispensing', icon: Pill },
-    { label: 'Glasses Orders', href: '/frontdesk/glasses-orders', icon: Package },
-    { label: 'Prescriptions', href: '/frontdesk/prescriptions', icon: ClipboardList },
-    { label: 'Outreach', href: '/frontdesk/outreach', icon: Send },
+     { label: 'Glasses Orders', href: '/frontdesk/glasses-orders', icon: Package },
+     { label: 'Item Dispensing', href: '/frontdesk/item-orders', icon: Package2 },
+     { label: 'Outreach', href: '/frontdesk/outreach', icon: Send },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],

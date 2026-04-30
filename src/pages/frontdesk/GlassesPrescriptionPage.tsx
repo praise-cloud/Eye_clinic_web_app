@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Glasses, CheckCircle } from 'lucide-react'
+import { Plus, Glasses, CheckCircle, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -33,6 +33,7 @@ export function GlassesPrescriptionPage() {
     const { profile } = useAuthStore()
     const qc = useQueryClient()
     const [open, setOpen] = useState(false)
+    const [editRx, setEditRx] = useState<Prescription | null>(null)
     const [patientDisplay, setPatientDisplay] = useState('')
 
     const { data: prescriptions = [], isLoading } = useQuery({
@@ -56,30 +57,49 @@ export function GlassesPrescriptionPage() {
 
     const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-    const createMutation = useMutation({
+    const saveMutation = useMutation({
         mutationFn: async (data: FormData) => {
             const toNum = (v?: string) => v ? parseFloat(v) : undefined
-            const { error } = await supabase.from('prescriptions').insert({
+            const payload = {
                 patient_id: data.patient_id,
                 doctor_id: data.doctor_id,
-                status: 'pending',
                 re_sphere: toNum(data.re_sphere), re_cylinder: toNum(data.re_cylinder), re_axis: toNum(data.re_axis), re_add: toNum(data.re_add), re_va: data.re_va,
                 le_sphere: toNum(data.le_sphere), le_cylinder: toNum(data.le_cylinder), le_axis: toNum(data.le_axis), le_add: toNum(data.le_add), le_va: data.le_va,
                 pd: toNum(data.pd), lens_type: data.lens_type, notes: data.notes,
-            })
+            }
+            if (editRx) {
+                const { error } = await supabase.from('prescriptions').update(payload).eq('id', editRx.id)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('prescriptions').insert({ ...payload, status: 'pending' })
+                if (error) throw error
+            }
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['prescriptions-all'] })
+            qc.invalidateQueries({ queryKey: ['assistant-dashboard'] })
+            setOpen(false); setEditRx(null); reset(); setPatientDisplay('')
+            notify({ type: 'prescription', title: editRx ? 'Prescription Updated' : 'Prescription Recorded', message: editRx ? 'Glasses prescription has been updated.' : 'Glasses prescription has been saved.', link: '/frontdesk/prescriptions' })
+        },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to save prescription.' }) },
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from('prescriptions').delete().eq('id', id)
             if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['prescriptions-all'] })
             qc.invalidateQueries({ queryKey: ['assistant-dashboard'] })
-            setOpen(false); reset(); setPatientDisplay('')
-            notify({ type: 'prescription', title: 'Prescription Recorded', message: 'Glasses prescription has been saved.', link: '/frontdesk/prescriptions' })
+            notify({ type: 'system', title: 'Prescription Deleted', message: 'Glasses prescription has been removed.' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete prescription.' }) },
     })
 
     const dispenseMutation = useMutation({
         mutationFn: async (rxId: string) => {
-            const { error } = await supabase.from('prescriptions').update({ status: 'dispensed' }).eq('id', rxId)
+            const { error } = await supabase.from('prescriptions').update({ status: 'dispensed' } as any).eq('id', rxId)
             if (error) throw error
         },
         onSuccess: () => {
@@ -87,7 +107,29 @@ export function GlassesPrescriptionPage() {
             qc.invalidateQueries({ queryKey: ['assistant-dashboard'] })
             notify({ type: 'prescription', title: 'Prescription Dispensed', message: 'Prescription has been marked as dispensed.' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to dispense.' }) },
     })
+
+    const openEdit = (rx: Prescription) => {
+        setEditRx(rx)
+        setValue('patient_id', rx.patient_id)
+        setValue('doctor_id', rx.doctor_id)
+        setValue('re_sphere', rx.re_sphere?.toString() || '')
+        setValue('re_cylinder', rx.re_cylinder?.toString() || '')
+        setValue('re_axis', rx.re_axis?.toString() || '')
+        setValue('re_add', rx.re_add?.toString() || '')
+        setValue('re_va', rx.re_va || '')
+        setValue('le_sphere', rx.le_sphere?.toString() || '')
+        setValue('le_cylinder', rx.le_cylinder?.toString() || '')
+        setValue('le_axis', rx.le_axis?.toString() || '')
+        setValue('le_add', rx.le_add?.toString() || '')
+        setValue('le_va', rx.le_va || '')
+        setValue('pd', rx.pd?.toString() || '')
+        setValue('lens_type', rx.lens_type || undefined)
+        setValue('notes', rx.notes || '')
+        setPatientDisplay(`${(rx.patient as any)?.first_name} ${(rx.patient as any)?.last_name}`)
+        setOpen(true)
+    }
 
     const rxStatusVariant: Record<string, 'warning' | 'success'> = {
         pending: 'warning',
@@ -101,9 +143,9 @@ export function GlassesPrescriptionPage() {
                     <h1 className="text-xl font-bold text-foreground900">Glasses Prescriptions</h1>
                     <p className="text-sm text-foreground500">{prescriptions.length} prescriptions</p>
                 </div>
-                <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
-                    <Plus className="w-3.5 h-3.5" />New Prescription
-                </Button>
+                 <Button size="sm" onClick={() => { setEditRx(null); reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
+                     <Plus className="w-3.5 h-3.5" />New Prescription
+                 </Button>
             </div>
 
             {isLoading ? (
@@ -133,9 +175,17 @@ export function GlassesPrescriptionPage() {
                                             {rx.status || 'pending'}
                                         </span>
                                         {(rx.status === 'pending' || !rx.status) && (
-                                            <button onClick={() => dispenseMutation.mutate(rx.id)} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100" title="Mark as Dispensed">
-                                                <CheckCircle className="w-4 h-4" />
-                                            </button>
+                                            <>
+                                                <button onClick={() => openEdit(rx)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100" title="Edit prescription">
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => { if (confirm('Delete this prescription?')) deleteMutation.mutate(rx.id) }} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100" title="Delete prescription">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => dispenseMutation.mutate(rx.id)} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100" title="Mark as Dispensed">
+                                                    <CheckCircle className="w-4 h-4" />
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -167,12 +217,12 @@ export function GlassesPrescriptionPage() {
 
             <Modal open={open} onOpenChange={setOpen}>
                 <ModalContent size="lg">
-                    <ModalHeader>
-                        <ModalTitle>New Glasses Prescription</ModalTitle>
-                        <ModalDescription>Record a glasses prescription for a patient</ModalDescription>
-                    </ModalHeader>
+                     <ModalHeader>
+                         <ModalTitle>{editRx ? 'Edit Glasses Prescription' : 'New Glasses Prescription'}</ModalTitle>
+                         <ModalDescription>{editRx ? 'Update prescription details' : 'Record a glasses prescription for a patient'}</ModalDescription>
+                     </ModalHeader>
                     <ModalBody>
-                        <form id="rx-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-5">
+                         <form id="rx-form" onSubmit={handleSubmit(d => saveMutation.mutate(d))} className="space-y-5">
                             <PatientSearchField
                                 label="Patient" required
                                 value={patientDisplay}
@@ -220,7 +270,7 @@ export function GlassesPrescriptionPage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                        <Button type="submit" form="rx-form" loading={isSubmitting || createMutation.isPending}>Save Prescription</Button>
+                         <Button type="submit" form="rx-form" loading={isSubmitting || saveMutation.isPending}>{editRx ? 'Save Changes' : 'Save Prescription'}</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

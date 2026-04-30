@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Package, Trash2 } from 'lucide-react'
+import { Plus, Package, Trash2, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -41,6 +41,7 @@ export function GlassesOrdersPage() {
     const { profile } = useAuthStore()
     const qc = useQueryClient()
     const [drawerOpen, setDrawerOpen] = useState(false)
+    const [editOrder, setEditOrder] = useState<GlassesOrder | null>(null)
     const [patientSearch, setPatientSearch] = useState('')
     const [selectedFrame, setSelectedFrame] = useState<GlassesInventory | null>(null)
 
@@ -71,28 +72,37 @@ export function GlassesOrdersPage() {
 
     const { register, handleSubmit, setValue, reset, formState: { isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-    const createMutation = useMutation({
+    const saveMutation = useMutation({
         mutationFn: async (data: FormData) => {
             const framePrice = selectedFrame?.selling_price ?? 0
             const lensPrice = parseFloat(data.lens_price ?? '0') || 0
-            await supabase.from('glasses_orders').insert({
+            const payload = {
                 patient_id: data.patient_id, frame_id: data.frame_id || undefined,
                 lens_type: data.lens_type, lens_coating: data.lens_coating,
                 frame_price: framePrice, lens_price: lensPrice,
                 total_price: framePrice + lensPrice,
                 deposit_paid: parseFloat(data.deposit_paid ?? '0') || 0,
                 estimated_ready: data.estimated_ready || undefined,
-                notes: data.notes, created_by: profile!.id,
-            })
+                notes: data.notes,
+            }
+            if (editOrder) {
+                const { error } = await supabase.from('glasses_orders').update(payload).eq('id', editOrder.id)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('glasses_orders').insert({ ...payload, created_by: profile!.id })
+                if (error) throw error
+            }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-orders'] })
             setDrawerOpen(false)
+            setEditOrder(null)
             reset()
             setSelectedFrame(null)
             setPatientSearch('')
-            notify({ type: 'glasses', title: 'Glasses Order Created', message: 'A new glasses order has been placed.', link: '/frontdesk/glasses-orders' })
+            notify({ type: 'glasses', title: editOrder ? 'Order Updated' : 'Glasses Order Created', message: editOrder ? 'Glasses order has been updated.' : 'A new glasses order has been placed.', link: '/frontdesk/glasses-orders' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to save order.' }) },
     })
 
     const advanceMutation = useMutation({
@@ -102,7 +112,8 @@ export function GlassesOrdersPage() {
                 update.dispensed_by = profile!.id
                 update.dispensed_at = new Date().toISOString()
             }
-            await supabase.from('glasses_orders').update(update).eq('id', id)
+            const { error } = await supabase.from('glasses_orders').update(update).eq('id', id)
+            if (error) throw error
 
             if (status === 'dispensed') {
                 const order = orders.find(o => o.id === id)
@@ -141,23 +152,40 @@ export function GlassesOrdersPage() {
             qc.invalidateQueries({ queryKey: ['daily-summary'] })
             notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order has been dispensed and payment recorded.', link: '/frontdesk/glasses-orders' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to update order.' }) },
     })
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            await supabase.from('glasses_orders').delete().eq('id', id)
+            const { error } = await supabase.from('glasses_orders').delete().eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-orders'] })
             notify({ type: 'system', title: 'Order Deleted', message: 'Glasses order has been removed.' })
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete order.' }) },
     })
+
+    const openEdit = (order: GlassesOrder) => {
+        setEditOrder(order)
+        setValue('patient_id', order.patient_id)
+        setValue('frame_id', order.frame_id || '')
+        setValue('lens_type', order.lens_type || '')
+        setValue('lens_coating', order.lens_coating || '')
+        setValue('lens_price', order.lens_price?.toString() || '')
+        setValue('deposit_paid', order.deposit_paid?.toString() || '')
+        setValue('estimated_ready', order.estimated_ready || '')
+        setValue('notes', order.notes || '')
+        setSelectedFrame(frames.find(f => f.id === order.frame_id) ?? null)
+        setDrawerOpen(true)
+    }
 
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <div><h1 className="text-xl font-bold">Glasses Orders</h1><p className="text-sm text-muted-foreground">{orders.length} orders</p></div>
-                <Button size="sm" onClick={() => { reset(); setDrawerOpen(true) }}><Plus className="w-4 h-4" />New Order</Button>
+                <Button size="sm" onClick={() => { setEditOrder(null); reset(); setSelectedFrame(null); setPatientSearch(''); setDrawerOpen(true) }}><Plus className="w-4 h-4" />New Order</Button>
             </div>
 
             {isLoading ? <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}</div> : orders.length === 0 ? (
@@ -186,13 +214,22 @@ export function GlassesOrdersPage() {
                                         </Button>
                                     )}
                                     {o.status !== 'dispensed' && (
-                                        <button
-                                            onClick={() => deleteMutation.mutate(o.id)}
-                                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all"
-                                            title="Delete order"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() => openEdit(o)}
+                                                className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-300 hover:text-blue-500 transition-all"
+                                                title="Edit order"
+                                            >
+                                                <Pencil className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteMutation.mutate(o.id)}
+                                                className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all"
+                                                title="Delete order"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -203,9 +240,9 @@ export function GlassesOrdersPage() {
 
             <Modal open={drawerOpen} onOpenChange={setDrawerOpen}>
                 <ModalContent size="lg">
-                    <ModalHeader><ModalTitle>New Glasses Order</ModalTitle></ModalHeader>
+                     <ModalHeader><ModalTitle>{editOrder ? 'Edit Glasses Order' : 'New Glasses Order'}</ModalTitle></ModalHeader>
                     <ModalBody>
-                        <form id="order-form" onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
+                         <form id="order-form" onSubmit={handleSubmit(d => saveMutation.mutate(d))} className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium uppercase tracking-wide">Patient</label>
                                 <input className="mt-1.5 w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
@@ -239,7 +276,7 @@ export function GlassesOrdersPage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-                        <Button type="submit" form="order-form" loading={isSubmitting || createMutation.isPending}>Create Order</Button>
+                         <Button type="submit" form="order-form" loading={isSubmitting || saveMutation.isPending}>{editOrder ? 'Save Changes' : 'Create Order'}</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

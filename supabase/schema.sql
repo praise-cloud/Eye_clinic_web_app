@@ -1,5 +1,5 @@
 -- =============================================
--- EYE CLINIC MANAGEMENT SYSTEM - COMPLETE SCHEMA
+-- EYE CLIN
 -- =============================================
 -- Run this complete script in Supabase SQL Editor
 -- This includes all tables, RLS policies, triggers, and fixes
@@ -132,13 +132,40 @@ CREATE TABLE IF NOT EXISTS public.drug_dispensing (
     dispensed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- INVENTORY DISPENSING (Non-drug items)
+CREATE TABLE IF NOT EXISTS public.inventory_dispensing (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    patient_id UUID REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
+    item_id UUID REFERENCES public.inventory_others(id) NOT NULL,
+    dispensed_by UUID REFERENCES auth.users(id) NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price NUMERIC NOT NULL,
+    total_price NUMERIC NOT NULL,
+    notes TEXT,
+    dispensed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.inventory_dispensing ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'inventory_dispensing' AND policyname = 'All view inventory dispensing') THEN
+    CREATE POLICY "All view inventory dispensing" ON public.inventory_dispensing FOR SELECT TO authenticated USING (TRUE);
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'inventory_dispensing' AND policyname = 'Frontdesk/admin dispense items') THEN
+    CREATE POLICY "Frontdesk/admin dispense items" ON public.inventory_dispensing FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('frontdesk', 'admin'));
+  END IF;
+END $$;
+
 -- GLASSES ORDERS
 CREATE TABLE IF NOT EXISTS public.glasses_orders (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     order_number TEXT UNIQUE NOT NULL,
     patient_id UUID REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
     prescription_id UUID,
-    frame_id UUID REFERENCES public.glasses_inventory(id),
+    frame_id UUID REFERENCES public.glasses_inventory(id) ON DELETE SET NULL,
     lens_type TEXT,
     lens_coating TEXT,
     frame_price NUMERIC,
@@ -248,7 +275,8 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 );
 
 -- DAILY SUMMARY (for reports)
-CREATE TABLE IF NOT EXISTS public.daily_summary (
+DROP TABLE IF EXISTS public.daily_summary CASCADE;
+CREATE TABLE public.daily_summary (
     summary_date DATE PRIMARY KEY,
     new_patients INTEGER DEFAULT 0,
     returning_patients INTEGER DEFAULT 0,
@@ -319,6 +347,7 @@ ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outreach_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inventory_dispensing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
@@ -412,7 +441,7 @@ END $$;
 
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'glasses_inventory' AND policyname = 'Frontdesk/admin manage glasses') THEN
-    CREATE POLICY "Frontdesk/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk', 'admin'));
+    CREATE POLICY "Frontdesk/admin manage glasses" ON public.glasses_inventory FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk', 'admin')) WITH CHECK (get_user_role() IN ('frontdesk', 'admin'));
   END IF;
 END $$;
 
@@ -438,7 +467,7 @@ END $$;
 
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'inventory_others' AND policyname = 'Frontdesk/admin manage inventory others') THEN
-    CREATE POLICY "Frontdesk/admin manage inventory others" ON public.inventory_others FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk', 'admin'));
+    CREATE POLICY "Frontdesk/admin manage inventory others" ON public.inventory_others FOR ALL TO authenticated USING (get_user_role() IN ('frontdesk', 'admin')) WITH CHECK (get_user_role() IN ('frontdesk', 'admin'));
   END IF;
 END $$;
 
