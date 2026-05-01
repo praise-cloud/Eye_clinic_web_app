@@ -393,7 +393,20 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 -- DAILY SUMMARY (for reports)
-DROP TABLE IF EXISTS public.daily_summary CASCADE;
+DO $$ DECLARE
+    obj_kind "char";
+BEGIN
+    SELECT c.relkind INTO obj_kind
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname = 'daily_summary';
+    
+    IF obj_kind = 'v' THEN
+        EXECUTE 'DROP VIEW public.daily_summary';
+    ELSIF obj_kind = 'r' THEN
+        EXECUTE 'DROP TABLE public.daily_summary CASCADE';
+    END IF;
+END $$;
 CREATE TABLE public.daily_summary (
   summary_date DATE PRIMARY KEY,
   new_patients INTEGER DEFAULT 0,

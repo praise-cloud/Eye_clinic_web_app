@@ -51,7 +51,7 @@ export function UsersPage() {
         }
     }, [editTarget, setValue])
 
-    const createMutation = useMutation({
+const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
             if (!data.password) throw new Error('Password is required')
             // Use backend admin route — no email sent, no rate limits
@@ -73,7 +73,10 @@ export function UsersPage() {
             setOpen(false); reset(); setError('')
             notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/admin/users' })
         },
-        onError: (e: Error) => setError(e.message),
+        onError: (e: Error) => {
+            console.error('Create staff error:', e)
+            setError(e.message || 'Failed to create staff account')
+        },
     })
 
 const toggleActive = useMutation({
@@ -84,6 +87,10 @@ const toggleActive = useMutation({
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             notify({ type: 'system', title: 'Staff Status Updated', message: 'Staff member status has been changed.' })
+        },
+        onError: (e: Error) => {
+            console.error('Toggle staff error:', e)
+            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to update staff status. Check RLS policies.' })
         },
     })
 
@@ -103,7 +110,10 @@ const updateMutation = useMutation({
             setEditTarget(null); reset(); setError('')
             notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' })
         },
-        onError: (e: Error) => setError(e.message),
+        onError: (e: Error) => {
+            console.error('Update staff error:', e)
+            setError(e.message || 'Failed to update staff account')
+        },
     })
 
     const deleteMutation = useMutation({
@@ -116,7 +126,10 @@ const updateMutation = useMutation({
             setDeleteTarget(null)
             notify({ type: 'system', title: 'Account Disabled', message: 'Staff account has been disabled.' })
         },
-        onError: (e: Error) => setError(e.message),
+        onError: (e: Error) => {
+            console.error('Delete staff error:', e)
+            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to disable staff account. Check RLS policies.' })
+        },
     })
 
     return (

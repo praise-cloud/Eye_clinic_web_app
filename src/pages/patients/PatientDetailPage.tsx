@@ -98,9 +98,8 @@ export function PatientDetailPage() {
     })
 
     const deleteMutation = useMutation({
-        mutationFn: async () => {
-            if (!deleteTarget) return
-            const { error } = await supabase.from('patients').delete().eq('id', deleteTarget.id)
+        mutationFn: async (patientId: string) => {
+            const { error } = await supabase.from('patients').delete().eq('id', patientId)
             if (error) {
                 if (error.code === '42501') throw new Error('You do not have permission to delete patients.')
                 if (error.code === '23503' || error.code === '235000') throw new Error('Cannot delete patient: they have existing appointments, payments, or other linked records.')
@@ -543,7 +542,7 @@ export function PatientDetailPage() {
                          <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Cancel</Button>
                          <Button variant="destructive" loading={deleteMutation.isPending} onClick={() => {
                              if (!deleteTarget) return
-                             deleteMutation.mutate()
+                             deleteMutation.mutate(deleteTarget.id)
                          }}>
                              Yes, Delete Patient
                          </Button>

@@ -73,7 +73,10 @@ const createMutation = useMutation({
             setOpen(false); reset(); setError('')
             notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/manager/users' })
         },
-        onError: (e: Error) => setError(e.message),
+        onError: (e: Error) => {
+            console.error('Create staff error:', e)
+            setError(e.message || 'Failed to create staff account')
+        },
     })
 
 const updateMutation = useMutation({
@@ -92,10 +95,13 @@ const updateMutation = useMutation({
             setEditTarget(null); reset(); setError('')
             notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' })
         },
-        onError: (e: Error) => setError(e.message),
+        onError: (e: Error) => {
+            console.error('Update staff error:', e)
+            setError(e.message || 'Failed to update staff account')
+        },
     })
 
-    const toggleActive = useMutation({
+const toggleActive = useMutation({
         mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
             const { error } = await supabase.from('profiles').update({ is_active }).eq('id', id)
             if (error) throw error
@@ -104,9 +110,13 @@ const updateMutation = useMutation({
             qc.invalidateQueries({ queryKey: ['staff'] })
             notify({ type: 'system', title: 'Staff Status Updated', message: 'Staff member status has been changed.' })
         },
+        onError: (e: Error) => {
+            console.error('Toggle staff error:', e)
+            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to update staff status. Check RLS policies.' })
+        },
     })
 
-    const deleteMutation = useMutation({
+const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
             const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
             if (error) throw error
@@ -115,6 +125,10 @@ const updateMutation = useMutation({
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
             notify({ type: 'system', title: 'Account Deactivated', message: 'Staff account has been deactivated.' })
+        },
+        onError: (e: Error) => {
+            console.error('Delete staff error:', e)
+            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to deactivate staff account. Check RLS policies.' })
         },
     })
 
