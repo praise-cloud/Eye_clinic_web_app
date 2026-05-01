@@ -39,8 +39,8 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
 
     useEffect(() => {
         const enterTimer = setTimeout(() => setVisible(true), 50)
-        const autoTimer = setTimeout(() => handleDismiss(), 5000)
-        return () => { clearTimeout(enterTimer); clearTimeout(autoTimer) }
+        // Removed auto-dismiss timer - toast now stays until user clicks it
+        return () => { clearTimeout(enterTimer) }
     }, [notification.id])
 
     const handleDismiss = () => {
@@ -82,7 +82,7 @@ function ToastItem({ notification, onDismiss }: ToastItemProps) {
 }
 
 export function ToastContainer() {
-    const { notifications, remove } = useNotificationStore()
+    const { notifications, remove, markRead } = useNotificationStore()
 
     // Only show the 3 most recent unread notifications
     const visibleToasts = notifications
@@ -95,7 +95,7 @@ export function ToastContainer() {
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
             {visibleToasts.map(n => (
                 <div key={n.id} className="pointer-events-auto">
-                    <ToastItem notification={n} onDismiss={(id) => remove(id, n.user_id!)} />
+                    <ToastItem notification={n} onDismiss={(id) => { markRead(id, n.user_id!) }} />
                 </div>
             ))}
         </div>
