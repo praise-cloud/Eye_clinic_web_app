@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, User, Stethoscope, FileText, AlertTriangle, Trash2 } from 'lucide-react'
@@ -125,16 +125,21 @@ export function AppointmentsPage() {
     const [patientDisplay, setPatientDisplay] = useState('')
     const [deleteId, setDeleteId] = useState<string | null>(null)
 
-    const openNew = () => {
-        reset()
+    // Auto-open modal if patient ID is in URL
+    useEffect(() => {
         if (preselectedPatientId) {
             setValue('patient_id', preselectedPatientId)
-            // Fetch patient name for display
             supabase.from('patients').select('first_name,last_name').eq('id', preselectedPatientId).single()
                 .then(({ data }) => {
                     if (data) setPatientDisplay(`${data.first_name} ${data.last_name}`)
                 })
+            setOpen(true)
         }
+    }, [preselectedPatientId])
+
+    const openNew = () => {
+        reset()
+        setPatientDisplay('')
         setOpen(true)
     }
 
