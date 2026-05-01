@@ -29,7 +29,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     unreadCount: 0,
 
     add: (n, userId) => {
-        // Save to DB
+        // Save to DB - userId is the person who should receive the notification
         supabase.from('notifications').insert({
             user_id: userId,
             type: n.type,
@@ -42,22 +42,30 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                 console.error('Failed to save notification:', error)
                 return
             }
-            // Add to local state if we have the notification back
-            if (data && data[0]) {
-                set(s => ({
-                    notifications: [data[0] as AppNotification, ...s.notifications].slice(0, 50),
-                    unreadCount: s.unreadCount + 1,
-                }))
-            }
+            // Add to local state if we have the notification back and it's for current user
+            const currentUser = useNotificationStore.getState()
+            // Only add to local state if this notification is for the current user
+            supabase.auth.getUser().then(({ data: { user } }) => {
+                if (user && userId === user.id && data && data[0]) {
+                    set(s => ({
+                        notifications: [data[0] as AppNotification, ...s.notifications].slice(0, 50),
+                        unreadCount: s.unreadCount + 1,
+                    }))
+                }
+            })
         })
     },
 
     markRead: (id, userId) => {
         supabase.from('notifications').update({ read: true }).eq('id', id).then(() => {
-            set(s => ({
-                notifications: s.notifications.map(n => n.id === id ? { ...n, read: true } : n),
-                unreadCount: Math.max(0, s.unreadCount - (s.notifications.find(n => n.id === id && !n.read) ? 1 : 0)),
-            }))
+            set(s => {
+                const target = s.notifications.find(n => n.id === id)
+                const wasUnread = target && !target.read
+                return {
+                    notifications: s.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+                    unreadCount: wasUnread ? Math.max(0, s.unreadCount - 1) : s.unreadCount,
+                }
+            })
         })
     },
 

@@ -90,13 +90,14 @@ export function ChatPage() {
                     const otherId = msg.sender_id === profile.id ? msg.receiver_id : msg.sender_id
                     qc.invalidateQueries({ queryKey: ['messages', profile.id, otherId] })
                     qc.invalidateQueries({ queryKey: ['messages', otherId, profile.id] })
-                    if (msg.sender_id !== profile.id && activeUser?.id !== msg.sender_id) {
+                    // Notify the RECEIVER (not the sender) if they're not currently viewing this chat
+                    if (msg.receiver_id === profile.id && activeUser?.id !== msg.sender_id) {
                         notify({
                             type: 'system',
                             title: 'New Message',
                             message: msg.content?.slice(0, 60) + (msg.content?.length > 60 ? '...' : '') || 'Sent an attachment',
                             link: '/chat',
-                        })
+                        }, msg.receiver_id)
                     }
                     if (activeUser?.id === msg.sender_id) {
                         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
@@ -230,6 +231,9 @@ export function ChatPage() {
         mutationFn: async (otherUserId: string) => {
             await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
                 .eq('receiver_id', profile!.id).eq('sender_id', otherUserId).eq('is_read', false)
+            // Also mark related notifications as read
+            await supabase.from('notifications').update({ read: true })
+                .eq('user_id', profile!.id).eq('link', '/chat').eq('read', false)
         },
     })
 
