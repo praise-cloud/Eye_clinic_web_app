@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Plus, Calendar, Search, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, User, Stethoscope, FileText, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
@@ -117,11 +117,19 @@ function AppointmentCard({ apt, onStatusUpdate, onDelete }: { apt: Appointment; 
 export function AppointmentsPage() {
     const { profile } = useAuthStore()
     const qc = useQueryClient()
+    const [searchParams] = useSearchParams()
+    const preselectedPatientId = searchParams.get('patient')
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [open, setOpen] = useState(false)
     const [patientDisplay, setPatientDisplay] = useState('')
     const [deleteId, setDeleteId] = useState<string | null>(null)
+
+    const openNew = () => {
+        reset()
+        if (preselectedPatientId) setValue('patient_id', preselectedPatientId)
+        setOpen(true)
+    }
 
     const { data: appointments = [], isLoading, error: appointmentsError } = useQuery({
         queryKey: ['appointments', statusFilter],
@@ -199,7 +207,7 @@ export function AppointmentsPage() {
                     <h1 className="text-xl font-bold text-foreground900">Appointments</h1>
                     <p className="text-sm text-foreground500">{filtered.length} appointments</p>
                 </div>
-                <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
+                <Button size="sm" onClick={openNew} className="gap-1.5">
                     <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Book Appointment</span><span className="sm:hidden">Book</span>
                 </Button>
             </div>

@@ -83,10 +83,9 @@ export function PatientsPage() {
         mutationFn: async (id: string) => {
             const { error } = await supabase.from('patients').delete().eq('id', id)
             if (error) {
-                if (error.code === '42501') throw new Error('Permission denied. Contact your administrator to delete patients.')
-                if (error.code === '235000') throw new Error('Cannot delete: patient has linked records (appointments, payments). Remove those first.')
-                if (error.code === '23503') throw new Error('Cannot delete: patient is linked to other records. Remove those first.')
-                throw new Error(error.message || 'Failed to delete patient. Please try again.')
+                if (error.code === '42501') throw new Error('You do not have permission to delete patients.')
+                if (error.code === '23503' || error.code === '235000') throw new Error('Cannot delete patient: they have existing appointments, payments, or other linked records. Remove those first.')
+                throw new Error('Unable to delete patient. Please contact support.')
             }
         },
         onMutate: async (id: string) => {

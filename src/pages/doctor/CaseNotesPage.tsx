@@ -343,8 +343,14 @@ export function CaseNotesPage() {
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const insertData = await buildInsertData(data)
-            await supabase.from('case_notes').insert(insertData)
+            try {
+                const insertData = await buildInsertData(data)
+                const { error } = await supabase.from('case_notes').insert(insertData)
+                if (error) throw error
+            } catch (err: any) {
+                console.error('Case note save error:', err)
+                throw new Error(err.message || 'Failed to save case note. Please try again.')
+            }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['case-notes'] })
@@ -353,6 +359,9 @@ export function CaseNotesPage() {
             setPatientDisplay('')
             setCvfFile(null)
             notify({ type: 'prescription', title: 'Case Note Saved', message: 'A new case note has been created and encrypted.', link: '/doctor/case-notes' })
+        },
+        onError: (error: Error) => {
+            alert(`Failed to save case note: ${error.message}`)
         },
     })
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
@@ -8,6 +8,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { formatDate, formatCurrency, formatDateTime } from '@/lib/utils'
 import { decryptText } from '@/lib/crypto'
 import type { Patient, Appointment, CaseNote, Prescription, Payment } from '@/types'
@@ -87,6 +93,45 @@ function DecryptedNote({ note }: { note: CaseNote }) {
                 </div>
             )}
         </div>
+
+        {/* Edit Patient Modal */}
+        <Modal open={editOpen} onOpenChange={setEditOpen}>
+            <ModalContent size="lg">
+                <ModalHeader>
+                    <ModalTitle>Edit Patient</ModalTitle>
+                    <ModalDescription>Update patient information</ModalDescription>
+                </ModalHeader>
+                <ModalBody>
+                    <form id="edit-patient-form" onSubmit={handleSubmit(d => editMutation.mutate(d))} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="First Name *" {...register('first_name')} error={errors.first_name?.message} />
+                            <Input label="Last Name *" {...register('last_name')} error={errors.last_name?.message} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Phone" {...register('phone')} />
+                            <Input label="Email" type="email" {...register('email')} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Date of Birth" type="date" {...register('date_of_birth')} />
+                            <Select onValueChange={v => setValue('gender', v)} defaultValue={patient?.gender}>
+                                <SelectTrigger label="Gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="male">Male</SelectItem>
+                                    <SelectItem value="female">Female</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Input label="Address" {...register('address')} />
+                        <Input label="Occupation" {...register('occupation')} />
+                    </form>
+                </ModalBody>
+                <ModalFooter>
+                    <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                    <Button type="submit" form="edit-patient-form" loading={isSubmitting || editMutation.isPending}>Save Changes</Button>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
     )
 }
 
@@ -96,6 +141,41 @@ export function PatientDetailPage() {
     const navigate = useNavigate()
     const qc = useQueryClient()
     const [tab, setTab] = useState('overview')
+    const [editOpen, setEditOpen] = useState(false)
+
+    const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<{
+        first_name: string
+        last_name: string
+        phone?: string
+        email?: string
+        date_of_birth?: string
+        gender?: string
+        address?: string
+        occupation?: string
+    }>({
+        defaultValues: {
+            first_name: patient?.first_name || '',
+            last_name: patient?.last_name || '',
+            phone: patient?.phone || '',
+            email: patient?.email || '',
+            date_of_birth: patient?.date_of_birth || '',
+            gender: patient?.gender || '',
+            address: patient?.address || '',
+            occupation: patient?.occupation || '',
+        }
+    })
+
+    const editMutation = useMutation({
+        mutationFn: async (data: any) => {
+            const { error } = await supabase.from('patients').update(data).eq('id', id!)
+            if (error) throw error
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['patient', id] })
+            setEditOpen(false)
+            reset()
+        },
+    })
 
     const { data: patient, isLoading } = useQuery({
         queryKey: ['patient', id],
@@ -212,7 +292,17 @@ export function PatientDetailPage() {
                         </Link>
                     )}
                     {['frontdesk'].includes(profile?.role ?? '') && (
-                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(backHref)}>
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+                            setValue('first_name', patient.first_name || '')
+                            setValue('last_name', patient.last_name || '')
+                            setValue('phone', patient.phone || '')
+                            setValue('email', patient.email || '')
+                            setValue('date_of_birth', patient.date_of_birth || '')
+                            setValue('gender', patient.gender || '')
+                            setValue('address', patient.address || '')
+                            setValue('occupation', patient.occupation || '')
+                            setEditOpen(true)
+                        }}>
                             <Edit className="w-3.5 h-3.5" />Edit
                         </Button>
                     )}
