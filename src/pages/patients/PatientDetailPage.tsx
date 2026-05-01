@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2 } from 'lucide-react'
@@ -31,10 +31,21 @@ export function PatientDetailPage() {
     const [tab, setTab] = useState('overview')
     const [editOpen, setEditOpen] = useState(false)
 
-    const { data: patient, isLoading } = useQuery({
+    const { data: patient, isLoading, error: patientError } = useQuery({
         queryKey: ['patient', id],
         queryFn: async () => {
-            const { data } = await supabase.from('patients').select('*').eq('id', id!).single()
+            const { data, error } = await supabase
+                .from('patients')
+                .select('*')
+                .eq('id', id!)
+                .maybeSingle()
+            if (error) {
+                console.error('Patient fetch error:', error)
+                throw new Error(`Failed to load patient: ${error.message} (Code: ${error.code})`)
+            }
+            if (!data) {
+                throw new Error('Patient not found. They may have been deleted or you may not have permission to view this record.')
+            }
             return data as Patient
         },
         enabled: !!id,
@@ -49,22 +60,34 @@ export function PatientDetailPage() {
         gender?: string
         address?: string
         occupation?: string
-    }>({
-        defaultValues: {
-            first_name: patient?.first_name || '',
-            last_name: patient?.last_name || '',
-            phone: patient?.phone || '',
-            email: patient?.email || '',
-            date_of_birth: patient?.date_of_birth || '',
-            gender: patient?.gender || '',
-            address: patient?.address || '',
-            occupation: patient?.occupation || '',
+    }>()
+
+    // Set form values when patient data loads
+    useEffect(() => {
+        if (patient) {
+            setValue('first_name', patient.first_name || '')
+            setValue('last_name', patient.last_name || '')
+            setValue('phone', patient.phone || '')
+            setValue('email', patient.email || '')
+            setValue('date_of_birth', patient.date_of_birth || '')
+            setValue('gender', patient.gender || '')
+            setValue('address', patient.address || '')
+            setValue('occupation', patient.occupation || '')
         }
-    })
+    }, [patient, setValue])
 
     const editMutation = useMutation({
         mutationFn: async (data: any) => {
-            const { error } = await supabase.from('patients').update(data).eq('id', id!)
+            const { error } = await supabase.from('patients').update({
+                first_name: data.first_name,
+                last_name: data.last_name,
+                phone: data.phone || null,
+                email: data.email || null,
+                date_of_birth: data.date_of_birth || null,
+                gender: data.gender || null,
+                address: data.address || null,
+                occupation: data.occupation || null,
+            }).eq('id', id!)
             if (error) throw error
         },
         onSuccess: () => {
@@ -133,9 +156,24 @@ export function PatientDetailPage() {
                 : '/patients'
 
     if (isLoading) return (
-        <div className="space-y-4">
+        <div className="p-8 space-y-4">
             <Skeleton className="h-10 w-48 rounded-xl" />
             <Skeleton className="h-64 rounded-2xl" />
+        </div>
+    )
+
+    if (patientError) return (
+        <div className="text-center py-20">
+            <p className="text-red-500 font-medium">Error loading patient</p>
+            <p className="text-sm text-foreground400 mt-2">{patientError.message}</p>
+            <Link to={backHref}><Button className="mt-4" variant="outline">Back to Patients</Button></Link>
+        </div>
+    )
+
+    if (!patient) return (
+        <div className="text-center py-20">
+            <p className="text-foreground500">Patient not found</p>
+            <Link to={backHref}><Button className="mt-4" variant="outline">Back to Patients</Button></Link>
         </div>
     )
 
@@ -180,7 +218,7 @@ export function PatientDetailPage() {
                             </Button>
                         </Link>
                     )}
-                    {['frontdesk'].includes(profile?.role ?? '') && (
+                    {['frontdesk', 'admin'].includes(profile?.role ?? '') && (
                         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
                             setValue('first_name', patient.first_name || '')
                             setValue('last_name', patient.last_name || '')

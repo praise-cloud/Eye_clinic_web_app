@@ -127,7 +127,14 @@ export function AppointmentsPage() {
 
     const openNew = () => {
         reset()
-        if (preselectedPatientId) setValue('patient_id', preselectedPatientId)
+        if (preselectedPatientId) {
+            setValue('patient_id', preselectedPatientId)
+            // Fetch patient name for display
+            supabase.from('patients').select('first_name,last_name').eq('id', preselectedPatientId).single()
+                .then(({ data }) => {
+                    if (data) setPatientDisplay(`${data.first_name} ${data.last_name}`)
+                })
+        }
         setOpen(true)
     }
 
