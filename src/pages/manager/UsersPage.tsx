@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, UserCheck, UserX, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, UserCheck, UserX, Trash2, AlertTriangle, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +18,7 @@ import type { Profile } from '@/types'
 const schema = z.object({
     full_name: z.string().min(2, 'Required'),
     email: z.string().email('Valid email required'),
-    password: z.string().min(8, 'Min 8 characters'),
+    password: z.string().min(8, 'Min 8 characters').optional(),
     role: z.enum(['doctor', 'frontdesk', 'admin', 'manager']),
     phone: z.string().optional(),
 })
@@ -28,6 +28,7 @@ export function UsersPage() {
     const qc = useQueryClient()
     const [open, setOpen] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
+    const [editTarget, setEditTarget] = useState<Profile | null>(null)
     const [error, setError] = useState('')
 
     const { data: users = [], isLoading } = useQuery({
@@ -42,17 +43,25 @@ export function UsersPage() {
         resolver: zodResolver(schema)
     })
 
+    useEffect(() => {
+        if (editTarget) {
+            setValue('full_name', editTarget.full_name || '')
+            setValue('role', editTarget.role)
+            setValue('phone', editTarget.phone || '')
+        }
+    }, [editTarget, setValue])
+
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            // Use backend admin route — no email sent, no rate limits
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: data.email,
-                    password: data.password,
+                    password: data.password || '',
                     full_name: data.full_name,
                     role: data.role,
+                    phone: data.phone || '',
                 }),
             })
             const result = await response.json()
@@ -62,6 +71,24 @@ export function UsersPage() {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setOpen(false); reset(); setError('')
             notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/manager/users' })
+        },
+        onError: (e: Error) => setError(e.message),
+    })
+
+    const updateMutation = useMutation({
+        mutationFn: async (data: FormData & { id: string }) => {
+            const { id, password, ...profileData } = data
+            const updates: Partial<Profile> = {
+                full_name: profileData.full_name,
+                role: profileData.role as Profile['role'],
+                phone: profileData.phone || undefined,
+            }
+            await supabase.from('profiles').update(updates).eq('id', id)
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['staff'] })
+            setEditTarget(null); reset(); setError('')
+            notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' })
         },
         onError: (e: Error) => setError(e.message),
     })
@@ -121,6 +148,11 @@ export function UsersPage() {
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                     <Button variant="ghost" size="sm"
+                                        className="h-8 text-xs rounded-lg gap-1"
+                                        onClick={() => { reset(); setError(''); setValue('full_name', u.full_name || ''); setValue('role', u.role); setValue('phone', u.phone || ''); setEditTarget(u) }}>
+                                        <Pencil className="w-3.5 h-3.5" /><span className="hidden sm:inline">Edit</span>
+                                    </Button>
+                                    <Button variant="ghost" size="sm"
                                         className={`h-8 text-xs rounded-lg gap-1 ${u.is_active ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
                                         onClick={() => toggleActive.mutate({ id: u.id, is_active: !u.is_active })}>
                                         {u.is_active
@@ -170,6 +202,38 @@ export function UsersPage() {
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" form="user-form" loading={isSubmitting || createMutation.isPending}>Create Account</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Edit Modal */}
+            <Modal open={!!editTarget} onOpenChange={() => setEditTarget(null)}>
+                <ModalContent size="sm">
+                    <ModalHeader>
+                        <ModalTitle>Edit Staff Member</ModalTitle>
+                        <ModalDescription>Update staff account details</ModalDescription>
+                    </ModalHeader>
+                    <ModalBody>
+                        {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">{error}</div>}
+                        <form id="edit-form" onSubmit={handleSubmit(d => updateMutation.mutate({ ...d, id: editTarget!.id }))} className="space-y-4">
+                            <Input label="Full Name *" error={errors.full_name?.message} {...register('full_name')} />
+                            <Select onValueChange={v => setValue('role', v as any)} defaultValue={editTarget?.role}>
+                                <SelectTrigger label="Role *" error={errors.role?.message}>
+                                    <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="admin">Admin/Accounts</SelectItem>
+                                    <SelectItem value="manager">Manager</SelectItem>
+                                    <SelectItem value="doctor">Doctor</SelectItem>
+                                    <SelectItem value="frontdesk">Frontdesk</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Input label="Phone (optional)" {...register('phone')} />
+                        </form>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+                        <Button type="submit" form="edit-form" loading={isSubmitting || updateMutation.isPending}>Save Changes</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
