@@ -129,7 +129,7 @@ export function AppointmentsPage() {
     useEffect(() => {
         if (preselectedPatientId) {
             setValue('patient_id', preselectedPatientId)
-            supabase.from('patients').select('first_name,last_name').eq('id', preselectedPatientId).single()
+            supabase.from('patients').select('first_name,last_name').eq('id', preselectedPatientId).maybeSingle()
                 .then(({ data }) => {
                     if (data) setPatientDisplay(`${data.first_name} ${data.last_name}`)
                 })
