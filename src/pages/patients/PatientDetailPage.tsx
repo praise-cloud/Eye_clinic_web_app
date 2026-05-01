@@ -62,19 +62,20 @@ export function PatientDetailPage() {
         occupation?: string
     }>()
 
-    // Set form values when patient data loads
+    // Set form values when patient data loads (only run once when patient changes)
     useEffect(() => {
         if (patient) {
-            setValue('first_name', patient.first_name || '')
-            setValue('last_name', patient.last_name || '')
-            setValue('phone', patient.phone || '')
-            setValue('email', patient.email || '')
-            setValue('date_of_birth', patient.date_of_birth || '')
-            setValue('gender', patient.gender || '')
-            setValue('address', patient.address || '')
-            setValue('occupation', patient.occupation || '')
+            setValue('first_name', patient.first_name || '', { shouldValidate: false })
+            setValue('last_name', patient.last_name || '', { shouldValidate: false })
+            setValue('phone', patient.phone || '', { shouldValidate: false })
+            setValue('email', patient.email || '', { shouldValidate: false })
+            setValue('date_of_birth', patient.date_of_birth || '', { shouldValidate: false })
+            setValue('gender', patient.gender || '', { shouldValidate: false })
+            setValue('address', patient.address || '', { shouldValidate: false })
+            setValue('occupation', patient.occupation || '', { shouldValidate: false })
         }
-    }, [patient, setValue])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [patient])
 
     const editMutation = useMutation({
         mutationFn: async (data: any) => {

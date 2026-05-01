@@ -950,8 +950,9 @@ CREATE VIEW public.low_stock_drugs AS
 SELECT d.*
 FROM public.drugs d
 WHERE d.quantity <= d.reorder_level
-  AND d.quantity > 0
+  AND d.quantity >0
 ORDER BY d.quantity ASC;
+ALTER VIEW public.low_stock_drugs SET (security_invoker = true);
 
 -- =============================================
 -- COMPLETE!
