@@ -76,9 +76,10 @@ export function UsersPage() {
         onError: (e: Error) => setError(e.message),
     })
 
-    const toggleActive = useMutation({
+const toggleActive = useMutation({
         mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-            await supabase.from('profiles').update({ is_active }).eq('id', id)
+            const { error } = await supabase.from('profiles').update({ is_active }).eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
@@ -86,7 +87,7 @@ export function UsersPage() {
         },
     })
 
-    const updateMutation = useMutation({
+const updateMutation = useMutation({
         mutationFn: async (data: FormData & { id: string }) => {
             const { id, password, ...profileData } = data
             const updates: Partial<Profile> = {
@@ -94,7 +95,8 @@ export function UsersPage() {
                 role: profileData.role as Profile['role'],
                 phone: profileData.phone || undefined,
             }
-            await supabase.from('profiles').update(updates).eq('id', id)
+            const { error } = await supabase.from('profiles').update(updates).eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })

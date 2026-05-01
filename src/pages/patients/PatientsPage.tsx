@@ -59,10 +59,16 @@ export function PatientsPage() {
 
     const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-    const saveMutation = useMutation({
+const saveMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            if (editPatient) await supabase.from('patients').update(data).eq('id', editPatient.id)
-            else await supabase.from('patients').insert({ ...data, registered_by: profile?.id })
+            const patientNumber = editPatient?.patient_number || `PT-${Date.now()}`
+            if (editPatient) {
+                const { error } = await supabase.from('patients').update(data).eq('id', editPatient.id)
+                if (error) throw error
+            } else {
+                const { error } = await supabase.from('patients').insert({ ...data, patient_number: patientNumber, registered_by: profile?.id })
+                if (error) throw error
+            }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['patients'] })

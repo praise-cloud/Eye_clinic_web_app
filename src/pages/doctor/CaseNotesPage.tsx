@@ -365,8 +365,11 @@ export function CaseNotesPage() {
         },
     })
 
-    const deleteMutation = useMutation({
-        mutationFn: async (id: string) => { await supabase.from('case_notes').delete().eq('id', id) },
+const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from('case_notes').delete().eq('id', id)
+            if (error) throw error
+        },
         onSuccess: () => { qc.invalidateQueries({ queryKey: ['case-notes'] }); setDeleteId(null); notify({ type: 'system', title: 'Case Note Deleted', message: 'The case note has been permanently deleted.' }) },
     })
 
