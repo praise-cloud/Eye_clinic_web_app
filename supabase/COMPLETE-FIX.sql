@@ -104,16 +104,22 @@ ALTER TABLE public.glasses_orders
 ADD CONSTRAINT glasses_orders_frame_id_fkey FOREIGN KEY (frame_id) REFERENCES public.glasses_inventory(id) ON DELETE
 SET NULL;
 -- ============================================================================
--- CREATE PROFILE IF MISSING
+-- CREATE PROFILE FOR EXISTING AUTH USERS
 -- ============================================================================
+-- First, create profiles for any auth users that don't have one
 INSERT INTO public.profiles (id, full_name, role, is_active)
-SELECT auth.uid(),
-  'Admin User',
-  'admin',
-  true
+SELECT 
+    u.id,
+    COALESCE(u.raw_user_meta_data->>'first_name', 'User') || ' ' || COALESCE(u.raw_user_meta_data->>'last_name', ''),
+    COALESCE(u.raw_user_meta_data->>'role', 'frontdesk'),
+    true
+FROM auth.users u
 WHERE NOT EXISTS (
-    SELECT 1
-    FROM public.profiles
-    WHERE id = auth.uid()
-  ) ON CONFLICT (id) DO NOTHING;
+    SELECT 1 FROM public.profiles p WHERE p.id = u.id
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- If you need to set a specific user as admin, run this separately:
+-- UPDATE public.profiles SET role = 'admin' WHERE id = 'your-user-id-here';
+-- To find your user ID, run: SELECT id, email FROM auth.users WHERE email = 'your-email@example.com';
 -- Done!
