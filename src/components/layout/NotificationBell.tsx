@@ -98,9 +98,9 @@ export function NotificationBell() {
     const handleMarkRead = async (id: string) => {
         const { error } = await supabase.from('notifications').update({ read: true }).eq('id', id)
         if (!error) {
-            setNotifications(
-                notifications.map(n => n.id === id ? { ...n, read: true } : n)
-            )
+            const updatedNotifications = notifications.map(n => n.id === id ? { ...n, read: true } : n)
+            setNotifications(updatedNotifications)
+            setUnreadCount(updatedNotifications.filter(n => !n.read).length)
         }
     }
 
@@ -115,7 +115,9 @@ export function NotificationBell() {
             .eq('read', false)
 
         if (!error) {
-            setNotifications(notifications.map(n => ({ ...n, read: true })))
+            const updatedNotifications = notifications.map(n => ({ ...n, read: true }))
+            setNotifications(updatedNotifications)
+            setUnreadCount(0)
         }
     }
 
@@ -207,7 +209,10 @@ export function NotificationBell() {
                                                 <a
                                                     href={n.link}
                                                     className="inline-flex items-center gap-1 mt-1.5 text-xs text-primary hover:underline"
-                                                    onClick={() => setOpen(false)}
+                                                    onClick={() => {
+                                                        setOpen(false)
+                                                        if (!n.read) handleMarkRead(n.id)
+                                                    }}
                                                 >
                                                     View details →
                                                 </a>
