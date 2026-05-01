@@ -35,11 +35,13 @@ export function LoginPage() {
                 if (error) throw error
                 if (session?.user && mounted) {
                     // Get profile from API
-                    const { data: profile } = await supabase
+                    const { data: profile, error: profileError } = await supabase
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
                         .single()
+                    
+                    if (profileError) throw profileError
                     
                     const resolvedProfile = (profile as Profile) ?? buildFallbackProfile(session.user)
                     if (resolvedProfile) {
@@ -54,7 +56,13 @@ export function LoginPage() {
                     }
                 }
             } catch (err) {
-                // Session check failed
+                // Clear invalid session after deployment or auth reset
+                console.error('Session check failed, clearing auth state:', err)
+                await supabase.auth.signOut()
+                useAuthStore.getState().setUser(null)
+                useAuthStore.getState().setProfile(null)
+                // Clear any stale localStorage items
+                localStorage.removeItem('auth-storage')
             }
         }
         checkSession()
@@ -63,45 +71,59 @@ export function LoginPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  const onSubmit = async (data: FormData) => {
-    setError('')
-    setIsLoading(true)
+    const onSubmit = async (data: FormData) => {
+        setError('')
+        setIsLoading(true)
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    })
+        try {
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: data.email,
+                password: data.password,
+            })
 
-    setIsLoading(false)
+            if (authError) {
+                const msg = authError.message?.toLowerCase() || ''
+                if (msg.includes('invalid') || msg.includes('wrong') || msg.includes('credentials') || msg.includes('could not find') || msg.includes('not found')) {
+                    setError('Incorrect email or password.')
+                } else if (msg.includes('email not confirmed')) {
+                    setError('Please confirm your email address before signing in.')
+                } else if (msg.includes('too many requests')) {
+                    setError('Too many login attempts. Please wait a moment and try again.')
+                } else {
+                    setError(`Login failed: ${authError.message}`)
+                }
+                setIsLoading(false)
+                return
+            }
 
-    if (authError) {
-      const msg = authError.message?.toLowerCase() || ''
-      if (msg.includes('invalid') || msg.includes('wrong') || msg.includes('credentials') || msg.includes('could not find') || msg.includes('not found')) {
-        setError('Incorrect email or password.')
-      } else {
-        setError('Login failed. Please try again.')
-      }
-      return
+            if (authData.user) {
+                // Set user in store BEFORE navigating to ensure auth state is ready
+                useAuthStore.getState().setUser(authData.user)
+        
+                // Get profile
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', authData.user.id)
+                    .single()
+
+                if (profileError) {
+                    console.error('Profile fetch failed:', profileError)
+                    // Still proceed with fallback profile
+                }
+
+                const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(authData.user)
+                useAuthStore.getState().setProfile(resolvedProfile)
+
+                const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
+                navigate(getRoleDashboardPath(role), { replace: true })
+            }
+        } catch (err: any) {
+            setError(`Login error: ${err.message || 'Unknown error'}`)
+        } finally {
+            setIsLoading(false)
+        }
     }
-
-    if (authData.user) {
-      // FIX: Set user in store BEFORE navigating to ensure auth state is ready
-      useAuthStore.getState().setUser(authData.user)
-      
-      // Get profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single()
-
-      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(authData.user)
-      useAuthStore.getState().setProfile(resolvedProfile)
-
-      const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
-      navigate(getRoleDashboardPath(role), { replace: true })
-    }
-  }
 
   return (
         <div className="min-h-screen flex bg-background">
