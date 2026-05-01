@@ -23,118 +23,6 @@ const statusColor: Record<string, 'default' | 'warning' | 'success' | 'destructi
     completed: 'success', cancelled: 'destructive', no_show: 'destructive', in_progress: 'default',
 }
 
-function DecryptedNote({ note }: { note: CaseNote }) {
-    const [decrypted, setDecrypted] = useState<Record<string, string>>({})
-    const [loading, setLoading] = useState(false)
-    const [expanded, setExpanded] = useState(false)
-
-    const decrypt = async () => {
-        if (Object.keys(decrypted).length > 0) { setExpanded(!expanded); return }
-        setLoading(true)
-        const result: Record<string, string> = {}
-        for (const field of ['history', 'ophthalmoscopy_notes', 'externals', 'diagnosis', 'recommendation'] as const) {
-            if (note[field]) {
-                try { result[field] = await decryptText(note[field]!) } catch { result[field] = note[field]! }
-            }
-        }
-        setDecrypted(result)
-        setLoading(false)
-        setExpanded(true)
-    }
-
-    return (
-        <div className="bg-card border border-border text-foreground">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground900">{note.chief_complaint || 'Case Note'}</p>
-                    <p className="text-xs text-foreground400 mt-0.5">
-                        Dr. {(note.doctor as any)?.full_name} · {formatDate(note.created_at)}
-                    </p>
-                    {note.treatment_plan && !expanded && (
-                        <p className="text-xs text-foreground500 mt-1 line-clamp-1">Treatment: {note.treatment_plan}</p>
-                    )}
-                </div>
-                <button onClick={decrypt} className="text-xs text-primary hover:underline flex-shrink-0 font-medium">
-                    {loading ? 'Loading...' : expanded ? 'Hide' : 'View Details'}
-                </button>
-            </div>
-
-            {expanded && (
-                <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
-                    {(decrypted.history || note.history) && (
-                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">History</p>
-                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.history || note.history}</p></div>
-                    )}
-                    {(decrypted.ophthalmoscopy_notes || note.ophthalmoscopy_notes) && (
-                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Ophthalmoscopy</p>
-                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.ophthalmoscopy_notes || note.ophthalmoscopy_notes}</p></div>
-                    )}
-                    {note.previous_rx && (
-                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Previous Rx</p>
-                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{note.previous_rx}</p></div>
-                    )}
-                    {(decrypted.externals || note.externals) && (
-                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Externals</p>
-                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.externals || note.externals}</p></div>
-                    )}
-                    {(decrypted.diagnosis || note.diagnosis) && (
-                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Diagnosis</p>
-                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{decrypted.diagnosis || note.diagnosis}</p></div>
-                    )}
-                    {note.treatment_plan && (
-                        <div><p className="text-xs font-semibold text-foreground500 uppercase tracking-wide mb-1">Treatment Plan</p>
-                            <p className="text-sm text-foreground bg-muted rounded-xl p-3">{note.treatment_plan}</p></div>
-                    )}
-                    {note.follow_up_date && (
-                        <div className="flex items-center gap-2 text-xs text-foreground500">
-                            <Calendar className="w-3.5 h-3.5" />Follow-up: {formatDate(note.follow_up_date)}
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-
-        {/* Edit Patient Modal */}
-        <Modal open={editOpen} onOpenChange={setEditOpen}>
-            <ModalContent size="lg">
-                <ModalHeader>
-                    <ModalTitle>Edit Patient</ModalTitle>
-                    <ModalDescription>Update patient information</ModalDescription>
-                </ModalHeader>
-                <ModalBody>
-                    <form id="edit-patient-form" onSubmit={handleSubmit(d => editMutation.mutate(d))} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                            <Input label="First Name *" {...register('first_name')} error={errors.first_name?.message} />
-                            <Input label="Last Name *" {...register('last_name')} error={errors.last_name?.message} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <Input label="Phone" {...register('phone')} />
-                            <Input label="Email" type="email" {...register('email')} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <Input label="Date of Birth" type="date" {...register('date_of_birth')} />
-                            <Select onValueChange={v => setValue('gender', v)} defaultValue={patient?.gender}>
-                                <SelectTrigger label="Gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="male">Male</SelectItem>
-                                    <SelectItem value="female">Female</SelectItem>
-                                    <SelectItem value="other">Other</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <Input label="Address" {...register('address')} />
-                        <Input label="Occupation" {...register('occupation')} />
-                    </form>
-                </ModalBody>
-                <ModalFooter>
-                    <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-                    <Button type="submit" form="edit-patient-form" loading={isSubmitting || editMutation.isPending}>Save Changes</Button>
-                </ModalFooter>
-            </ModalContent>
-        </Modal>
-    )
-}
-
 export function PatientDetailPage() {
     const { id } = useParams<{ id: string }>()
     const { profile } = useAuthStore()
@@ -142,6 +30,15 @@ export function PatientDetailPage() {
     const qc = useQueryClient()
     const [tab, setTab] = useState('overview')
     const [editOpen, setEditOpen] = useState(false)
+
+    const { data: patient, isLoading } = useQuery({
+        queryKey: ['patient', id],
+        queryFn: async () => {
+            const { data } = await supabase.from('patients').select('*').eq('id', id!).single()
+            return data as Patient
+        },
+        enabled: !!id,
+    })
 
     const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<{
         first_name: string
@@ -177,15 +74,6 @@ export function PatientDetailPage() {
         },
     })
 
-    const { data: patient, isLoading } = useQuery({
-        queryKey: ['patient', id],
-        queryFn: async () => {
-            const { data } = await supabase.from('patients').select('*').eq('id', id!).single()
-            return data as Patient
-        },
-        enabled: !!id,
-    })
-
     const { data: appointments = [], isLoading: appointmentsLoading, error: appointmentsError } = useQuery({
         queryKey: ['patient-appointments', id],
         queryFn: async () => {
@@ -197,6 +85,7 @@ export function PatientDetailPage() {
         },
         enabled: !!id && tab === 'appointments',
     })
+
     const { data: caseNotes = [], error: caseNotesError, isLoading: caseNotesLoading } = useQuery({
         queryKey: ['patient-notes', id],
         queryFn: async () => {
@@ -337,7 +226,6 @@ export function PatientDetailPage() {
                         <div className="space-y-2 text-sm">
                             {patient.gender && <div className="flex justify-between"><span className="text-foreground400 text-xs">Gender</span><span className="capitalize text-sm">{patient.gender}</span></div>}
                             {patient.date_of_birth && <div className="flex justify-between"><span className="text-foreground400 text-xs">DOB</span><span className="text-sm">{formatDate(patient.date_of_birth)}</span></div>}
-
                             {patient.phone && <div className="flex items-center gap-2 text-foreground500 text-xs"><Phone className="w-3 h-3" />{patient.phone}</div>}
                             {patient.email && <div className="flex items-center gap-2 text-foreground500 text-xs"><Mail className="w-3 h-3" /><span className="truncate">{patient.email}</span></div>}
                             {patient.address && <div className="flex items-start gap-2 text-foreground500 text-xs"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />{patient.address}</div>}
@@ -351,7 +239,7 @@ export function PatientDetailPage() {
                         {tabs.map(t => (
                             <button key={t.id} onClick={() => setTab(t.id)}
                                 className={`flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${tab === t.id ? 'border-primary text-primary' : 'border-transparent text-foreground400 hover:text-foreground700'
-                                    }`}>
+                                }`}>
                                 <t.icon className="w-3.5 h-3.5" />{t.label}
                             </button>
                         ))}
@@ -438,7 +326,24 @@ export function PatientDetailPage() {
                                     )}
                                 </div>
                             ) : (
-                                caseNotes.map(n => <DecryptedNote key={n.id} note={n} />)
+                                caseNotes.map(n => (
+                                    <div key={n.id} className="bg-card rounded-2xl border border-border shadow-card hover:shadow-card-md transition-all">
+                                        <div className="p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <Link to={`/patients/${n.patient_id}`} className="font-semibold text-sm text-foreground hover:text-primary transition-colors">
+                                                            {(n.patient as any)?.first_name} {(n.patient as any)?.last_name}
+                                                        </Link>
+                                                        <span className="text-xs text-slate-400 font-mono">{(n.patient as any)?.patient_number}</span>
+                                                    </div>
+                                                    <p className="text-sm text-slate-600 mt-1 font-medium">{n.chief_complaint}</p>
+                                                    {n.visiting_date && <p className="text-xs text-slate-400 mt-0.5">Visit: {formatDate(n.visiting_date)}</p>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
                             )}
                         </div>
                     )}
@@ -467,31 +372,6 @@ export function PatientDetailPage() {
                                                 </div>
                                                 {rx.pd && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg font-medium">PD: {rx.pd}mm</span>}
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4 text-xs">
-                                                <div>
-                                                    <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Right Eye (OD)</p>
-                                                    <div className="grid grid-cols-4 gap-1 text-center bg-muted rounded-xl p-2">
-                                                        {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
-                                                            <p className="font-medium">{rx.re_sphere ?? '—'}</p>
-                                                            <p className="font-medium">{rx.re_cylinder ?? '—'}</p>
-                                                            <p className="font-medium">{rx.re_axis ?? '—'}</p>
-                                                            <p className="font-medium">{rx.re_add ?? '—'}</p>
-                                                        </div>
-                                                        {rx.re_va && <p className="text-foreground500 mt-1">VA: {rx.re_va}</p>}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-semibold text-foreground500 uppercase tracking-wide text-[10px] mb-1">Left Eye (OS)</p>
-                                                        <div className="grid grid-cols-4 gap-1 text-center bg-muted rounded-xl p-2">
-                                                            {['Sph', 'Cyl', 'Axis', 'Add'].map(l => <p key={l} className="text-foreground400 text-[10px]">{l}</p>)}
-                                                            <p className="font-medium">{rx.le_sphere ?? '—'}</p>
-                                                            <p className="font-medium">{rx.le_cylinder ?? '—'}</p>
-                                                            <p className="font-medium">{rx.le_axis ?? '—'}</p>
-                                                            <p className="font-medium">{rx.le_add ?? '—'}</p>
-                                                        </div>
-                                                        {rx.le_va && <p className="text-foreground500 mt-1">VA: {rx.le_va}</p>}
-                                                    </div>
-                                                </div>
-                                            {rx.notes && <p className="text-xs text-foreground400 mt-2">{rx.notes}</p>}
                                         </CardContent>
                                     </Card>
                                 ))
@@ -526,6 +406,45 @@ export function PatientDetailPage() {
                     )}
                 </div>
             </div>
+
+            {/* Edit Patient Modal */}
+            <Modal open={editOpen} onOpenChange={setEditOpen}>
+                <ModalContent size="lg">
+                    <ModalHeader>
+                        <ModalTitle>Edit Patient</ModalTitle>
+                        <ModalDescription>Update patient information</ModalDescription>
+                    </ModalHeader>
+                    <ModalBody>
+                        <form id="edit-patient-form" onSubmit={handleSubmit(d => editMutation.mutate(d))} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input label="First Name *" {...register('first_name')} error={errors.first_name?.message} />
+                                <Input label="Last Name *" {...register('last_name')} error={errors.last_name?.message} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input label="Phone" {...register('phone')} />
+                                <Input label="Email" type="email" {...register('email')} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input label="Date of Birth" type="date" {...register('date_of_birth')} />
+                                <Select onValueChange={v => setValue('gender', v)} defaultValue={patient?.gender}>
+                                    <SelectTrigger label="Gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="male">Male</SelectItem>
+                                        <SelectItem value="female">Female</SelectItem>
+                                        <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Input label="Address" {...register('address')} />
+                            <Input label="Occupation" {...register('occupation')} />
+                        </form>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                        <Button type="submit" form="edit-patient-form" loading={isSubmitting || editMutation.isPending}>Save Changes</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }
