@@ -100,11 +100,12 @@ export function PatientDetailPage() {
 
     const deleteMutation = useMutation({
         mutationFn: async (patientId: string) => {
+            if (!patientId) throw new Error('No patient selected')
             const { error } = await supabase.from('patients').delete().eq('id', patientId)
             if (error) {
                 if (error.code === '42501') throw new Error('You do not have permission to delete patients.')
                 if (error.code === '23503' || error.code === '235000') throw new Error('Cannot delete patient: they have existing appointments, payments, or other linked records.')
-                throw new Error('Unable to delete patient. Contact support.')
+                throw new Error(`Unable to delete patient: ${error.message}`)
             }
         },
         onSuccess: () => {
@@ -156,7 +157,8 @@ export function PatientDetailPage() {
         queryKey: ['patient-payments', id],
         queryFn: async () => {
             const { data } = await supabase.from('payments')
-                .select('*').eq('patient_id', id!).order('paid_at', { ascending: false })
+                .select('*')
+                .eq('patient_id', id!).order('paid_at', { ascending: false })
             return (data ?? []) as Payment[]
         },
         enabled: !!id && tab === 'payments',
@@ -186,13 +188,6 @@ export function PatientDetailPage() {
         <div className="text-center py-20">
             <p className="text-red-500 font-medium">Error loading patient</p>
             <p className="text-sm text-foreground400 mt-2">{patientError.message}</p>
-            <Link to={backHref}><Button className="mt-4" variant="outline">Back to Patients</Button></Link>
-        </div>
-    )
-
-    if (!patient) return (
-        <div className="text-center py-20">
-            <p className="text-foreground500">Patient not found</p>
             <Link to={backHref}><Button className="mt-4" variant="outline">Back to Patients</Button></Link>
         </div>
     )
@@ -296,30 +291,60 @@ export function PatientDetailPage() {
                     </CardContent>
                 </Card>
 
-                {/* Tabs */}
-                <div className="lg:col-span-3 space-y-4">
-                    <div className="flex gap-0.5 border-b border-slate-100 overflow-x-auto scrollbar-thin">
-                        {tabs.map(t => (
-                            <button key={t.id} onClick={() => setTab(t.id)}
-                                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${tab === t.id ? 'border-primary text-primary' : 'border-transparent text-foreground400 hover:text-foreground700'
-                                }`}>
-                                <t.icon className="w-3.5 h-3.5" />{t.label}
-                            </button>
-                        ))}
+                {/* Main content */}
+                <div className="lg:col-span-3 space-y-5">
+                    {/* Tabs */}
+                    <div className="flex gap-1 bg-muted p-1 rounded-xl overflow-x-auto">
+                        {tabs.map(t => {
+                            const Icon = t.icon
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setTab(t.id)}
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap
+                    ${tab === t.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                >
+                                    <Icon className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">{t.label}</span>
+                                    {t.id === 'appointments' && appointments.length > 0 && (
+                                        <span className="ml-1 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">{appointments.length}</span>
+                                    )}
+                                </button>
+                            )
+                        })}
                     </div>
 
                     {/* Overview */}
                     {tab === 'overview' && (
-                        <Card>
-                            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                <div><p className="text-xs text-foreground400 mb-1">Occupation</p><p className="font-medium">{patient.occupation || '—'}</p></div>
-                                <div><p className="text-xs text-foreground400 mb-1">Next of Kin</p><p className="font-medium">{patient.next_of_kin_name || '—'}</p></div>
-                                <div><p className="text-xs text-foreground400 mb-1">Kin Phone</p><p className="font-medium">{patient.next_of_kin_phone || '—'}</p></div>
-                                <div><p className="text-xs text-foreground400 mb-1">Subscription</p><p className="font-medium capitalize">{patient.subscription_type || 'None'}</p></div>
-                                {patient.subscription_end && <div><p className="text-xs text-foreground400 mb-1">Subscription Ends</p><p className="font-medium">{formatDate(patient.subscription_end)}</p></div>}
-                                <div><p className="text-xs text-foreground400 mb-1">Registered</p><p className="font-medium">{formatDate(patient.created_at)}</p></div>
-                            </CardContent>
-                        </Card>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Card>
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Calendar className="w-4 h-4 text-blue-500" />
+                                        <span className="text-xs text-muted-foreground">Appointments</span>
+                                    </div>
+                                    <p className="text-2xl font-bold">{appointments.length}</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <FileText className="w-4 h-4 text-purple-500" />
+                                        <span className="text-xs text-muted-foreground">Case Notes</span>
+                                    </div>
+                                    <p className="text-2xl font-bold">{caseNotes.length}</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <CreditCard className="w-4 h-4 text-emerald-500" />
+                                        <span className="text-xs text-muted-foreground">Payments</span>
+                                    </div>
+                                    <p className="text-2xl font-bold">{payments.length}</p>
+                                </CardContent>
+                            </Card>
+                        </div>
                     )}
 
                     {/* Appointments */}
@@ -327,18 +352,13 @@ export function PatientDetailPage() {
                         <Card>
                             <CardContent className="p-0">
                                 {appointmentsLoading ? (
-                                    <div className="text-center py-10 text-foreground400">
-                                        <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
-                                        <p className="text-sm">Loading appointments...</p>
+                                    <div className="p-8 space-y-3">
+                                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
                                     </div>
                                 ) : appointmentsError ? (
-                                    <div className="text-center py-10">
-                                        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-                                            <AlertTriangle className="w-8 h-8 text-red-300" />
-                                        </div>
-                                        <p className="text-sm text-red-500 font-medium">Failed to load appointments</p>
-                                        <p className="text-xs text-red-400 mt-1 max-w-md mx-auto">{(appointmentsError as Error)?.message || 'Unknown error. Check console for details.'}</p>
-                                        <Button className="mt-3" size="sm" variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ['patient-appointments', id] })}>Retry</Button>
+                                    <div className="p-8 text-center text-red-500">
+                                        <p>Error loading appointments</p>
+                                        <p className="text-xs mt-1">{appointmentsError.message}</p>
                                     </div>
                                 ) : appointments.length === 0 ? (
                                     <div className="text-center py-10 text-foreground400">
@@ -364,82 +384,61 @@ export function PatientDetailPage() {
 
                     {/* Case Notes */}
                     {tab === 'notes' && (
-                        <div className="space-y-3">
-                            {caseNotesError ? (
-                                <div className="text-center py-10">
-                                    <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-                                        <AlertTriangle className="w-8 h-8 text-red-300" />
+                        <Card>
+                            <CardContent className="p-0">
+                                {caseNotesLoading ? (
+                                    <div className="p-8 space-y-3">
+                                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
                                     </div>
-                                    <p className="text-sm text-red-500 font-medium">Failed to load case notes</p>
-                                    <p className="text-xs text-red-400 mt-1">You may not have permission to view case notes.</p>
-                                </div>
-                            ) : caseNotesLoading ? (
-                                <div className="text-center py-10 text-foreground400">
-                                    <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
-                                    <p className="text-sm">Loading case notes...</p>
-                                </div>
-                            ) : caseNotes.length === 0 ? (
-                                <div className="text-center py-10 text-foreground400">
-                                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                    <p className="text-sm">No case notes yet</p>
-                                    {profile?.role === 'doctor' && (
-                                        <Link to="/doctor/case-notes">
-                                            <Button size="sm" className="mt-3 gap-1.5"><FileText className="w-3.5 h-3.5" />Write Note</Button>
-                                        </Link>
-                                    )}
-                                </div>
-                            ) : (
-                                caseNotes.map(n => (
-                                    <div key={n.id} className="bg-card rounded-2xl border border-border shadow-card hover:shadow-card-md transition-all">
-                                        <div className="p-4">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <Link to={`/patients/${n.patient_id}`} className="font-semibold text-sm text-foreground hover:text-primary transition-colors">
-                                                            {(n.patient as any)?.first_name} {(n.patient as any)?.last_name}
-                                                        </Link>
-                                                        <span className="text-xs text-slate-400 font-mono">{(n.patient as any)?.patient_number}</span>
-                                                    </div>
-                                                    <p className="text-sm text-slate-600 mt-1 font-medium">{n.chief_complaint}</p>
-                                                    {n.visiting_date && <p className="text-xs text-slate-400 mt-0.5">Visit: {formatDate(n.visiting_date)}</p>}
+                                ) : caseNotesError ? (
+                                    <div className="p-8 text-center text-red-500">
+                                        <p>Error loading case notes</p>
+                                    </div>
+                                ) : caseNotes.length === 0 ? (
+                                    <div className="text-center py-10 text-foreground400">
+                                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                        <p className="text-sm">No case notes yet</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-50">
+                                        {caseNotes.map(n => (
+                                            <div key={n.id} className="px-5 py-3">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-sm font-medium text-foreground900">Dr. {(n.doctor as any)?.full_name}</p>
+                                                    <span className="text-xs text-muted-foreground">{formatDate(n.created_at)}</span>
                                                 </div>
+                                                <p className="text-xs text-foreground500">{n.chief_complaint}</p>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     )}
 
                     {/* Prescriptions */}
                     {tab === 'prescriptions' && (
-                        <div className="space-y-3">
-                            {prescriptions.length === 0 ? (
-                                <div className="text-center py-10 text-foreground400">
-                                    <Pill className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                    <p className="text-sm">No prescriptions yet</p>
-                                    {profile?.role === 'frontdesk' && (
-                                        <Link to="/frontdesk/prescriptions">
-                                            <Button size="sm" className="mt-3 gap-1.5"><Pill className="w-3.5 h-3.5" />Add Prescription</Button>
-                                        </Link>
-                                    )}
-                                </div>
-                            ) : (
-                                prescriptions.map(rx => (
-                                    <Card key={rx.id} className="hover:shadow-card-md transition-all">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-foreground900 capitalize">{rx.lens_type?.replace('_', ' ') || 'Glasses Prescription'}</p>
-                                                    <p className="text-xs text-foreground400">Dr. {(rx.doctor as any)?.full_name} · {formatDate(rx.created_at)}</p>
+                        <Card>
+                            <CardContent className="p-0">
+                                {prescriptions.length === 0 ? (
+                                    <div className="text-center py-10 text-foreground400">
+                                        <Pill className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                        <p className="text-sm">No prescriptions yet</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-50">
+                                        {prescriptions.map(rx => (
+                                            <div key={rx.id} className="px-5 py-3">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-sm font-medium text-foreground900 capitalize">{rx.lens_type?.replace('_', ' ') || 'Glasses Prescription'}</p>
+                                                    <span className="text-xs text-muted-foreground">{formatDate(rx.created_at)}</span>
                                                 </div>
-                                                {rx.pd && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg font-medium">PD: {rx.pd}mm</span>}
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                ))
-                            )}
-                        </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     )}
 
                     {/* Payments */}
@@ -539,15 +538,15 @@ export function PatientDetailPage() {
                             </p>
                         </div>
                     )}
-                     <ModalFooter>
-                         <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Cancel</Button>
-                         <Button variant="destructive" loading={deleteMutation.isPending} onClick={() => {
-                             if (!deleteTarget) return
-                             deleteMutation.mutate(deleteTarget.id)
-                         }}>
-                             Yes, Delete Patient
-                         </Button>
-                     </ModalFooter>
+                    <ModalFooter>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Cancel</Button>
+                        <Button variant="destructive" loading={deleteMutation.isPending} onClick={() => {
+                            if (!deleteTarget) return
+                            deleteMutation.mutate(deleteTarget.id)
+                        }}>
+                            Yes, Delete Patient
+                        </Button>
+                    </ModalFooter>
                 </ModalContent>
             </Modal>
         </div>

@@ -54,40 +54,25 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     setLoading(true)
 
-    const withTimeout = (promise: Promise<any>, ms: number) => 
-      Promise.race([
-        promise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-      ])
-
     const init = async () => {
-      const failSafeTimer = setTimeout(() => {
-        if (mounted) {
-          setLoading(false)
-          setInitialCheckDone(true)
-        }
-      }, 2000)
-
       try {
-        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 3000) as any
-
+        const { data: { session } } = await supabase.auth.getSession()
         if (mounted && session?.user) {
           setUser(session.user)
           try {
             const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
             setProfile(data ? (data as Profile) : buildFallbackProfile(session.user))
-          } catch (e) {
+          } catch {
             setProfile(buildFallbackProfile(session.user))
           }
         }
       } catch (e) {
-        // Timeout or error, proceed to login
-      }
-
-      clearTimeout(failSafeTimer)
-      if (mounted) {
-        setLoading(false)
-        setInitialCheckDone(true)
+        // Ignore
+      } finally {
+        if (mounted) {
+          setLoading(false)
+          setInitialCheckDone(true)
+        }
       }
     }
 
@@ -97,15 +82,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user)
-        void (async () => {
-          try {
-            const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-            const profile = data ? (data as Profile) : buildFallbackProfile(session.user)
-            setProfile(profile)
-          } catch {
-            setProfile(buildFallbackProfile(session.user))
-          }
-        })()
+        if (event !== 'TOKEN_REFRESHED') {
+          void (async () => {
+            try {
+              const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+              setProfile(data ? (data as Profile) : buildFallbackProfile(session.user))
+            } catch {
+              setProfile(buildFallbackProfile(session.user))
+            }
+          })()
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
@@ -126,7 +112,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto mb-4 overflow-hidden">
-            <img src="/icons/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <img src="/pwa-192x192.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
@@ -153,13 +139,13 @@ const P = ({ roles, children }: { roles?: Profile['role'][]; children: React.Rea
 function App() {
   const { setTheme } = useUIStore()
   const fetchSettings = useClinicStore(s => s.fetchSettings)
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, profile } = useAuthStore()
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && profile) {
       fetchSettings()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, profile])
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('ui-storage')
@@ -179,63 +165,63 @@ function App() {
         <AuthProvider>
           <RealtimeProvider />
           <Routes>
-          {/* Public */}
-          <Route path="/" element={<SplashScreen />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+            {/* Public */}
+            <Route path="/" element={<SplashScreen />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-          {/* Shared protected */}
-          <Route path="/patients" element={<P><PatientsPage /></P>} />
-          <Route path="/patients/:id" element={<P><PatientDetailPage /></P>} />
-          <Route path="/settings" element={<P><SettingsPage /></P>} />
+            {/* Shared protected */}
+            <Route path="/patients" element={<P><PatientsPage /></P>} />
+            <Route path="/patients/:id" element={<P><PatientDetailPage /></P>} />
+            <Route path="/settings" element={<P><SettingsPage /></P>} />
 
-          {/* Doctor — patients, appointments, case notes */}
-          <Route path="/doctor" element={<P roles={['doctor']}><DoctorDashboard /></P>} />
-          <Route path="/doctor/patients" element={<P roles={['doctor']}><PatientsPage /></P>} />
-          <Route path="/doctor/appointments" element={<P roles={['doctor']}><AppointmentsPage /></P>} />
-          <Route path="/doctor/calendar" element={<P roles={['doctor']}><CalendarPage /></P>} />
-          <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
+            {/* Doctor — patients, appointments, case notes */}
+            <Route path="/doctor" element={<P roles={['doctor']}><DoctorDashboard /></P>} />
+            <Route path="/doctor/patients" element={<P roles={['doctor']}><PatientsPage /></P>} />
+            <Route path="/doctor/appointments" element={<P roles={['doctor']}><AppointmentsPage /></P>} />
+            <Route path="/doctor/calendar" element={<P roles={['doctor']}><CalendarPage /></P>} />
+            <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
 
-          {/* Frontdesk — patients, appointments, calendar, dispensing, glasses, outreach */}
-          <Route path="/frontdesk" element={<P roles={['frontdesk']}><FrontdeskDashboard /></P>} />
-          <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
-          <Route path="/frontdesk/appointments" element={<P roles={['frontdesk']}><AppointmentsPage /></P>} />
-          <Route path="/frontdesk/calendar" element={<P roles={['frontdesk']}><CalendarPage /></P>} />
-           <Route path="/frontdesk/dispensing" element={<P roles={['frontdesk']}><DispensingPage /></P>} />
-           <Route path="/frontdesk/glasses-orders" element={<P roles={['frontdesk']}><GlassesOrdersPage /></P>} />
-           <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
-           <Route path="/frontdesk/item-orders" element={<P roles={['frontdesk']}><ItemOrdersPage /></P>} />
+            {/* Frontdesk — patients, appointments, calendar, dispensing, glasses, outreach */}
+            <Route path="/frontdesk" element={<P roles={['frontdesk']}><FrontdeskDashboard /></P>} />
+            <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
+            <Route path="/frontdesk/appointments" element={<P roles={['frontdesk']}><AppointmentsPage /></P>} />
+            <Route path="/frontdesk/calendar" element={<P roles={['frontdesk']}><CalendarPage /></P>} />
+            <Route path="/frontdesk/dispensing" element={<P roles={['frontdesk']}><DispensingPage /></P>} />
+            <Route path="/frontdesk/glasses-orders" element={<P roles={['frontdesk']}><GlassesOrdersPage /></P>} />
+            <Route path="/frontdesk/item-orders" element={<P roles={['frontdesk']}><ItemOrdersPage /></P>} />
+            <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
 
-          {/* Admin/Accounts — combined admin + accountant */}
-          <Route path="/admin" element={<P roles={['admin']}><AdminDashboard /></P>} />
-          <Route path="/admin/patients" element={<P roles={['admin']}><PatientsPage /></P>} />
-          <Route path="/admin/calendar" element={<P roles={['admin']}><CalendarPage /></P>} />
-          <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
-          <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
-          <Route path="/admin/appointments" element={<P roles={['admin']}><AppointmentsPage /></P>} />
-          <Route path="/admin/calendar" element={<P roles={['admin']}><CalendarPage /></P>} />
-          <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
-          <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
-          <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
-          <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />
-          <Route path="/admin/audit" element={<P roles={['admin']}><AuditPage /></P>} />
+            {/* Manager — users, reports, messages, transactions */}
+            <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />
+            <Route path="/manager/users" element={<P roles={['manager']}><UsersPage /></P>} />
+            <Route path="/manager/reports" element={<P roles={['manager']}><ReportsPage /></P>} />
+            <Route path="/manager/messages" element={<P roles={['manager']}><MessagesPage /></P>} />
+            <Route path="/manager/transactions" element={<P roles={['manager']}><TransactionHistoryPage /></P>} />
+            <Route path="/manager/settings" element={<P roles={['manager']}><ManagerSettings /></P>} />
 
-          {/* Manager — dashboard, appointments, transactions, messages, settings */}
-          <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />
-          <Route path="/manager/appointments" element={<P roles={['manager']}><AppointmentsPage /></P>} />
-          <Route path="/manager/calendar" element={<P roles={['manager']}><CalendarPage /></P>} />
-          <Route path="/appointments" element={<P roles={['manager']}><AppointmentsPage /></P>} />
-          <Route path="/manager/transactions" element={<P roles={['manager']}><TransactionHistoryPage /></P>} />
-          <Route path="/manager/messages" element={<P roles={['manager']}><MessagesPage /></P>} />
-          <Route path="/manager/settings" element={<P roles={['manager']}><ManagerSettings /></P>} />
+            {/* Admin — everything */}
+            <Route path="/admin" element={<P roles={['admin']}><AdminDashboard /></P>} />
+            <Route path="/admin/patients" element={<P roles={['admin']}><PatientsPage /></P>} />
+            <Route path="/admin/appointments" element={<P roles={['admin']}><AppointmentsPage /></P>} />
+            <Route path="/admin/calendar" element={<P roles={['admin']}><CalendarPage /></P>} />
+            <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
+            <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
+            <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
+            <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
+            <Route path="/admin/daily-summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
+            <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />
+            <Route path="/admin/audit" element={<P roles={['admin']}><AuditPage /></P>} />
+            <Route path="/admin/settings" element={<P roles={['admin']}><SettingsPage /></P>} />
 
-          {/* Shared chat */}
-          <Route path="/chat" element={<P><ChatPage /></P>} />
+            {/* Shared chat */}
+            <Route path="/chat" element={<P><ChatPage /></P>} />
 
-          {/* Notifications - all authenticated users */}
-          <Route path="/notifications" element={<P><NotificationsPage /></P>} />
+            {/* Notifications - all authenticated users */}
+            <Route path="/notifications" element={<P><NotificationsPage /></P>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

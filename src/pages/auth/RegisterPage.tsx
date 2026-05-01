@@ -13,12 +13,11 @@ import { useClinicStore } from '@/hooks/useClinicSettings'
 import type { Profile } from '@/types'
 import { buildFallbackProfile, getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
 
-const schema = z.object({
-  full_name: z.string().min(2, 'Enter your full name'),
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['doctor', 'frontdesk', 'admin', 'manager'], { required_error: 'Select a role' }),
-})
+  const schema = z.object({
+    full_name: z.string().min(2, 'Enter your full name'),
+    email: z.string().email('Enter a valid email'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+  })
 type FormData = z.infer<typeof schema>
 
 export function RegisterPage() {
@@ -65,6 +64,7 @@ export function RegisterPage() {
 
     try {
       // Step 1: Create confirmed user via your backend admin route (no email sent)
+      // Role is forced to 'frontdesk' - only admins can create other roles
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,7 +72,7 @@ export function RegisterPage() {
           email: data.email,
           password: data.password,
           full_name: data.full_name,
-          role: normalizeUserRole(data.role),
+          role: 'frontdesk', // Force frontdesk role for public registration
         }),
       })
 
@@ -172,24 +172,6 @@ export function RegisterPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <Select
-              value={role}
-              onValueChange={val => {
-                setRole(val)
-                setValue('role', val as FormData['role'], { shouldValidate: true })
-              }}
-            >
-              <SelectTrigger label="Role" error={errors.role?.message}>
-                <SelectValue placeholder="Select your role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin/Accounts</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="doctor">Doctor</SelectItem>
-                <SelectItem value="frontdesk">Frontdesk</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Button type="submit" className="w-full h-10" disabled={isLoading || isSubmitting}>
               {(isLoading || isSubmitting) ? 'Creating account...' : 'Create Account'}
             </Button>
