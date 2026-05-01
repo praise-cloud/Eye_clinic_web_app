@@ -539,12 +539,15 @@ export function PatientDetailPage() {
                             </p>
                         </div>
                     )}
-                    <ModalFooter>
-                        <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Cancel</Button>
-                        <Button variant="destructive" loading={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
-                            Yes, Delete Patient
-                        </Button>
-                    </ModalFooter>
+                     <ModalFooter>
+                         <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Cancel</Button>
+                         <Button variant="destructive" loading={deleteMutation.isPending} onClick={() => {
+                             if (!deleteTarget) return
+                             deleteMutation.mutate()
+                         }}>
+                             Yes, Delete Patient
+                         </Button>
+                     </ModalFooter>
                 </ModalContent>
             </Modal>
         </div>

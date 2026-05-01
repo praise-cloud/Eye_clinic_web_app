@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Users, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -8,20 +8,25 @@ import { MiniCalendar } from '@/components/calendar/MiniCalendar'
 import { ActivityFeed } from '@/components/admin/ActivityFeed'
 
 export function AdminDashboard() {
-    const { data: stats } = useQuery({
+    const { data: stats, error: statsError } = useQuery({
         queryKey: ['admin-stats'],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
-            const [patients, lowStock, todayRevenue] = await Promise.all([
+            const results = await Promise.allSettled([
                 supabase.from('patients').select('id', { count: 'exact' }),
                 supabase.from('drugs').select('id', { count: 'exact' }).lte('quantity', 10),
-                supabase.from('daily_summary').select('total_revenue, glasses_revenue').eq('summary_date', today).single(),
+                supabase.from('daily_summary').select('total_revenue, glasses_revenue').eq('summary_date', today).maybeSingle(),
             ])
+            
+            const patients = results[0].status === 'fulfilled' ? results[0].value : { count: 0 }
+            const lowStock = results[1].status === 'fulfilled' ? results[1].value : { count: 0 }
+            const todayRevenue = results[2].status === 'fulfilled' ? results[2].value : { data: null }
+            
             return {
                 totalPatients: patients.count ?? 0,
                 lowStockAlerts: lowStock.count ?? 0,
-                todayRevenue: todayRevenue?.data?.total_revenue ?? 0,
-                todayGlassesRevenue: todayRevenue?.data?.glasses_revenue ?? 0,
+                todayRevenue: todayRevenue.data?.total_revenue ?? 0,
+                todayGlassesRevenue: todayRevenue.data?.glasses_revenue ?? 0,
             }
         },
     })
