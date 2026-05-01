@@ -82,9 +82,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         supabase.from('notifications').delete().eq('id', id).then(() => {
             set(s => {
                 const notification = s.notifications.find(n => n.id === id)
+                const wasUnread = notification && !notification.read
                 return {
                     notifications: s.notifications.filter(n => n.id !== id),
-                    unreadCount: Math.max(0, s.unreadCount - (notification && !notification.read ? 1 : 0)),
+                    unreadCount: wasUnread ? Math.max(0, s.unreadCount - 1) : s.unreadCount,
                 }
             })
         })
