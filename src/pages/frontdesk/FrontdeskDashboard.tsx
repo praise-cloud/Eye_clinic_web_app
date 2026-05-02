@@ -18,7 +18,7 @@ export function FrontdeskDashboard() {
     const { profile } = useAuthStore()
 
     const { data: stats, isLoading } = useQuery({
-        queryKey: ['assistant-dashboard'],
+        queryKey: ['frontdesk-dashboard'],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
             const [p, a, l] = await Promise.all([
@@ -33,7 +33,7 @@ export function FrontdeskDashboard() {
 
     // All today's appointments (all doctors)
     const { data: appointments = [], isLoading: aptsLoading } = useQuery({
-        queryKey: ['appointments', 'today-assistant'],
+        queryKey: ['appointments', 'today-frontdesk'],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
             const { data } = await supabase
@@ -52,7 +52,12 @@ export function FrontdeskDashboard() {
     const { data: lowStockDrugs = [] } = useQuery({
         queryKey: ['low-stock-drugs'],
         queryFn: async () => {
-            const { data } = await supabase.from('low_stock_drugs').select('*').limit(5)
+            const { data } = await supabase
+                .from('drugs')
+                .select('name, quantity, reorder_level')
+                .lte('quantity', 'reorder_level')
+                .order('quantity', { ascending: true })
+                .limit(5)
             return data ?? []
         },
     })
