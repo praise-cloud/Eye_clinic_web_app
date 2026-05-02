@@ -49,6 +49,10 @@ export function SplashScreen() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <button onClick={() => navigate('/register')}
+                        className="px-3 sm:px-5 py-2 rounded-lg border border-white/20 text-white text-sm font-semibold hover:bg-white/10 transition-colors">
+                        Create Account
+                    </button>
                     <button onClick={() => navigate('/login')}
                         className="px-3 sm:px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors">
                         Sign In
@@ -70,6 +74,10 @@ export function SplashScreen() {
                     A complete PWA for {clinicName} Eye Clinic — patients, appointments, prescriptions, pharmacy, and finances in one place.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button onClick={() => navigate('/register')}
+                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/20 text-white font-semibold text-base hover:bg-white/10 transition-colors">
+                        Create Account
+                    </button>
                     <button onClick={() => navigate('/login')}
                         className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-500 text-white font-semibold text-base hover:bg-blue-600 transition-colors">
                         Sign In <ArrowRight size={16} />

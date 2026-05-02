@@ -217,6 +217,7 @@ export function LoginPage() {
                                 disabled={isLoading}
                                 required
                                 aria-required="true"
+                                pattern=".*"
                                 {...register('password')}
                             />
                             <button
