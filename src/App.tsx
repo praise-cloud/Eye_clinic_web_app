@@ -12,26 +12,26 @@ import { useRealtimeNotifications } from './hooks/useRealtimeNotifications'
 import { SplashScreen } from './pages/SplashScreen'
 import { LoginPage } from './pages/auth/LoginPage'
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard'
-import { AssistantDashboard } from './pages/assistant/AssistantDashboard'
+import { AssistantDashboard } from './pages/frontdesk/AssistantDashboard'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
-import { AccountantDashboard } from './pages/accountant/AccountantDashboard'
+import { ManagerDashboard } from './pages/manager/ManagerDashboard'
 import { PatientsPage } from './pages/patients/PatientsPage'
 import { PatientDetailPage } from './pages/patients/PatientDetailPage'
 import { AppointmentsPage } from './pages/appointments/AppointmentsPage'
 import { CaseNotesPage } from './pages/doctor/CaseNotesPage'
-import { DispensingPage } from './pages/assistant/DispensingPage'
-import { GlassesOrdersPage } from './pages/assistant/GlassesOrdersPage'
-import { GlassesPrescriptionPage } from './pages/assistant/GlassesPrescriptionPage'
+import { DispensingPage } from './pages/frontdesk/DispensingPage'
+import { GlassesOrdersPage } from './pages/frontdesk/GlassesOrdersPage'
+import { GlassesPrescriptionPage } from './pages/frontdesk/GlassesPrescriptionPage'
 import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
 import { AuditPage } from './pages/admin/AuditPage'
-import { PaymentsPage } from './pages/accountant/PaymentsPage'
-import { DailySummaryPage } from './pages/accountant/DailySummaryPage'
-import { SubscriptionsPage } from './pages/accountant/SubscriptionsPage'
+import { PaymentsPage } from './pages/admin/AccountantPaymentsPage'
+import { DailySummaryPage } from './pages/admin/DailySummaryPage'
+import { SubscriptionsPage } from './pages/admin/AccountantSubscriptionsPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ChatPage } from './pages/chat/ChatPage'
-import { OutreachPage } from './pages/assistant/OutreachPage'
+import { OutreachPage } from './pages/frontdesk/OutreachPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
@@ -145,12 +145,9 @@ function App() {
           <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
           <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
           <Route path="/admin/audit" element={<P roles={['admin']}><AuditPage /></P>} />
-
-          {/* Accountant */}
-          <Route path="/accountant" element={<P roles={['accountant']}><AccountantDashboard /></P>} />
-          <Route path="/accountant/payments" element={<P roles={['accountant']}><PaymentsPage /></P>} />
-          <Route path="/accountant/summary" element={<P roles={['accountant']}><DailySummaryPage /></P>} />
-          <Route path="/accountant/subscriptions" element={<P roles={['accountant']}><SubscriptionsPage /></P>} />
+          <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
+          <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
+          <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -68,8 +68,8 @@ export function InventoryPage() {
     const [editOthers, setEditOthers] = useState<any | null>(null)
     const [deleteConfirm, setDeleteConfirm] = useState<{type: 'drug'|'frame'|'others', item: any}|null>(null)
     
-    // Only admin and assistant can manage inventory
-    const canManageInventory = profile?.role === 'admin' || profile?.role === 'assistant'
+    // Only admin and frontdesk can manage inventory
+    const canManageInventory = profile?.role === 'admin' || profile?.role === 'frontdesk'
 
     const { data: drugs = [], isLoading: drugsLoading } = useQuery({
         queryKey: ['drugs'],

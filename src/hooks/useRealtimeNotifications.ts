@@ -72,8 +72,8 @@ export function useRealtimeNotifications() {
             channels.push(aptArrived)
         }
 
-        // ── ASSISTANT: New prescription issued ────────────────────────
-        if (profile.role === 'assistant') {
+        // ── FRONTDESK: New prescription issued ────────────────────────
+        if (profile.role === 'frontdesk') {
             const rxChannel = supabase
                 .channel(`rx-new:${profile.id}`)
                 .on('postgres_changes', {
@@ -196,7 +196,7 @@ export function useRealtimeNotifications() {
                         type: 'payment',
                         title: 'New Payment Recorded',
                         message: 'A new payment has been recorded.',
-                        link: profile.role === 'accountant' ? '/accountant/payments' : '/admin/reports',
+                        link: '/admin/payments',
                     })
                 })
                 .subscribe()
