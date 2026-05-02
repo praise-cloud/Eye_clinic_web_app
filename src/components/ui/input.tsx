@@ -12,7 +12,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         return (
             <div className="space-y-1.5">
                 {label && (
-                    <label htmlFor={inputId} className="text-xs font-medium text-foreground uppercase tracking-wide">
+                    <label 
+                        htmlFor={inputId} 
+                        className="text-xs font-medium text-foreground uppercase tracking-wide"
+                        aria-describedby={error ? `${inputId}-error` : undefined}
+                    >
                         {label}
                     </label>
                 )}
@@ -24,9 +28,20 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         className
                     )}
                     ref={ref}
+                    aria-invalid={!!error}
+                    aria-describedby={error ? `${inputId}-error` : props['aria-describedby']}
                     {...props}
                 />
-                {error && <p className="text-xs text-destructive">{error}</p>}
+                {error && (
+                    <p 
+                        id={`${inputId}-error`} 
+                        className="text-xs text-destructive" 
+                        role="alert"
+                        aria-live="polite"
+                    >
+                        {error}
+                    </p>
+                )}
             </div>
         )
     }

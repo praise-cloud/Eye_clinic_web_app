@@ -28,14 +28,56 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            // Cache static assets with validation
+            urlPattern: /\.(?:js|css|woff2|png|svg|ico)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-assets',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 7 * 24 * 60 * 60 // 7 days
+              }
+            }
+          },
+          {
+            // Network-first for API calls with short cache
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 5 * 60 // 5 minutes
+              },
+              networkTimeoutSeconds: 10
+            }
+          },
+          {
+            // Network-only for auth endpoints (never cache)
+            urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/v1\/.*/i,
             handler: 'NetworkOnly',
             options: {
-              cacheName: 'supabase-cache',
+              cacheName: 'auth-cache',
               expiration: { maxEntries: 0, maxAgeSeconds: 0 }
             }
+          },
+          {
+            // Cache-first for realtime connections
+            urlPattern: /^https:\/\/.*\.supabase\.co\/realtime\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'realtime-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 2 * 60 // 2 minutes
+              }
+            }
           }
-        ]
+        ],
+        // Add cleanup and background sync
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true
       }
     })
   ],
@@ -50,5 +92,24 @@ server: {
         changeOrigin: true,
       },
     },
+    headers: {
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data:",
+        "connect-src 'self' https:*.supabase.co wss:*.supabase.co",
+        "frame-src 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "manifest-src 'self'"
+      ].join('; '),
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+    }
   },
     },)

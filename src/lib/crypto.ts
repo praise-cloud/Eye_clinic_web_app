@@ -1,7 +1,10 @@
 const ALGORITHM = 'AES-GCM'
 
 async function getKey(): Promise<CryptoKey> {
-    const salt = import.meta.env.VITE_APP_ENCRYPTION_SALT || 'eyeclinic-default-salt'
+    const salt = import.meta.env.VITE_APP_ENCRYPTION_SALT
+    if (!salt) {
+        throw new Error('Encryption salt is required. Please set VITE_APP_ENCRYPTION_SALT environment variable.')
+    }
     const keyMaterial = await crypto.subtle.importKey(
         'raw',
         new TextEncoder().encode(salt),

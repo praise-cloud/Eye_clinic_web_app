@@ -139,7 +139,8 @@ export function PatientDetailPage() {
             if (error) throw new Error(error.message)
             return (data ?? []) as CaseNote[]
         },
-        enabled: !!id && tab === 'notes',
+        enabled: !!id, // always fetch, not just when tab is active
+        staleTime: 0,
     })
 
     const { data: prescriptions = [] } = useQuery({

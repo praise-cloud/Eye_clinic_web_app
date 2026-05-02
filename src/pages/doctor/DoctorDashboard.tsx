@@ -59,7 +59,7 @@ export function DoctorDashboard() {
     const pendingCount = pendingNotesData?.withoutNotes ?? 0
     const stats = [
         { label: "Today's Appts", value: appointments.length, icon: Calendar, color: 'text-blue-600 bg-blue-50' },
-        { label: 'Awaiting', value: appointments.filter(a => a.status === 'arrived').length, icon: Users, color: 'text-amber-600 bg-amber-50' },
+        { label: 'Pending/Awaiting', value: appointments.filter(a => ['pending', 'confirmed', 'arrived'].includes(a.status)).length, icon: Users, color: 'text-amber-600 bg-amber-50' },
         { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, icon: FileText, color: 'text-emerald-600 bg-emerald-50' },
         { label: 'Pending Notes', value: pendingCount, icon: Pill, color: 'text-purple-600 bg-purple-50', sub: pendingNotesData ? `${pendingNotesData.total} completed appts` : undefined },
     ]

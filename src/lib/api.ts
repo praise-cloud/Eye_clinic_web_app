@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { createSafeSearchQuery, sanitizeSearchInput } from './sanitization'
 import type { Profile, Patient, Appointment, Prescription } from '@/types'
 
 // Query Keys for React Query
@@ -47,7 +48,10 @@ export async function upsertProfile(profile: Partial<Profile>): Promise<Profile>
 export async function fetchPatients(search?: string, limit = 100): Promise<Patient[]> {
   let q = supabase.from('patients').select('*').order('created_at', { ascending: false }).limit(limit)
   if (search) {
-    q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,patient_number.ilike.%${search}%,phone.ilike.%${search}%`)
+    const safeSearchQuery = createSafeSearchQuery(search, ['first_name', 'last_name', 'patient_number', 'phone'])
+    if (safeSearchQuery) {
+      q = q.or(safeSearchQuery)
+    }
   }
   const { data } = await q
   return data ?? []

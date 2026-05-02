@@ -59,7 +59,7 @@ export function PatientsPage() {
 
     const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-const saveMutation = useMutation({
+    const saveMutation = useMutation({
         mutationFn: async (data: FormData) => {
             const patientNumber = editPatient?.patient_number || `PT-${Date.now()}`
             if (editPatient) {
@@ -87,11 +87,20 @@ const saveMutation = useMutation({
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
+            // Delete all related records first to avoid FK constraint errors
+            // (These will also be handled by CASCADE if the SQL fix was run)
+            const tables = [
+                'drug_dispensing', 'payments', 'outreach_log',
+                'prescriptions', 'case_notes', 'glasses_orders', 'appointments'
+            ]
+            for (const table of tables) {
+                await supabase.from(table as any).delete().eq('patient_id', id)
+            }
+            // Now delete the patient
             const { error } = await supabase.from('patients').delete().eq('id', id)
             if (error) {
                 if (error.code === '42501') throw new Error('You do not have permission to delete patients.')
-                if (error.code === '23503' || error.code === '235000') throw new Error('Cannot delete patient: they have existing appointments, payments, or other linked records. Remove those first.')
-                throw new Error('Unable to delete patient. Please contact support.')
+                throw new Error('Unable to delete patient. Please run the COMPLETE-FIX.sql in Supabase to enable cascade deletes.')
             }
         },
         onMutate: async (id: string) => {
@@ -106,7 +115,7 @@ const saveMutation = useMutation({
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['patients'] })
             setDeleteTarget(null)
-            notify({ type: 'patient', title: 'Patient Deleted', message: 'Patient record has been permanently deleted.' })
+            notify({ type: 'patient', title: 'Patient Deleted', message: 'Patient and all related records permanently deleted.' })
         },
     })
 

@@ -10,10 +10,18 @@ import { useClinicStore } from '@/hooks/useClinicSettings'
 import type { Profile } from '@/types'
 import { Input } from '@/components/ui/input'
 import { buildFallbackProfile, getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
+import { getAutoSecureErrorMessage } from '@/lib/errors'
+import { logError } from '@/lib/logger'
+import { loginRateLimiter, formatTimeRemaining } from '@/lib/rateLimit'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/\d/, 'Password must contain at least one number')
+    .regex(/[@$!%*?&]/, 'Password must contain at least one special character (@$!%*?&)'),
 })
 type FormData = z.infer<typeof schema>
 
@@ -50,19 +58,18 @@ export function LoginPage() {
                         setUser(session.user)
                         const role = resolvedProfile.role
                         if (role === 'doctor') navigate('/doctor', { replace: true })
-                        else if (role === 'frontdesk') navigate('/frontdesk', { replace: true })
+                        else if (role === 'assistant') navigate('/assistant', { replace: true })
                         else if (role === 'admin') navigate('/admin', { replace: true })
-                        else if (role === 'manager') navigate('/manager', { replace: true })
+                        else if (role === 'accountant') navigate('/accountant', { replace: true })
                     }
                 }
             } catch (err) {
                 // Clear invalid session after deployment or auth reset
-                console.error('Session check failed, clearing auth state:', err)
+                logError('Session check failed, clearing auth state', err)
                 await supabase.auth.signOut()
                 useAuthStore.getState().setUser(null)
                 useAuthStore.getState().setProfile(null)
-                // Clear any stale localStorage items
-                localStorage.removeItem('auth-storage')
+                // Note: Supabase handles session storage automatically
             }
         }
         checkSession()
@@ -76,22 +83,22 @@ export function LoginPage() {
         setIsLoading(true)
 
         try {
+            // Check rate limiting first
+            const rateLimitResult = loginRateLimiter.checkLimit(data.email)
+            if (!rateLimitResult.allowed) {
+                const timeRemaining = formatTimeRemaining(rateLimitResult.resetTime! - Date.now())
+                setError(`Too many login attempts. Please wait ${timeRemaining} before trying again.`)
+                setIsLoading(false)
+                return
+            }
+
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email: data.email,
                 password: data.password,
             })
 
             if (authError) {
-                const msg = authError.message?.toLowerCase() || ''
-                if (msg.includes('invalid') || msg.includes('wrong') || msg.includes('credentials') || msg.includes('could not find') || msg.includes('not found')) {
-                    setError('Incorrect email or password.')
-                } else if (msg.includes('email not confirmed')) {
-                    setError('Please confirm your email address before signing in.')
-                } else if (msg.includes('too many requests')) {
-                    setError('Too many login attempts. Please wait a moment and try again.')
-                } else {
-                    setError(`Login failed: ${authError.message}`)
-                }
+                setError(getAutoSecureErrorMessage(authError))
                 setIsLoading(false)
                 return
             }
@@ -108,7 +115,7 @@ export function LoginPage() {
                     .single()
 
                 if (profileError) {
-                    console.error('Profile fetch failed:', profileError)
+                    logError('Profile fetch failed', profileError)
                     // Still proceed with fallback profile
                 }
 
@@ -119,7 +126,7 @@ export function LoginPage() {
                 navigate(getRoleDashboardPath(role), { replace: true })
             }
         } catch (err: any) {
-            setError(`Login error: ${err.message || 'Unknown error'}`)
+            setError(getAutoSecureErrorMessage(err))
         } finally {
             setIsLoading(false)
         }
@@ -174,17 +181,26 @@ export function LoginPage() {
                     </div>
 
                     {successMessage && (
-                        <div className="mb-5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 text-sm">
+                        <div 
+                            className="mb-5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 text-sm"
+                            role="alert"
+                            aria-live="polite"
+                        >
                             {successMessage}
                         </div>
                     )}
                     {error && (
-                        <div className="mb-5 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm">
+                        <div 
+                            id="login-error"
+                            className="mb-5 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm"
+                            role="alert"
+                            aria-live="assertive"
+                        >
                             {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                         <Input
                             label="Email Address"
                             type="email"
@@ -192,6 +208,8 @@ export function LoginPage() {
                             error={errors.email?.message}
                             autoComplete="email"
                             disabled={isLoading}
+                            required
+                            aria-required="true"
                             {...register('email')}
                         />
                         <div className="relative">
@@ -202,13 +220,17 @@ export function LoginPage() {
                                 error={errors.password?.message}
                                 autoComplete="current-password"
                                 disabled={isLoading}
+                                required
+                                aria-required="true"
                                 {...register('password')}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-7 text-muted-foreground hover:text-foreground"
-                                tabIndex={-1}
+                                className="absolute right-3 top-7 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded"
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                aria-pressed={showPassword}
+                                disabled={isLoading}
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -217,10 +239,14 @@ export function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                            className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                            aria-describedby={error ? 'login-error' : undefined}
                         >
                             {isLoading ? (
-                                <><Loader2 className="w-4 h-4 animate-spin" />Signing in...</>
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                    <span>Signing in...</span>
+                                </>
                             ) : (
                                 'Sign In'
                             )}

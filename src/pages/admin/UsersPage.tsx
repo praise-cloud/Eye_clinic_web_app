@@ -13,13 +13,15 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getRoleColor, getRoleAccent, getInitials, formatDate } from '@/lib/utils'
 import { notify } from '@/store/notificationStore'
+import { getAutoSecureErrorMessage } from '@/lib/errors'
+import { logError } from '@/lib/logger'
 import type { Profile } from '@/types'
 
 const schema = z.object({
     full_name: z.string().min(2, 'Required'),
     email: z.string().email('Valid email required'),
     password: z.string().optional(),
-    role: z.enum(['doctor', 'frontdesk', 'admin', 'manager']),
+    role: z.enum(['doctor', 'assistant', 'admin', 'accountant']),
     phone: z.string().optional(),
 })
 type FormData = z.infer<typeof schema>
@@ -74,8 +76,8 @@ const createMutation = useMutation({
             notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/admin/users' })
         },
         onError: (e: Error) => {
-            console.error('Create staff error:', e)
-            setError(e.message || 'Failed to create staff account')
+            logError('Create staff error', e)
+            setError(getAutoSecureErrorMessage(e))
         },
     })
 
@@ -89,8 +91,8 @@ const toggleActive = useMutation({
             notify({ type: 'system', title: 'Staff Status Updated', message: 'Staff member status has been changed.' })
         },
         onError: (e: Error) => {
-            console.error('Toggle staff error:', e)
-            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to update staff status. Check RLS policies.' })
+            logError('Toggle staff error', e)
+            notify({ type: 'system', title: 'Error', message: getAutoSecureErrorMessage(e) })
         },
     })
 
@@ -111,8 +113,8 @@ const updateMutation = useMutation({
             notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' })
         },
         onError: (e: Error) => {
-            console.error('Update staff error:', e)
-            setError(e.message || 'Failed to update staff account')
+            logError('Update staff error', e)
+            setError(getAutoSecureErrorMessage(e))
         },
     })
 
@@ -127,8 +129,8 @@ const updateMutation = useMutation({
             notify({ type: 'system', title: 'Account Disabled', message: 'Staff account has been disabled.' })
         },
         onError: (e: Error) => {
-            console.error('Delete staff error:', e)
-            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to disable staff account. Check RLS policies.' })
+            logError('Delete staff error', e)
+            notify({ type: 'system', title: 'Error', message: getAutoSecureErrorMessage(e) })
         },
     })
 
