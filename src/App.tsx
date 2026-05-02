@@ -11,6 +11,7 @@ import { useRealtimeNotifications } from './hooks/useRealtimeNotifications'
 // Pages
 import { SplashScreen } from './pages/SplashScreen'
 import { LoginPage } from './pages/auth/LoginPage'
+import { RegisterPage } from './pages/auth/RegisterPage'
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard'
 import { AssistantDashboard } from './pages/frontdesk/AssistantDashboard'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
@@ -107,6 +108,7 @@ function App() {
           {/* Public */}
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
           {/* Shared */}
           <Route path="/patients" element={<P><PatientsPage /></P>} />
