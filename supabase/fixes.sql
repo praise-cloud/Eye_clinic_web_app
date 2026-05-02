@@ -84,14 +84,14 @@ WITH CHECK (true);
 CREATE POLICY "patients_select_policy"
 ON patients
 FOR SELECT
-USING (auth.role() IN ('doctor', 'assistant', 'admin', 'accountant'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
--- Doctors, assistants, and admins can create/update patients
+-- Doctors and frontdesk can create/update patients
 CREATE POLICY "patients_write_policy"
 ON patients
 FOR INSERT, UPDATE
-USING (auth.role() IN ('doctor', 'assistant', 'admin'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
 -- Only admins can delete patients
@@ -109,7 +109,7 @@ WITH CHECK (true);
 CREATE POLICY "case_notes_select_policy"
 ON case_notes
 FOR SELECT
-USING (auth.role() IN ('doctor', 'assistant', 'admin', 'accountant'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
 -- Only doctors can create/update case notes
@@ -134,14 +134,14 @@ WITH CHECK (true);
 CREATE POLICY "appointments_select_policy"
 ON appointments
 FOR SELECT
-USING (auth.role() IN ('doctor', 'assistant', 'admin', 'accountant'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
--- Doctors and assistants can create/update appointments
+-- Doctors and frontdesk can create/update appointments
 CREATE POLICY "appointments_write_policy"
 ON appointments
 FOR INSERT, UPDATE
-USING (auth.role() IN ('doctor', 'assistant'))
+USING (auth.role() IN ('doctor', 'frontdesk'))
 WITH CHECK (true);
 
 -- Only admins can delete appointments
@@ -159,14 +159,14 @@ WITH CHECK (true);
 CREATE POLICY "payments_select_policy"
 ON payments
 FOR SELECT
-USING (auth.role() IN ('doctor', 'assistant', 'admin', 'accountant'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
--- Admins and accountants can create/update payments
+-- Admins can create/update payments
 CREATE POLICY "payments_write_policy"
 ON payments
 FOR INSERT, UPDATE
-USING (auth.role() IN ('admin', 'accountant'))
+USING (auth.role() IN ('admin'))
 WITH CHECK (true);
 
 -- Only admins can delete payments
@@ -184,14 +184,14 @@ WITH CHECK (true);
 CREATE POLICY "drugs_select_policy"
 ON drugs
 FOR SELECT
-USING (auth.role() IN ('doctor', 'assistant', 'admin', 'accountant'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
--- Admins and assistants can manage drugs
+-- Admins and frontdesk can manage drugs
 CREATE POLICY "drugs_write_policy"
 ON drugs
 FOR INSERT, UPDATE, DELETE
-USING (auth.role() IN ('admin', 'assistant'))
+USING (auth.role() IN ('admin', 'frontdesk'))
 WITH CHECK (true);
 
 -- ========================================
@@ -202,14 +202,14 @@ WITH CHECK (true);
 CREATE POLICY "glasses_inventory_select_policy"
 ON glasses_inventory
 FOR SELECT
-USING (auth.role() IN ('doctor', 'assistant', 'admin', 'accountant'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
--- Admins and assistants can manage glasses inventory
+-- Admins and frontdesk can manage glasses inventory
 CREATE POLICY "glasses_inventory_write_policy"
 ON glasses_inventory
 FOR INSERT, UPDATE, DELETE
-USING (auth.role() IN ('admin', 'assistant'))
+USING (auth.role() IN ('admin', 'frontdesk'))
 WITH CHECK (true);
 
 -- ========================================
@@ -220,14 +220,14 @@ WITH CHECK (true);
 CREATE POLICY "inventory_others_select_policy"
 ON inventory_others
 FOR SELECT
-USING (auth.role() IN ('doctor', 'assistant', 'admin', 'accountant'))
+USING (auth.role() IN ('doctor', 'frontdesk', 'admin'))
 WITH CHECK (true);
 
--- Admins and assistants can manage other inventory
+-- Admins and frontdesk can manage other inventory
 CREATE POLICY "inventory_others_write_policy"
 ON inventory_others
 FOR INSERT, UPDATE, DELETE
-USING (auth.role() IN ('admin', 'assistant'))
+USING (auth.role() IN ('admin', 'frontdesk'))
 WITH CHECK (true);
 
 -- ========================================

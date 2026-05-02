@@ -4,7 +4,7 @@
 
 ## 1. Overview
 
-The Eye Clinic application is a Progressive Web Application (PWA) built for multi-role clinical management. It runs entirely in the browser, installs like a native desktop/mobile app, and is powered by Supabase as the sole backend. All clients — Doctor, Assistant, Admin, Accountant — connect to the same Supabase project (cloud-hosted PostgreSQL), giving them a shared real-time database without managing a local server.
+The Eye Clinic application is a Progressive Web Application (PWA) built for multi-role clinical management. It runs entirely in the browser, installs like a native desktop/mobile app, and is powered by Supabase as the sole backend. All clients — Doctor, Frontdesk, Admin, Manager — connect to the same Supabase project (cloud-hosted PostgreSQL), giving them a shared real-time database without managing a local server.
 
 ---
 
@@ -15,7 +15,7 @@ The Eye Clinic application is a Progressive Web Application (PWA) built for mult
 │                        CLIENT LAYER (PWA)                           │
 │                                                                     │
 │   ┌──────────────┐  ┌──────────────┐  ┌──────────┐  ┌──────────┐  │
-│   │   Doctor UI  │  │ Assistant UI │  │ Admin UI │  │Accountant│  │
+│   │ Doctor UI  │  │ Frontdesk UI │  │ Admin UI │  │Manager   │  │
 │   │  Dashboard   │  │  Dashboard  │  │Dashboard │  │Dashboard │  │
 │   └──────┬───────┘  └──────┬───────┘  └────┬─────┘  └────┬─────┘  │
 │          │                 │               │              │        │
@@ -101,7 +101,7 @@ The Eye Clinic application is a Progressive Web Application (PWA) built for mult
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                          ROLE ACCESS MATRIX                                 │
 ├──────────────────────────┬──────────┬──────────┬──────────┬─────────────────┤
-│ Feature                  │ Doctor   │ Assistant│ Admin    │ Accountant      │
+│ Feature                  │ Doctor   │ Frontdesk│ Admin    │ Manager         │
 ├──────────────────────────┼──────────┼──────────┼──────────┼─────────────────┤
 │ Patient Registration     │ View     │ Full     │ Full     │ View            │
 │ Case Notes               │ Full     │ View     │ Full     │ None            │
@@ -110,15 +110,15 @@ The Eye Clinic application is a Progressive Web Application (PWA) built for mult
 │ Drug Inventory           │ View     │ Manage   │ Full     │ View            │
 │ Glasses Inventory        │ Prescribe│ Manage   │ Full     │ View            │
 │ Glasses Orders           │ Prescribe│ Process  │ Full     │ View            │
-│ Payments                 │ None     │ Record   │ Full     │ Full            │
-│ Daily Sales Report       │ None     │ None     │ Full     │ Full            │
-│ Appointments             │ Full     │ Full     │ Full     │ None            │
-│ Patient Outreach         │ Request  │ Execute  │ Full     │ None            │
+│ Payments                 │ None     │ Record   │ Full     │ View            │
+│ Daily Sales Report       │ None     │ View     │ Full     │ Full            │
+│ Appointments             │ Full     │ Full     │ Full     │ Full            │
+│ Patient Outreach         │ Request  │ Execute  │ Full     │ View            │
 │ Staff Chat               │ Full     │ Full     │ Full     │ Full            │
-│ User Management          │ None     │ None     │ Full     │ None            │
-│ Audit Logs               │ None     │ None     │ Full     │ None            │
+│ User Management          │ None     │ None     │ Full     │ Full            │
+│ Audit Logs               │ None     │ None     │ Full     │ Full            │
 │ Database Backup          │ None     │ None     │ Full     │ None            │
-│ Financial Reports        │ None     │ None     │ Full     │ Full            │
+│ Financial Reports        │ None     │ View     │ Full     │ Full            │
 │ Subscription Tracking    │ None     │ View     │ Full     │ Full            │
 └──────────────────────────┴──────────┴──────────┴──────────┴─────────────────┘
 ```
@@ -154,8 +154,8 @@ The Eye Clinic application is a Progressive Web Application (PWA) built for mult
 │  ┌────────────────────────────────────────────────┐ │
 │  │  Push Notifications                            │ │
 │  │  → Patient arrived → Doctor                   │ │
-│  │  → New appointment → Assistant                │ │
-│  │  → Low stock alert → Assistant + Admin        │ │
+│  │  → New appointment → Frontdesk                │ │
+│  │  → Low stock alert → Frontdesk + Admin        │ │
 │  └────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────┘
 ```
@@ -178,7 +178,7 @@ User visits URL → Browser detects PWA manifest
 ### 6.1 Patient Visit Flow
 
 ```
-Assistant registers patient
+Frontdesk registers patient
     │
     ▼
 Patient record created in DB
@@ -192,7 +192,7 @@ Doctor creates prescription (drugs / glasses)
     ├──► Drug prescription → Assistant dispenses → Drug dispensing record
     │         │
     │         ▼
-    │    Payment recorded by Accountant/Assistant
+    │    Payment recorded by Admin/Frontdesk
     │         │
     │         ▼
     │    Daily sales summary updates (DB View)
@@ -215,16 +215,16 @@ Doctor requests scheduled checkup (from patient profile)
 Appointment record created (status: pending)
     │
     ▼
-Supabase Realtime → Assistant's dashboard updates live
+Supabase Realtime → Frontdesk dashboard updates live
     │
     ▼
-Assistant contacts patient (SMS via Twilio / Email via Resend)
+Frontdesk contacts patient (SMS via Twilio / Email via Resend)
     │
     ▼
 Patient confirms → Appointment status: confirmed
     │
     ▼
-Patient arrives at clinic → Assistant marks: arrived
+Patient arrives at clinic → Frontdesk marks: arrived
     │
     ▼
 Web Push Notification → Doctor's browser
@@ -388,7 +388,7 @@ eyeclinic-pwa/
 │   │   │   ├── CaseNotes.tsx
 │   │   │   ├── Prescriptions.tsx
 │   │   │   └── Appointments.tsx
-│   │   ├── assistant/
+│   │   ├── frontdesk/
 │   │   │   ├── AssistantDashboard.tsx
 │   │   │   ├── PatientRegistration.tsx
 │   │   │   ├── AppointmentManager.tsx
@@ -399,12 +399,13 @@ eyeclinic-pwa/
 │   │   │   ├── UserManagement.tsx
 │   │   │   ├── AuditLogs.tsx
 │   │   │   ├── Reports.tsx
-│   │   │   └── BackupManager.tsx
-│   │   └── accountant/
-│   │       ├── AccountantDashboard.tsx
-│   │       ├── PaymentManager.tsx
-│   │       ├── DailySummary.tsx
-│   │       └── FinancialReports.tsx
+│   │   │   ├── PaymentManager.tsx
+│   │   │   ├── DailySummary.tsx
+│   │   │   └── FinancialReports.tsx
+│   │   └── manager/
+│   │       ├── ManagerDashboard.tsx
+│   │       ├── StaffManagement.tsx
+│   │       └── OperationsReports.tsx
 │   │
 │   └── types/
 │       ├── database.types.ts   # Auto-generated from Supabase CLI

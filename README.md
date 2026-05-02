@@ -25,10 +25,10 @@ eye-clinic-web/
 ## Features
 
 - **Authentication**: Supabase Auth with JWT
-- **Role-based Access**: Admin, Doctor, Assistant, Accountant
+- **Role-based Access**: Admin, Doctor, Frontdesk, Manager
 - **Patients Management**: Full CRUD with search/filter
 - **Appointments**: Calendar view with booking
-- **Prescriptions**: Doctor prescribing, Assistant dispensing
+- **Prescriptions**: Doctor prescribing, Frontdesk dispensing
 - **Pharmacy**: Drug inventory and dispensations
 - **Revenue Tracking**: Financial dashboard
 - **Calendar**: Free calendar view (Monthly/Weekly)
@@ -105,10 +105,10 @@ vercel deploy --prod
 
 | Role | Permissions |
 |------|-----------|
-| **Admin** | Full access, user management, all features |
+| **Admin** | Full access, user management, payments, reports, inventory, all features |
 | **Doctor** | Patients, prescriptions, case notes, calendar |
-| **Assistant** | Pharmacy, prescriptions, registration |
-| **Accountant** | Revenue, reports, appointments view |
+| **Frontdesk** | Patient registration, dispensing, appointments, inventory management |
+| **Manager** | Staff management, reports, audit, operations oversight |
 
 ## Technologies Used
 

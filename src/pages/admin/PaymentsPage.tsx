@@ -39,8 +39,8 @@ export function PaymentsPage() {
     const [search, setSearch] = useState('')
     const [patientDisplay, setPatientDisplay] = useState('')
     
-    // Only admin and accountant can manage payments
-    const canManagePayments = profile?.role === 'admin' || profile?.role === 'accountant'
+    // Only admin can manage payments
+    const canManagePayments = profile?.role === 'admin'
 
     const { data: payments = [], isLoading } = useQuery({
         queryKey: ['payments'],
