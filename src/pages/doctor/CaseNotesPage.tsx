@@ -77,7 +77,7 @@ function SectionHeader({ icon: Icon, title }: { icon: any; title: string }) {
     )
 }
 
-function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) => void }) {
+function NoteCard({ note, onDelete, canManageCaseNotes }: { note: CaseNote; onDelete: (id: string) => void; canManageCaseNotes: boolean }) {
     const [expanded, setExpanded] = useState(false)
     const [decrypted, setDecrypted] = useState<Record<string, string>>({})
     const [decrypting, setDecrypting] = useState(false)
@@ -120,7 +120,7 @@ function NoteCard({ note, onDelete }: { note: CaseNote; onDelete: (id: string) =
                         <button onClick={handleExpand} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors ml-1">
                             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
-                        <button onClick={() => onDelete(note.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">
+                        <button onClick={() => onDelete(note.id)} disabled={!canManageCaseNotes} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                         </button>
                     </div>
@@ -272,6 +272,9 @@ export function CaseNotesPage() {
     const [patientDisplay, setPatientDisplay] = useState('')
     const [search, setSearch] = useState('')
     const [cvfFile, setCvfFile] = useState<File | null>(null)
+    
+    // Only doctors can manage case notes
+    const canManageCaseNotes = profile?.role === 'doctor'
 
     const { data: notes = [], isLoading } = useQuery({
         queryKey: ['case-notes', profile?.id],
@@ -392,7 +395,7 @@ const deleteMutation = useMutation({
                     <h1 className="text-xl font-bold text-foreground">Case Notes</h1>
                     <p className="text-sm text-slate-500">{notes.length} notes</p>
                 </div>
-                <Button size="sm" onClick={() => { handleClear(); setOpen(true) }} className="gap-1.5">
+                <Button size="sm" disabled={!canManageCaseNotes} onClick={() => { handleClear(); setOpen(true) }} className="gap-1.5">
                     <Plus className="w-3.5 h-3.5" />New Note
                 </Button>
             </div>
@@ -412,7 +415,7 @@ const deleteMutation = useMutation({
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {filtered.map(note => (<NoteCard key={note.id} note={note} onDelete={setDeleteId} />))}
+                    {filtered.map(note => (<NoteCard key={note.id} note={note} onDelete={setDeleteId} canManageCaseNotes={canManageCaseNotes} />))}
                 </div>
             )}
 

@@ -38,6 +38,9 @@ export function PaymentsPage() {
     const [open, setOpen] = useState(false)
     const [search, setSearch] = useState('')
     const [patientDisplay, setPatientDisplay] = useState('')
+    
+    // Only admin and accountant can manage payments
+    const canManagePayments = profile?.role === 'admin' || profile?.role === 'accountant'
 
     const { data: payments = [], isLoading } = useQuery({
         queryKey: ['payments'],
@@ -90,7 +93,7 @@ export function PaymentsPage() {
                     <h1 className="text-xl font-bold text-foreground900">Payments</h1>
                     <p className="text-sm text-foreground500">{filtered.length} records · {formatCurrency(total)}</p>
                 </div>
-                <Button size="sm" onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
+                <Button size="sm" disabled={!canManagePayments} onClick={() => { reset(); setPatientDisplay(''); setOpen(true) }} className="gap-1.5">
                     <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Record Payment</span><span className="sm:hidden">Add</span>
                 </Button>
             </div>
@@ -128,7 +131,8 @@ export function PaymentsPage() {
                                         <p className="text-base font-bold text-emerald-600">{formatCurrency(p.amount)}</p>
                                         <button
                                             onClick={() => { if (confirm('Delete this payment record?')) deleteMutation.mutate(p.id) }}
-                                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all"
+                                            disabled={!canManagePayments}
+                                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                             title="Delete payment"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />

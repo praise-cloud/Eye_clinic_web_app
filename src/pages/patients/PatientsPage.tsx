@@ -42,8 +42,8 @@ export function PatientsPage() {
     const [open, setOpen] = useState(false)
     const [editPatient, setEditPatient] = useState<Patient | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
-    // Frontdesk and admin can register/edit/delete patients
-    const canWrite = profile?.role === 'frontdesk' || profile?.role === 'admin'
+    // Assistant and admin can register/edit/delete patients
+    const canWrite = profile?.role === 'assistant' || profile?.role === 'admin'
 
     const { data: patients = [], isLoading } = useQuery({
         queryKey: ['patients', search],

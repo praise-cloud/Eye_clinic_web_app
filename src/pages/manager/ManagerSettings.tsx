@@ -18,6 +18,9 @@ export function ManagerSettings() {
     full_name: profile?.full_name || '',
     phone: profile?.phone || '',
   })
+  
+  // Only managers can edit their own profile
+  const canEditProfile = profile?.role === 'manager'
   const [managerSettings, setManagerSettings] = useState({
     showDailyProfit: true,
     showStaffActivity: true,
@@ -93,9 +96,8 @@ export function ManagerSettings() {
                 <Button variant="ghost" size="sm" onClick={handleCancel}>
                   Cancel
                 </Button>
-                <Button size="sm" onClick={() => updateMutation.mutate()}>
-                  <Save className="w-4 h-4 mr-1" />
-                  Save
+                <Button size="sm" disabled={!canEditProfile} onClick={() => updateMutation.mutate()} className="gap-1.5">
+                  <Save className="w-4 h-4" /> Save Changes
                 </Button>
               </div>
             )}

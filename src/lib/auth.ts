@@ -6,6 +6,7 @@ export const VALID_USER_ROLES: UserRole[] = ['doctor', 'frontdesk', 'admin', 'ma
 const LEGACY_ROLE_MAP: Record<string, UserRole> = {
   assistant: 'frontdesk',
   accountant: 'admin',
+  user: 'manager',
 }
 
 export function normalizeUserRole(role?: string | null): UserRole {

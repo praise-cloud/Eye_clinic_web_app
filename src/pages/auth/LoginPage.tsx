@@ -58,9 +58,9 @@ export function LoginPage() {
                         setUser(session.user)
                         const role = resolvedProfile.role
                         if (role === 'doctor') navigate('/doctor', { replace: true })
-                        else if (role === 'assistant') navigate('/assistant', { replace: true })
+                        else if (role === 'frontdesk') navigate('/frontdesk', { replace: true })
                         else if (role === 'admin') navigate('/admin', { replace: true })
-                        else if (role === 'accountant') navigate('/accountant', { replace: true })
+                        else if (role === 'manager') navigate('/manager', { replace: true })
                     }
                 }
             } catch (err) {

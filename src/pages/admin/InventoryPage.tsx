@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Package, Glasses, MoreHorizontal, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -56,6 +57,7 @@ const othersSchema = z.object({
 type OthersForm = z.infer<typeof othersSchema>
 
 export function InventoryPage() {
+    const { profile } = useAuthStore()
     const qc = useQueryClient()
     const [activeTab, setActiveTab] = useState<'drugs' | 'glasses' | 'others'>('drugs')
     const [drugDrawer, setDrugDrawer] = useState(false)
@@ -65,6 +67,9 @@ export function InventoryPage() {
     const [editFrame, setEditFrame] = useState<GlassesInventory | null>(null)
     const [editOthers, setEditOthers] = useState<any | null>(null)
     const [deleteConfirm, setDeleteConfirm] = useState<{type: 'drug'|'frame'|'others', item: any}|null>(null)
+    
+    // Only admin and assistant can manage inventory
+    const canManageInventory = profile?.role === 'admin' || profile?.role === 'assistant'
 
     const { data: drugs = [], isLoading: drugsLoading } = useQuery({
         queryKey: ['drugs'],
@@ -182,7 +187,7 @@ export function InventoryPage() {
     }
 
     const handleDelete = () => {
-        if (!deleteConfirm) return
+        if (!deleteConfirm || !canManageInventory) return
         const { type, item } = deleteConfirm
         if (type === 'drug') deleteDrug.mutate(item.id)
         else if (type === 'frame') deleteFrame.mutate(item.id)
@@ -193,7 +198,7 @@ export function InventoryPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <div><h1 className="text-xl font-bold">Inventory</h1></div>
-                <Button size="sm" onClick={() => { if (activeTab === 'drugs') { setEditDrug(null); drugForm.reset({ quantity: 0, reorder_level: 10, selling_price: 0, unit: 'piece' }); setDrugDrawer(true) } else if (activeTab === 'glasses') { setEditFrame(null); frameForm.reset({ quantity: 0, reorder_level: 5, selling_price: 0 }); setFrameDrawer(true) } else { setEditOthers(null); othersForm.reset({ quantity: 0, reorder_level: 5, selling_price: 0, unit: 'piece' }); setOthersDrawer(true) } }}>
+                <Button size="sm" disabled={!canManageInventory} onClick={() => { if (activeTab === 'drugs') { setEditDrug(null); drugForm.reset({ quantity: 0, reorder_level: 10, selling_price: 0, unit: 'piece' }); setDrugDrawer(true) } else if (activeTab === 'glasses') { setEditFrame(null); frameForm.reset({ quantity: 0, reorder_level: 5, selling_price: 0 }); setFrameDrawer(true) } else { setEditOthers(null); othersForm.reset({ quantity: 0, reorder_level: 5, selling_price: 0, unit: 'piece' }); setOthersDrawer(true) } }}>
                     <Plus className="w-4 h-4" />Add {activeTab === 'drugs' ? 'Drug' : activeTab === 'glasses' ? 'Frame' : 'Item'}
                 </Button>
             </div>

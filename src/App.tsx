@@ -120,15 +120,23 @@ function App() {
           <Route path="/doctor/appointments" element={<P roles={['doctor']}><AppointmentsPage /></P>} />
           <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
 
-          {/* Assistant */}
-          <Route path="/assistant" element={<P roles={['assistant']}><AssistantDashboard /></P>} />
-          <Route path="/assistant/patients" element={<P roles={['assistant']}><PatientsPage /></P>} />
-          <Route path="/assistant/appointments" element={<P roles={['assistant']}><AppointmentsPage /></P>} />
-          <Route path="/assistant/dispensing" element={<P roles={['assistant']}><DispensingPage /></P>} />
-          <Route path="/assistant/glasses-orders" element={<P roles={['assistant']}><GlassesOrdersPage /></P>} />
-          <Route path="/assistant/prescriptions" element={<P roles={['assistant']}><GlassesPrescriptionPage /></P>} />
-          <Route path="/assistant/inventory" element={<P roles={['assistant']}><InventoryPage /></P>} />
-          <Route path="/assistant/outreach" element={<P roles={['assistant']}><OutreachPage /></P>} />
+          {/* Frontdesk */}
+          <Route path="/frontdesk" element={<P roles={['frontdesk']}><AssistantDashboard /></P>} />
+          <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
+          <Route path="/frontdesk/appointments" element={<P roles={['frontdesk']}><AppointmentsPage /></P>} />
+          <Route path="/frontdesk/dispensing" element={<P roles={['frontdesk']}><DispensingPage /></P>} />
+          <Route path="/frontdesk/glasses-orders" element={<P roles={['frontdesk']}><GlassesOrdersPage /></P>} />
+          <Route path="/frontdesk/prescriptions" element={<P roles={['frontdesk']}><GlassesPrescriptionPage /></P>} />
+          <Route path="/frontdesk/inventory" element={<P roles={['frontdesk']}><InventoryPage /></P>} />
+          <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
+
+          {/* Manager */}
+          <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />
+          <Route path="/manager/patients" element={<P roles={['manager']}><PatientsPage /></P>} />
+          <Route path="/manager/appointments" element={<P roles={['manager']}><AppointmentsPage /></P>} />
+          <Route path="/manager/users" element={<P roles={['manager']}><UsersPage /></P>} />
+          <Route path="/manager/reports" element={<P roles={['manager']}><ReportsPage /></P>} />
+          <Route path="/manager/audit" element={<P roles={['manager']}><AuditPage /></P>} />
 
           {/* Admin */}
           <Route path="/admin" element={<P roles={['admin']}><AdminDashboard /></P>} />
