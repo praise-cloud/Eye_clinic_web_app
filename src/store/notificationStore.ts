@@ -109,6 +109,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
 // Helper to trigger notifications from anywhere (saves to DB)
 export const notify = (n: Omit<AppNotification, 'id' | 'read' | 'created_at' | 'user_id'>, userId?: string) => {
-    if (!userId) return
-    useNotificationStore.getState().add(n, userId)
+    if (userId) {
+        useNotificationStore.getState().add(n, userId)
+        return
+    }
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user?.id) return
+        useNotificationStore.getState().add(n, user.id)
+    })
 }

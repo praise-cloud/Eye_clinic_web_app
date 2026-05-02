@@ -54,11 +54,10 @@ export function FrontdeskDashboard() {
         queryFn: async () => {
             const { data } = await supabase
                 .from('drugs')
-                .select('name, quantity, reorder_level')
-                .lte('quantity', 'reorder_level')
+                .select('id, name, quantity, reorder_level')
                 .order('quantity', { ascending: true })
-                .limit(5)
-            return data ?? []
+                .limit(50)
+            return (data ?? []).filter((drug) => Number(drug.quantity ?? 0) <= Number(drug.reorder_level ?? 0)).slice(0, 5)
         },
     })
 

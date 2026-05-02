@@ -47,8 +47,8 @@ export function DispensingPage() {
     const { data: lowStock = [] } = useQuery({
         queryKey: ['low-stock-drugs'],
         queryFn: async () => {
-            const { data } = await supabase.from('low_stock_drugs').select('*')
-            return (data ?? []) as Drug[]
+            const { data } = await supabase.from('drugs').select('*').order('quantity', { ascending: true }).limit(100)
+            return ((data ?? []) as Drug[]).filter(d => Number(d.quantity ?? 0) <= Number(d.reorder_level ?? 0))
         },
     })
 

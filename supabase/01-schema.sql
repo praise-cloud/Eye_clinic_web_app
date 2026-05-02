@@ -1,12 +1,3 @@
--- =============================================
--- EYE CLINIC - COMPLETE DATABASE SCHEMA
--- =============================================
--- Run this first in Supabase SQL Editor
--- This creates all tables, indexes, triggers, and basic RLS
--- =============================================
-
--- 1. EXTENSIONS
--- =============================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 2. HELPER FUNCTIONS
@@ -502,10 +493,18 @@ END $$;
 
 -- 7. AUDIT TRIGGER FUNCTION
 -- =============================================
-CREATE OR REPLACE FUNCTION public.audit_trigger_function() RETURNS TRIGGER AS $$ BEGIN
-INSERT INTO public.audit_logs (user_id, action, table_name, record_id)
-VALUES (auth.uid(), TG_OP, TG_TABLE_NAME, NEW.id::TEXT);
-RETURN NEW;
+CREATE OR REPLACE FUNCTION public.audit_trigger_function() RETURNS TRIGGER AS $$
+DECLARE
+  target_id TEXT;
+BEGIN
+  target_id := COALESCE(NEW.id::TEXT, OLD.id::TEXT);
+  INSERT INTO public.audit_logs (user_id, action, table_name, record_id)
+  VALUES (auth.uid(), TG_OP, TG_TABLE_NAME, target_id);
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
