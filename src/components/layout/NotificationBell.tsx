@@ -4,6 +4,7 @@ import { useNotificationStore, AppNotification } from '@/store/notificationStore
 import { cn } from '@/lib/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 const typeIcon: Record<AppNotification['type'], React.ElementType> = {
     appointment: Calendar,
@@ -42,6 +43,7 @@ export function NotificationBell() {
     const [open, setOpen] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
     const qc = useQueryClient()
+    const navigate = useNavigate()
 
     // Fetch notifications from DB on mount
     useEffect(() => {
@@ -75,7 +77,7 @@ export function NotificationBell() {
                 // Only add if it's for current user
                 supabase.auth.getUser().then(({ data: { user } }) => {
                     if (user && newNotification.user_id === user.id) {
-                        setNotifications([newNotification, ...notifications].slice(0, 50))
+                        setNotifications([newNotification, ...useNotificationStore.getState().notifications].slice(0, 50))
                     }
                 })
             })
@@ -84,7 +86,7 @@ export function NotificationBell() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [])
+    }, [setNotifications])
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -206,16 +208,17 @@ export function NotificationBell() {
                                             </div>
                                             <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
                                             {n.link && (
-                                                <a
-                                                    href={n.link}
+                                                <button
+                                                    type="button"
                                                     className="inline-flex items-center gap-1 mt-1.5 text-xs text-primary hover:underline"
                                                     onClick={() => {
                                                         setOpen(false)
                                                         if (!n.read) handleMarkRead(n.id)
+                                                        navigate(n.link!)
                                                     }}
                                                 >
                                                     View details →
-                                                </a>
+                                                </button>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-1 flex-shrink-0">

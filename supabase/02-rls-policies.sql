@@ -127,7 +127,7 @@
   CREATE POLICY "read_appointments" ON public.appointments FOR SELECT TO authenticated USING (true);
   CREATE POLICY "insert_appointments" ON public.appointments FOR INSERT TO authenticated WITH CHECK (true);
   CREATE POLICY "update_appointments" ON public.appointments FOR UPDATE TO authenticated USING (true);
-  CREATE POLICY "delete_appointments" ON public.appointments FOR DELETE TO authenticated USING (get_user_role() = 'admin');
+  CREATE POLICY "delete_appointments" ON public.appointments FOR DELETE TO authenticated USING (get_user_role() IN ('frontdesk', 'admin'));
 
   -- All authenticated users can read patients, only admins can delete
   CREATE POLICY "read_patients" ON public.patients FOR SELECT TO authenticated USING (true);
@@ -145,7 +145,7 @@
   CREATE POLICY "read_drug_dispensing" ON public.drug_dispensing FOR SELECT TO authenticated USING (true);
   CREATE POLICY "insert_drug_dispensing" ON public.drug_dispensing FOR INSERT TO authenticated WITH CHECK (true);
   CREATE POLICY "update_drug_dispensing" ON public.drug_dispensing FOR UPDATE TO authenticated USING (true);
-  CREATE POLICY "delete_drug_dispensing" ON public.drug_dispensing FOR DELETE TO authenticated USING (get_user_role() = 'admin');
+  CREATE POLICY "delete_drug_dispensing" ON public.drug_dispensing FOR DELETE TO authenticated USING (get_user_role() IN ('frontdesk', 'admin'));
 
   -- All authenticated users can read payments, only admins can delete
   CREATE POLICY "read_payments" ON public.payments FOR SELECT TO authenticated USING (true);
@@ -282,6 +282,7 @@
   -- Settings policies (shared settings page)
   DROP POLICY IF EXISTS "read_settings" ON public.settings;
   DROP POLICY IF EXISTS "write_settings" ON public.settings;
+  DROP POLICY IF EXISTS "write_own_notification_settings" ON public.settings;
   CREATE POLICY "read_settings" ON public.settings
     FOR SELECT TO authenticated
     USING (true);
@@ -289,3 +290,7 @@
     FOR ALL TO authenticated
     USING (get_user_role() IN ('admin', 'manager'))
     WITH CHECK (get_user_role() IN ('admin', 'manager'));
+  CREATE POLICY "write_own_notification_settings" ON public.settings
+    FOR ALL TO authenticated
+    USING (key LIKE auth.uid()::text || '\_%' ESCAPE '\')
+    WITH CHECK (key LIKE auth.uid()::text || '\_%' ESCAPE '\');

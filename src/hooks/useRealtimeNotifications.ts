@@ -85,7 +85,7 @@ export function useRealtimeNotifications() {
                         type: 'prescription',
                         title: 'New Prescription',
                         message: 'A doctor has issued a new prescription.',
-                        link: '/assistant/prescriptions',
+                        link: '/frontdesk/prescriptions',
                     })
                 })
                 .subscribe()
@@ -104,7 +104,7 @@ export function useRealtimeNotifications() {
                             type: 'glasses',
                             title: '👓 Glasses Ready',
                             message: `Order ${payload.new.order_number} is ready for collection.`,
-                            link: '/assistant/glasses-orders',
+                            link: '/frontdesk/glasses-orders',
                         })
                     }
                 })
@@ -113,8 +113,8 @@ export function useRealtimeNotifications() {
         }
 
         // ── ASSISTANT + ADMIN: Low stock alerts ───────────────────────
-        if (['assistant', 'admin'].includes(profile.role)) {
-            const inventoryLink = profile.role === 'admin' ? '/admin/inventory' : '/assistant/inventory'
+        if (['frontdesk', 'admin'].includes(profile.role)) {
+            const inventoryLink = profile.role === 'admin' ? '/admin/inventory' : '/frontdesk/inventory'
 
             // Drug low stock
             const stockChannel = supabase
@@ -133,14 +133,14 @@ export function useRealtimeNotifications() {
                     if (newQty === 0) {
                         notify({
                             type: 'low_stock',
-                            title: '🚨 Out of Stock',
+                            title: 'Out of Stock',
                             message: `${drug.name} is now completely out of stock!`,
                             link: inventoryLink,
                         })
                     } else if (newQty <= reorderLevel && oldQty > reorderLevel) {
                         notify({
                             type: 'low_stock',
-                            title: '⚠️ Low Stock Alert',
+                            title: 'Low Stock Alert',
                             message: `${drug.name}: only ${newQty} ${drug.unit || 'units'} left (min: ${reorderLevel}).`,
                             link: inventoryLink,
                         })

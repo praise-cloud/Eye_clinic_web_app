@@ -472,7 +472,7 @@ export function ChatPage() {
                                                                 </div>
                                                                 {showTime && (
                                                                     <p className={`text-[10px] text-muted-foreground mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
-                                                                        {formatTime(msg.created_at)}{msg.updated_at && ' · edited'}
+                                                                        {formatTime(msg.created_at)}{msg.updated_at && msg.updated_at !== msg.created_at && ' · edited'}
                                                                     </p>
                                                                 )}
                                                             </div>

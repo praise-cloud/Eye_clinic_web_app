@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDate, formatCurrency } from '@/lib/utils'
-import { MiniCalendar } from '@/components/calendar/MiniCalendar'
 import { ActivityFeed } from '@/components/admin/ActivityFeed'
 
 export function AdminDashboard() {
@@ -69,7 +68,6 @@ export function AdminDashboard() {
             </div>
 
             <div className="space-y-5">
-                <MiniCalendar compact />
                 <ActivityFeed compact />
             </div>
         </div>

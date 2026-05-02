@@ -188,7 +188,7 @@ export async function fetchDashboardStats(role: string): Promise<Record<string, 
     supabase.from('patients').select('*', { count: 'exact', head: true }),
     supabase.from('appointments').select('*', { count: 'exact', head: true }).gte('scheduled_at', startOfDay).lte('scheduled_at', endOfDay),
     supabase.from('prescriptions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('pharmacy_drugs').select('*', { count: 'exact', head: true }).lt('quantity_in_stock', 10),
+    supabase.from('drugs').select('*', { count: 'exact', head: true }).lt('quantity', 10),
   ])
 
   return {

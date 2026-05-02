@@ -10,8 +10,24 @@ export function SubscriptionsPage() {
     const { data: expiring = [], isLoading: expLoading } = useQuery({
         queryKey: ['expiring-subscriptions'],
         queryFn: async () => {
-            const { data } = await supabase.from('expiring_subscriptions').select('*')
-            return data ?? []
+            const today = new Date()
+            const cutoff = new Date(today)
+            cutoff.setDate(cutoff.getDate() + 30)
+            const { data } = await supabase
+                .from('patients')
+                .select('id,first_name,last_name,patient_number,phone,subscription_end')
+                .neq('subscription_type', 'none')
+                .not('subscription_end', 'is', null)
+                .gte('subscription_end', today.toISOString())
+                .lte('subscription_end', cutoff.toISOString())
+                .order('subscription_end', { ascending: true })
+            return (data ?? []).map((patient: any) => ({
+                ...patient,
+                days_remaining: Math.max(
+                    0,
+                    Math.ceil((new Date(patient.subscription_end).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+                ),
+            }))
         },
     })
 
