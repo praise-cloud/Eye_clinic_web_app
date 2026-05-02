@@ -183,8 +183,8 @@ export function useRealtimeNotifications() {
             channels.push(glassesStockChannel)
         }
 
-        // ── ACCOUNTANT + ADMIN: New payment ───────────────────────────
-        if (['accountant', 'admin'].includes(profile.role)) {
+        // ── ADMIN: New payment ───────────────────────────
+        if (['admin'].includes(profile.role)) {
             const payChannel = supabase
                 .channel(`pay-new:${profile.id}`)
                 .on('postgres_changes', {
