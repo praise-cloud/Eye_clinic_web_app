@@ -2,40 +2,62 @@
 -- EYE CLINIC DATABASE - CORE SCHEMA
 -- =============================================
 
+DO $$
+DECLARE
+    pol RECORD;
+    trig RECORD;
+    func RECORD;
+    tbl RECORD;
+BEGIN
+    -- Drop ALL RLS policies on core tables
+    FOR pol IN 
+        SELECT schemaname, tablename, policyname 
+        FROM pg_policies 
+        WHERE schemaname = 'public'
+        AND tablename IN ('profiles', 'patients', 'appointments', 'case_notes', 'prescriptions')
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', 
+            pol.policyname, pol.schemaname, pol.tablename);
+    END LOOP;
+
+    -- Drop ALL triggers on core tables
+    FOR trig IN 
+        SELECT trigger_name, event_object_table 
+        FROM information_schema.triggers 
+        WHERE trigger_schema = 'public'
+        AND event_object_table IN ('profiles', 'patients', 'appointments', 'case_notes', 'prescriptions')
+    LOOP
+        BEGIN
+            EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', 
+                trig.trigger_name, trig.event_object_table);
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+    END LOOP;
+
+    -- Drop core functions (CASCADE)
+    DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+    DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+    DROP FUNCTION IF EXISTS get_user_role() CASCADE;
+    DROP FUNCTION IF EXISTS get_current_profile() CASCADE;
+
+    -- Drop core tables
+    DROP TABLE IF EXISTS public.case_notes CASCADE;
+    DROP TABLE IF EXISTS public.prescriptions CASCADE;
+    DROP TABLE IF EXISTS public.appointments CASCADE;
+    DROP TABLE IF EXISTS public.patients CASCADE;
+    DROP TABLE IF EXISTS public.profiles CASCADE;
+END $$;
+
+SELECT 'Cleanup complete' as status;
+
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- =============================================
--- CORE FUNCTIONS
--- =============================================
-
--- Helper function to get current user's role
-CREATE OR REPLACE FUNCTION get_user_role() RETURNS TEXT AS $$
-SELECT role
-FROM public.profiles
-WHERE id = auth.uid()
-LIMIT 1;
-$$ LANGUAGE SQL SECURITY DEFINER STABLE;
-
--- Helper function to get current user's profile
-CREATE OR REPLACE FUNCTION get_current_profile() RETURNS RECORD AS $$
-SELECT *
-FROM public.profiles
-WHERE id = auth.uid()
-LIMIT 1;
-$$ LANGUAGE SQL SECURITY DEFINER STABLE;
-
--- =============================================
--- CORE TABLES
--- =============================================
-
 -- PROFILES (extends Supabase Auth)
-CREATE TABLE IF NOT EXISTS public.profiles (
+CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   full_name TEXT,
-  role TEXT NOT NULL CHECK (
-    role IN ('frontdesk', 'doctor', 'admin', 'manager')
-  ),
+  role TEXT NOT NULL CHECK (role IN ('frontdesk', 'doctor', 'admin', 'manager')),
   phone TEXT,
   avatar_url TEXT,
   is_active BOOLEAN DEFAULT TRUE,
@@ -44,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 
 -- PATIENTS
-CREATE TABLE IF NOT EXISTS public.patients (
+CREATE TABLE public.patients (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   patient_number TEXT UNIQUE NOT NULL,
   first_name TEXT NOT NULL,
@@ -58,9 +80,7 @@ CREATE TABLE IF NOT EXISTS public.patients (
   next_of_kin_name TEXT,
   next_of_kin_phone TEXT,
   allergies TEXT,
-  subscription_type TEXT DEFAULT 'none' CHECK (
-    subscription_type IN ('none', 'basic', 'standard', 'premium')
-  ),
+  subscription_type TEXT DEFAULT 'none' CHECK (subscription_type IN ('none', 'basic', 'standard', 'premium')),
   subscription_start TEXT,
   subscription_end TEXT,
   registered_by UUID REFERENCES auth.users(id),
@@ -69,32 +89,14 @@ CREATE TABLE IF NOT EXISTS public.patients (
 );
 
 -- APPOINTMENTS
-CREATE TABLE IF NOT EXISTS public.appointments (
+CREATE TABLE public.appointments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   patient_id UUID REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
   doctor_id UUID REFERENCES public.profiles(id) NOT NULL,
   requested_by UUID REFERENCES auth.users(id),
   scheduled_at TIMESTAMPTZ NOT NULL,
-  appointment_type TEXT NOT NULL CHECK (
-    appointment_type IN (
-      'checkup',
-      'follow_up',
-      'new_consultation',
-      'glasses_fitting',
-      'emergency'
-    )
-  ),
-  status TEXT DEFAULT 'pending' CHECK (
-    status IN (
-      'pending',
-      'confirmed',
-      'arrived',
-      'in_progress',
-      'completed',
-      'cancelled',
-      'no_show'
-    )
-  ),
+  appointment_type TEXT NOT NULL CHECK (appointment_type IN ('checkup', 'follow_up', 'new_consultation', 'glasses_fitting', 'emergency')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'arrived', 'in_progress', 'completed', 'cancelled', 'no_show')),
   notes TEXT,
   reminder_sent BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -102,7 +104,7 @@ CREATE TABLE IF NOT EXISTS public.appointments (
 );
 
 -- CASE NOTES
-CREATE TABLE IF NOT EXISTS public.case_notes (
+CREATE TABLE public.case_notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   patient_id UUID REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
   doctor_id UUID REFERENCES public.profiles(id) NOT NULL,
@@ -115,7 +117,6 @@ CREATE TABLE IF NOT EXISTS public.case_notes (
   follow_up_date TEXT,
   is_encrypted BOOLEAN DEFAULT FALSE,
   cvf_attachment_url TEXT,
-  -- Ophthalmology specific fields
   visiting_date TEXT,
   ophthalmoscopy_notes TEXT,
   previous_rx TEXT,
@@ -150,7 +151,7 @@ CREATE TABLE IF NOT EXISTS public.case_notes (
 );
 
 -- PRESCRIPTIONS
-CREATE TABLE IF NOT EXISTS public.prescriptions (
+CREATE TABLE public.prescriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   patient_id UUID REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
   doctor_id UUID REFERENCES public.profiles(id) NOT NULL,
@@ -167,63 +168,41 @@ CREATE TABLE IF NOT EXISTS public.prescriptions (
   le_add NUMERIC,
   le_va TEXT,
   pd NUMERIC,
-  lens_type TEXT CHECK (
-    lens_type IN (
-      'single_vision',
-      'bifocal',
-      'progressive',
-      'reading'
-    )
-  ),
+  lens_type TEXT CHECK (lens_type IN ('single_vision', 'bifocal', 'progressive', 'reading')),
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- =============================================
 -- CORE INDEXES
--- =============================================
+CREATE INDEX idx_profiles_role ON public.profiles(role);
+CREATE INDEX idx_profiles_is_active ON public.profiles(is_active);
+CREATE INDEX idx_profiles_created_at ON public.profiles(created_at DESC);
+CREATE INDEX idx_patients_patient_number ON public.patients(patient_number);
+CREATE INDEX idx_patients_created_at ON public.patients(created_at DESC);
+CREATE INDEX idx_patients_name ON public.patients(first_name, last_name);
+CREATE INDEX idx_appointments_scheduled_at ON public.appointments(scheduled_at DESC);
+CREATE INDEX idx_appointments_doctor_id ON public.appointments(doctor_id);
+CREATE INDEX idx_appointments_patient_id ON public.appointments(patient_id);
+CREATE INDEX idx_appointments_status ON public.appointments(status);
+CREATE INDEX idx_case_notes_patient_id ON public.case_notes(patient_id);
+CREATE INDEX idx_case_notes_doctor_id ON public.case_notes(doctor_id);
+CREATE INDEX idx_case_notes_created_at ON public.case_notes(created_at DESC);
+CREATE INDEX idx_prescriptions_patient_id ON public.prescriptions(patient_id);
+CREATE INDEX idx_prescriptions_doctor_id ON public.prescriptions(doctor_id);
+CREATE INDEX idx_prescriptions_status ON public.prescriptions(status);
 
--- Profiles indexes
-CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
-CREATE INDEX IF NOT EXISTS idx_profiles_is_active ON public.profiles(is_active);
-CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON public.profiles(created_at DESC);
-
--- Patients indexes
-CREATE INDEX IF NOT EXISTS idx_patients_patient_number ON public.patients(patient_number);
-CREATE INDEX IF NOT EXISTS idx_patients_created_at ON public.patients(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_patients_name ON public.patients(first_name, last_name);
-
--- Appointments indexes
-CREATE INDEX IF NOT EXISTS idx_appointments_scheduled_at ON public.appointments(scheduled_at DESC);
-CREATE INDEX IF NOT EXISTS idx_appointments_doctor_id ON public.appointments(doctor_id);
-CREATE INDEX IF NOT EXISTS idx_appointments_patient_id ON public.appointments(patient_id);
-CREATE INDEX IF NOT EXISTS idx_appointments_status ON public.appointments(status);
-
--- Case notes indexes
-CREATE INDEX IF NOT EXISTS idx_case_notes_patient_id ON public.case_notes(patient_id);
-CREATE INDEX IF NOT EXISTS idx_case_notes_doctor_id ON public.case_notes(doctor_id);
-CREATE INDEX IF NOT EXISTS idx_case_notes_created_at ON public.case_notes(created_at DESC);
-
--- Prescriptions indexes
-CREATE INDEX IF NOT EXISTS idx_prescriptions_patient_id ON public.prescriptions(patient_id);
-CREATE INDEX IF NOT EXISTS idx_prescriptions_doctor_id ON public.prescriptions(doctor_id);
-CREATE INDEX IF NOT EXISTS idx_prescriptions_status ON public.prescriptions(status);
-
--- =============================================
 -- ENABLE ROW LEVEL SECURITY
--- =============================================
-
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.case_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prescriptions ENABLE ROW LEVEL SECURITY;
 
--- =============================================
--- CORE TRIGGERS
--- =============================================
+-- CORE FUNCTIONS
+CREATE OR REPLACE FUNCTION get_user_role() RETURNS TEXT AS $$
+SELECT role FROM public.profiles WHERE id = auth.uid() LIMIT 1;
+$$ LANGUAGE SQL SECURITY DEFINER STABLE;
 
--- Update timestamps trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -232,7 +211,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply timestamp triggers
+CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, full_name, role)
+    VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+        COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk')
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- CORE TRIGGERS
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -245,40 +236,16 @@ CREATE TRIGGER update_appointments_updated_at BEFORE UPDATE ON public.appointmen
 CREATE TRIGGER update_case_notes_updated_at BEFORE UPDATE ON public.case_notes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- =============================================
--- PROFILE CREATION TRIGGER
--- =============================================
-
-CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO public.profiles (id, full_name, role)
-    VALUES (
-        NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', NEW.email?.split('@')[0] || 'User'),
-        COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk')
-    );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- =============================================
 -- REALTIME PUBLICATION
--- =============================================
-
 DO $$
 BEGIN
-    -- Add core tables to realtime publication
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.case_notes; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.prescriptions; EXCEPTION WHEN duplicate_object THEN NULL; END;
 END $$;
 
--- =============================================
--- COMPLETION MESSAGE
--- =============================================
-
-SELECT 'Core schema created successfully' as status;
+SELECT 'Core schema created successfully' as message;

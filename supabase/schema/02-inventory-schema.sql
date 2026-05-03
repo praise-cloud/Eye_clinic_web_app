@@ -2,6 +2,54 @@
 -- EYE CLINIC DATABASE - INVENTORY SCHEMA
 -- =============================================
 
+DO $$
+DECLARE
+    pol RECORD;
+    trig RECORD;
+    func RECORD;
+    tbl RECORD;
+BEGIN
+    -- Drop ALL RLS policies on inventory tables
+    FOR pol IN 
+        SELECT schemaname, tablename, policyname 
+        FROM pg_policies 
+        WHERE schemaname = 'public'
+        AND tablename IN ('drugs', 'glasses_inventory', 'inventory_others', 'drug_dispensing', 'inventory_dispensing', 'glasses_orders')
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', 
+            pol.policyname, pol.schemaname, pol.tablename);
+    END LOOP;
+
+    -- Drop ALL triggers on inventory tables
+    FOR trig IN 
+        SELECT trigger_name, event_object_table 
+        FROM information_schema.triggers 
+        WHERE trigger_schema = 'public'
+        AND event_object_table IN ('drugs', 'glasses_inventory', 'inventory_others', 'drug_dispensing', 'inventory_dispensing', 'glasses_orders')
+    LOOP
+        BEGIN
+            EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', 
+                trig.trigger_name, trig.event_object_table);
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+    END LOOP;
+
+    -- Drop ALL functions
+    DROP FUNCTION IF EXISTS update_drug_quantity_on_dispensing() CASCADE;
+    DROP FUNCTION IF EXISTS update_inventory_others_quantity_on_dispensing() CASCADE;
+    DROP FUNCTION IF EXISTS update_glasses_quantity_on_order() CASCADE;
+
+    -- Drop ALL inventory tables
+    DROP TABLE IF EXISTS public.glasses_orders CASCADE;
+    DROP TABLE IF EXISTS public.inventory_dispensing CASCADE;
+    DROP TABLE IF EXISTS public.drug_dispensing CASCADE;
+    DROP TABLE IF EXISTS public.inventory_others CASCADE;
+    DROP TABLE IF EXISTS public.glasses_inventory CASCADE;
+    DROP TABLE IF EXISTS public.drugs CASCADE;
+END $$;
+
+SELECT 'Cleanup complete' as status;
+
 -- =============================================
 -- INVENTORY TABLES
 -- =============================================
@@ -65,10 +113,6 @@ CREATE TABLE IF NOT EXISTS public.inventory_others (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- =============================================
--- DISPENSING TABLES
--- =============================================
-
 -- DRUG DISPENSING
 CREATE TABLE IF NOT EXISTS public.drug_dispensing (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -97,10 +141,6 @@ CREATE TABLE IF NOT EXISTS public.inventory_dispensing (
   dispensed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- =============================================
--- GLASSES ORDERS
--- =============================================
-
 -- GLASSES ORDERS
 CREATE TABLE IF NOT EXISTS public.glasses_orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -113,15 +153,7 @@ CREATE TABLE IF NOT EXISTS public.glasses_orders (
   frame_price NUMERIC,
   lens_price NUMERIC,
   total_price NUMERIC,
-  status TEXT DEFAULT 'pending' CHECK (
-    status IN (
-      'pending',
-      'in_lab',
-      'ready',
-      'dispensed',
-      'cancelled'
-    )
-  ),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_lab', 'ready', 'dispensed', 'cancelled')),
   deposit_paid NUMERIC DEFAULT 0,
   balance_paid NUMERIC DEFAULT 0,
   estimated_ready TEXT,
@@ -133,6 +165,8 @@ CREATE TABLE IF NOT EXISTS public.glasses_orders (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+SELECT 'Inventory tables created' as status;
 
 -- =============================================
 -- INVENTORY INDEXES
@@ -162,7 +196,6 @@ CREATE INDEX IF NOT EXISTS idx_inventory_others_is_active ON public.inventory_ot
 CREATE INDEX IF NOT EXISTS idx_drug_dispensing_patient_id ON public.drug_dispensing(patient_id);
 CREATE INDEX IF NOT EXISTS idx_drug_dispensing_drug_id ON public.drug_dispensing(drug_id);
 CREATE INDEX IF NOT EXISTS idx_drug_dispensing_dispensed_at ON public.drug_dispensing(dispensed_at DESC);
-
 CREATE INDEX IF NOT EXISTS idx_inventory_dispensing_patient_id ON public.inventory_dispensing(patient_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_dispensing_item_id ON public.inventory_dispensing(item_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_dispensing_dispensed_at ON public.inventory_dispensing(dispensed_at DESC);
@@ -184,6 +217,8 @@ ALTER TABLE public.drug_dispensing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_dispensing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.glasses_orders ENABLE ROW LEVEL SECURITY;
 
+SELECT 'RLS enabled' as status;
+
 -- =============================================
 -- INVENTORY TRIGGERS
 -- =============================================
@@ -193,28 +228,25 @@ CREATE OR REPLACE FUNCTION update_drug_quantity_on_dispensing()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE public.drugs 
-    SET quantity = quantity - NEW.quantity,
-        updated_at = NOW()
+    SET quantity = quantity - NEW.quantity, updated_at = NOW()
     WHERE id = NEW.drug_id;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE TRIGGER drug_dispensing_update_quantity 
+    AFTER INSERT ON public.drug_dispensing 
+    FOR EACH ROW EXECUTE FUNCTION update_drug_quantity_on_dispensing();
+
 CREATE OR REPLACE FUNCTION update_inventory_others_quantity_on_dispensing()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE public.inventory_others 
-    SET quantity = quantity - NEW.quantity,
-        updated_at = NOW()
+    SET quantity = quantity - NEW.quantity, updated_at = NOW()
     WHERE id = NEW.item_id;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
--- Apply dispensing triggers
-CREATE TRIGGER drug_dispensing_update_quantity 
-    AFTER INSERT ON public.drug_dispensing 
-    FOR EACH ROW EXECUTE FUNCTION update_drug_quantity_on_dispensing();
 
 CREATE TRIGGER inventory_dispensing_update_quantity 
     AFTER INSERT ON public.inventory_dispensing 
@@ -224,10 +256,9 @@ CREATE TRIGGER inventory_dispensing_update_quantity
 CREATE OR REPLACE FUNCTION update_glasses_quantity_on_order()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.frame_id IS NOT NULL THEN
+    IF NEW.frame_id IS NOT NULL AND (OLD.status != 'dispensed' OR OLD.status IS NULL) AND NEW.status = 'dispensed' THEN
         UPDATE public.glasses_inventory 
-        SET quantity = quantity - 1,
-            updated_at = NOW()
+        SET quantity = quantity - 1, updated_at = NOW()
         WHERE id = NEW.frame_id;
     END IF;
     RETURN NEW;
@@ -238,7 +269,7 @@ CREATE TRIGGER glasses_orders_update_quantity
     AFTER UPDATE ON public.glasses_orders 
     FOR EACH ROW EXECUTE FUNCTION update_glasses_quantity_on_order();
 
--- Apply timestamp triggers
+-- Timestamp triggers
 CREATE TRIGGER update_drugs_updated_at BEFORE UPDATE ON public.drugs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -251,20 +282,12 @@ CREATE TRIGGER update_inventory_others_updated_at BEFORE UPDATE ON public.invent
 CREATE TRIGGER update_glasses_orders_updated_at BEFORE UPDATE ON public.glasses_orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- =============================================
--- REALTIME PUBLICATION
--- =============================================
-
+-- Realtime publication
 DO $$
 BEGIN
-    -- Add inventory tables to realtime publication
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.drugs; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.glasses_inventory; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.glasses_orders; EXCEPTION WHEN duplicate_object THEN NULL; END;
 END $$;
 
--- =============================================
--- COMPLETION MESSAGE
--- =============================================
-
-SELECT 'Inventory schema created successfully' as status;
+SELECT 'Inventory schema created successfully' as message;

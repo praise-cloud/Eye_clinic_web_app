@@ -52,10 +52,10 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Dashboard', href: '/manager', icon: LayoutDashboard },
     { label: 'Appointments', href: '/manager/appointments', icon: Calendar },
     { label: 'Calendar', href: '/manager/calendar', icon: Calendar },
-    { label: 'Patients', href: '/patients', icon: Users },
-    { label: 'Transaction History', href: '/manager/transactions', icon: DollarSign },
-    { label: 'Messages', href: '/manager/messages', icon: MessageSquare },
-    { label: 'Settings', href: '/manager/settings', icon: Settings },
+    { label: 'Patients', href: '/manager/patients', icon: Users },
+    { label: 'Transaction History', href: '/manager/reports', icon: DollarSign },
+    { label: 'Messages', href: '/chat', icon: MessageSquare },
+    { label: 'Settings', href: '/settings', icon: Settings },
   ],
 }
 

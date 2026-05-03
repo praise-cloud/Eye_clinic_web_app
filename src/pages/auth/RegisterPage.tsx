@@ -68,44 +68,47 @@ export function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // Step 1: Create confirmed user via your backend admin route (no email sent)
-      // Role is forced to 'frontdesk' - only admins can create other roles
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          full_name: data.full_name,
-          role: 'frontdesk', // Force frontdesk role for public registration
-        }),
-      })
+      // Split full name into first and last name for the trigger
+      const nameParts = data.full_name.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
 
-      const result = await response.json()
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Registration failed.')
-      }
-
-      // Step 2: Sign in — user is already confirmed, no email rate limits hit
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Step 1: Sign up with Supabase (trigger creates profile automatically)
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            role: 'frontdesk', // Force frontdesk role for public registration
+          },
+        },
       })
 
-      if (signInError) throw new Error('Account created but sign-in failed. Please go to the login page.')
-      if (!signInData.user) throw new Error('Sign-in returned no user.')
+      if (signUpError) throw signUpError
+      if (!signUpData.user) throw new Error('Sign-up returned no user.')
 
-      // Step 3: Set user in store
-      useAuthStore.getState().setUser(signInData.user)
+      // Step 2: If email confirmation is disabled, sign in immediately
+      if (!signUpData.session) {
+        // Email confirmation required
+        setServerError('')
+        setIsLoading(false)
+        navigate('/login', { state: { message: 'Registration successful! Please check your email to confirm your account.' } })
+        return
+      }
 
-      // Step 4: Fetch profile (your backend already upserted it, so it should exist)
+      // Step 3: Set user in store (auto-confirmed)
+      useAuthStore.getState().setUser(signUpData.user)
+
+      // Step 4: Fetch profile (trigger created it)
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', signInData.user.id)
+        .eq('id', signUpData.user.id)
         .single()
 
-      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(signInData.user)
+      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(signUpData.user)
       useAuthStore.getState().setProfile(resolvedProfile)
 
       navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
@@ -113,11 +116,7 @@ export function RegisterPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed.'
       console.error('[RegisterPage] registration failed:', err)
-      if (msg.includes('auth user creation failed: database error creating new user')) {
-        setServerError('Supabase auth could not create the user record. This usually means your database trigger or auth schema is broken.')
-      } else if (msg.includes('profile sync failed:')) {
-        setServerError(msg)
-      } else if (msg.includes('already registered') || msg.includes('already been registered')) {
+      if (msg.includes('already registered') || msg.includes('already been registered')) {
         setServerError('This email is already registered. Try signing in instead.')
       } else {
         setServerError(msg)

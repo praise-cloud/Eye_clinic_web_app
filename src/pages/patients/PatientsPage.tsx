@@ -87,20 +87,11 @@ export function PatientsPage() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            // Delete all related records first to avoid FK constraint errors
-            // (These will also be handled by CASCADE if the SQL fix was run)
-            const tables = [
-                'drug_dispensing', 'payments', 'outreach_log',
-                'prescriptions', 'case_notes', 'glasses_orders', 'appointments'
-            ]
-            for (const table of tables) {
-                await supabase.from(table as any).delete().eq('patient_id', id)
-            }
-            // Now delete the patient
+            // CASCADE handles all related records automatically
             const { error } = await supabase.from('patients').delete().eq('id', id)
             if (error) {
                 if (error.code === '42501') throw new Error('You do not have permission to delete patients.')
-                throw new Error('Unable to delete patient. Please run the COMPLETE-FIX.sql in Supabase to enable cascade deletes.')
+                throw new Error(`Delete failed: ${error.message}`)
             }
         },
         onMutate: async (id: string) => {

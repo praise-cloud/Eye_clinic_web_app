@@ -3,6 +3,31 @@
 -- =============================================
 
 -- =============================================
+-- CLEAN SLATE (Drop existing objects)
+-- =============================================
+
+-- Drop triggers
+DROP TRIGGER IF EXISTS audit_messages ON public.messages;
+DROP TRIGGER IF EXISTS audit_notifications ON public.notifications;
+DROP TRIGGER IF EXISTS audit_outreach_log ON public.outreach_log;
+DROP TRIGGER IF EXISTS audit_settings ON public.settings;
+DROP TRIGGER IF EXISTS message_mark_read ON public.messages;
+DROP TRIGGER IF EXISTS update_messages_updated_at ON public.messages;
+DROP TRIGGER IF EXISTS update_push_subscriptions_updated_at ON public.push_subscriptions;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS public.audit_trigger_function();
+DROP FUNCTION IF EXISTS mark_message_read();
+
+-- Drop tables (CASCADE handles FK constraints)
+DROP TABLE IF EXISTS public.audit_logs CASCADE;
+DROP TABLE IF EXISTS public.push_subscriptions CASCADE;
+DROP TABLE IF EXISTS public.settings CASCADE;
+DROP TABLE IF EXISTS public.outreach_log CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.messages CASCADE;
+
+-- =============================================
 -- MESSAGES TABLE
 -- =============================================
 
@@ -196,11 +221,11 @@ DECLARE
   old_data JSONB;
   new_data JSONB;
 BEGIN
-  target_id := COALESCE(NEW.id::TEXT, OLD.id::TEXT);
+  target_id := COALESCE(NEW.id::TEXT, OLD.id::TEXT, 'unknown');
   
   -- Convert records to JSON for audit
-  old_data := row_to_json(OLD);
-  new_data := row_to_json(NEW);
+  old_data := to_jsonb(OLD);
+  new_data := to_jsonb(NEW);
   
   INSERT INTO public.audit_logs (user_id, action, table_name, record_id, old_values, new_values)
   VALUES (
@@ -290,4 +315,4 @@ ON CONFLICT (key) DO NOTHING;
 -- COMPLETION MESSAGE
 -- =============================================
 
-SELECT 'Communications schema created successfully' as status;
+SELECT 'Communications schema created successfully' as message;

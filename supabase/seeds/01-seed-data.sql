@@ -407,7 +407,7 @@ ON CONFLICT (key) DO NOTHING;
 -- COMPLETION MESSAGE
 -- =============================================
 
-SELECT 'Seed data loaded successfully' as status,
+SELECT 'Seed data loaded successfully' as message,
        (SELECT COUNT(*) FROM public.patients) as patients_count,
        (SELECT COUNT(*) FROM public.drugs) as drugs_count,
        (SELECT COUNT(*) FROM public.glasses_inventory) as glasses_count,

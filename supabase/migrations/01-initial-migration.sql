@@ -226,4 +226,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- COMPLETION MESSAGE
 -- =============================================
 
-SELECT 'Initial migration setup completed' as status;
+SELECT 'Initial migration setup completed' as message;
