@@ -30,11 +30,12 @@
     "src",
     "vite.config.ts"
   ],
-"exclude": [
+  "exclude": [
     "node_modules",
     "dist",
     "backend",
     "client",
-    "api"
+    "api",
+    "src/test"
   ]
 }

@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { useClinicStore } from '@/hooks/useClinicSettings'
 import type { Profile } from '@/types'
-import { buildFallbackProfile, getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
+import { buildFallbackProfile, getRoleDashboardPath } from '@/lib/auth'
 
   const schema = z.object({
     full_name: z.string().min(2, 'Enter your full name'),
@@ -22,6 +22,8 @@ import { buildFallbackProfile, getRoleDashboardPath, normalizeUserRole } from '@
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/\d/, 'Password must contain at least one number')
       .regex(/[@$!%*?&]/, 'Password must contain at least one special character (@$!%*?&)'),
+    role: z.enum(['frontdesk', 'doctor', 'admin', 'manager'], {
+      required_error: 'Please select a role' }),
   })
 type FormData = z.infer<typeof schema>
 
@@ -30,7 +32,6 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const clinicName = useClinicStore(s => s.settings?.clinic_name || 'Eye Clinic')
   const [serverError, setServerError] = useState('')
-  const [role, setRole] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export function RegisterPage() {
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: { role: 'frontdesk' },
   })
 
   const onSubmit = async (data: FormData) => {
@@ -81,7 +83,7 @@ export function RegisterPage() {
           data: {
             first_name: firstName,
             last_name: lastName,
-            role: 'frontdesk', // Force frontdesk role for public registration
+            role: data.role, // Use role selected in the form
           },
         },
       })
@@ -176,6 +178,17 @@ export function RegisterPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <Select onValueChange={(value) => setValue('role', value as any)} defaultValue="frontdesk">
+              <SelectTrigger label="Role">
+                <SelectValue placeholder="Select your role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="frontdesk">Frontdesk</SelectItem>
+                <SelectItem value="doctor">Doctor</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+              </SelectContent>
+            </Select>
             <Button type="submit" className="w-full h-10" disabled={isLoading || isSubmitting}>
               {(isLoading || isSubmitting) ? 'Creating account...' : 'Create Account'}
             </Button>
