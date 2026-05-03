@@ -558,7 +558,9 @@ const deleteMutation = useMutation({
                         <div className="flex flex-wrap gap-2 w-full">
                             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                             <Button variant="outline" onClick={handleClear}><X className="w-3.5 h-3.5 mr-1" />Clear</Button>
-                            <Button variant="outline" onClick={() => navigate('/doctor/prescriptions')}><FileText className="w-3.5 h-3.5 mr-1" />Prescriptions</Button>
+                            <Button variant="outline" onClick={() => navigate(`/doctor/prescriptions${watch('patient_id') ? `?patient=${watch('patient_id')}` : ''}`)}>
+                                <FileText className="w-3.5 h-3.5 mr-1" />New Prescription
+                            </Button>
                             <Button type="submit" form="note-form" loading={isSubmitting || createMutation.isPending}><Plus className="w-3.5 h-3.5 mr-1" />Save Note</Button>
                         </div>
                     </ModalFooter>

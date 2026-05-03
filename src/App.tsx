@@ -21,6 +21,7 @@ import { PatientDetailPage } from './pages/patients/PatientDetailPage'
 import { AppointmentsPage } from './pages/appointments/AppointmentsPage'
 import { CalendarPage } from './pages/appointments/CalendarPage'
 import { CaseNotesPage } from './pages/doctor/CaseNotesPage'
+import { DoctorPrescriptionsPage } from './pages/doctor/DoctorPrescriptionsPage'
 import { DispensingPage } from './pages/frontdesk/DispensingPage'
 import { GlassesOrdersPage } from './pages/frontdesk/GlassesOrdersPage'
 import { GlassesPrescriptionPage } from './pages/frontdesk/GlassesPrescriptionPage'
@@ -124,7 +125,8 @@ function App() {
           <Route path="/doctor/appointments" element={<P roles={['doctor']}><AppointmentsPage /></P>} />
           <Route path="/doctor/calendar" element={<P roles={['doctor']}><CalendarPage /></P>} />
           <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
-
+          <Route path="/doctor/prescriptions" element={<P roles={['doctor']}><DoctorPrescriptionsPage /></P>} />
+          
           {/* Frontdesk */}
           <Route path="/frontdesk" element={<P roles={['frontdesk']}><AssistantDashboard /></P>} />
           <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
