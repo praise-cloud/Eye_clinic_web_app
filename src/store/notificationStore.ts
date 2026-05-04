@@ -7,7 +7,7 @@ export interface AppNotification {
     title: string
     message: string
     type: 'appointment' | 'prescription' | 'low_stock' | 'payment' | 'patient' | 'dispensing' | 'glasses' | 'system'
-    read: boolean
+    is_read: boolean
     created_at: string
     link?: string
 }
@@ -15,7 +15,7 @@ export interface AppNotification {
 interface NotificationState {
     notifications: AppNotification[]
     unreadCount: number
-    add: (n: Omit<AppNotification, 'id' | 'read' | 'created_at' | 'user_id'>, userId: string) => void
+    add: (n: Omit<AppNotification, 'id' | 'is_read' | 'created_at' | 'user_id'>, userId: string) => void
     markRead: (id: string, userId: string) => void
     markAllRead: (userId: string) => void
     remove: (id: string, userId: string) => void
@@ -36,7 +36,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             title: n.title,
             message: n.message,
             link: n.link,
-            read: false,
+            is_read: false,
         }).then(({ data, error }) => {
             if (error) {
                 console.error('Failed to save notification:', error)
@@ -57,12 +57,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     },
 
     markRead: (id, userId) => {
-        supabase.from('notifications').update({ read: true }).eq('id', id).then(() => {
+        supabase.from('notifications').update({ is_read: true }).eq('id', id).then(() => {
             set(s => {
                 const target = s.notifications.find(n => n.id === id)
-                const wasUnread = target && !target.read
+                const wasUnread = target && !target.is_read
                 return {
-                    notifications: s.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+                    notifications: s.notifications.map(n => n.id === id ? { ...n, is_read: true } : n),
                     unreadCount: wasUnread ? Math.max(0, s.unreadCount - 1) : s.unreadCount,
                 }
             })
@@ -70,9 +70,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     },
 
     markAllRead: (userId) => {
-        supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false).then(() => {
+        supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false).then(() => {
             set(s => ({
-                notifications: s.notifications.map(n => ({ ...n, read: true })),
+                notifications: s.notifications.map(n => ({ ...n, is_read: true })),
                 unreadCount: 0,
             }))
         })
@@ -82,7 +82,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         supabase.from('notifications').delete().eq('id', id).then(() => {
             set(s => {
                 const notification = s.notifications.find(n => n.id === id)
-                const wasUnread = notification && !notification.read
+                const wasUnread = notification && !notification.is_read
                 return {
                     notifications: s.notifications.filter(n => n.id !== id),
                     unreadCount: wasUnread ? Math.max(0, s.unreadCount - 1) : s.unreadCount,
@@ -100,7 +100,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     setNotifications: (notifications) => {
         set({
             notifications,
-            unreadCount: notifications.filter(n => !n.read).length,
+            unreadCount: notifications.filter(n => !n.is_read).length,
         })
     },
 
@@ -108,7 +108,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 }))
 
 // Helper to trigger notifications from anywhere (saves to DB)
-export const notify = (n: Omit<AppNotification, 'id' | 'read' | 'created_at' | 'user_id'>, userId?: string) => {
+export const notify = (n: Omit<AppNotification, 'id' | 'is_read' | 'created_at' | 'user_id'>, userId?: string) => {
     if (userId) {
         useNotificationStore.getState().add(n, userId)
         return

@@ -12,6 +12,7 @@ import { useNotificationStore } from '@/store/notificationStore'
 import type { AppNotification } from '@/store/notificationStore'
 import { cn } from '@/lib/utils'
 
+
 const typeIcon: Record<AppNotification['type'], React.ElementType> = {
     appointment: Calendar,
     prescription: Pill,
@@ -80,7 +81,7 @@ export function NotificationsPage() {
 
     const markReadMutation = useMutation({
         mutationFn: async (id: string) => {
-            await supabase.from('notifications').update({ read: true }).eq('id', id)
+            await supabase.from('notifications').update({ is_read: true }).eq('id', id)
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
     })
@@ -89,9 +90,9 @@ export function NotificationsPage() {
         mutationFn: async () => {
             await supabase
                 .from('notifications')
-                .update({ read: true })
+                .update({ is_read: true })
                 .eq('user_id', profile!.id)
-                .eq('read', false)
+                .eq('is_read', false)
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
     })
@@ -112,12 +113,12 @@ export function NotificationsPage() {
 
     const filtered = notifications.filter(n => {
         if (filterType !== 'all' && n.type !== filterType) return false
-        if (filterRead === 'read' && !n.read) return false
-        if (filterRead === 'unread' && n.read) return false
+        if (filterRead === 'read' && !n.is_read) return false
+        if (filterRead === 'unread' && n.is_read) return false
         return true
     })
 
-    const unreadCount = notifications.filter(n => !n.read).length
+    const unreadCount = notifications.filter(n => !n.is_read).length
 
     return (
         <div className="space-y-5">
@@ -207,7 +208,7 @@ export function NotificationsPage() {
                                         key={n.id}
                                         className={cn(
                                             'flex items-start gap-3 px-4 py-3.5 hover:bg-accent transition-colors',
-                                            !n.read && 'bg-blue-50/40'
+                                            !n.is_read && 'bg-blue-50/40'
                                         )}
                                     >
                                         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', colorClass)}>
@@ -215,7 +216,7 @@ export function NotificationsPage() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">
-                                                <p className={cn('text-sm', !n.read ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
+                                                <p className={cn('text-sm', !n.is_read ? 'font-semibold text-foreground' : 'font-medium text-foreground/90')}>
                                                     {n.title}
                                                 </p>
                                                 <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0 mt-0.5">
@@ -235,7 +236,7 @@ export function NotificationsPage() {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-1 flex-shrink-0">
-                                            {!n.read && (
+                                            {!n.is_read && (
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -255,7 +256,7 @@ export function NotificationsPage() {
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </Button>
-                                            {!n.read && (
+                                            {!n.is_read && (
                                                 <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                                             )}
                                         </div>
