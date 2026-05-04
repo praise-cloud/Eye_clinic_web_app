@@ -1,4 +1,5 @@
 // User/Profile types
+export type { UserRole } from './profile'
 export interface Profile {
   id: string
   email: string
@@ -237,7 +238,7 @@ export interface LowStockItem {
 // Notification types
 export interface AppNotification {
   id: string
-  type: 'system' | 'patient' | 'appointment' | 'prescription' | 'payment'
+  type: 'system' | 'patient' | 'appointment' | 'prescription' | 'payment' | 'low_stock' | 'dispensing' | 'glasses'
   title: string
   message: string
   user_id: string

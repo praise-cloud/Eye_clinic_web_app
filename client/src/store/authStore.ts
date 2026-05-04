@@ -6,10 +6,13 @@ interface AuthState {
   user: Profile | null
   token: string | null
   isAuthenticated: boolean
+  isLoading: boolean
+  profile: Profile | null
   setUser: (user: Profile) => void
   setToken: (token: string) => void
   clearAuth: () => void
   updateUser: (updates: Partial<Profile>) => void
+  setLoading: (loading: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -18,6 +21,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
+      isLoading: false,
+      get profile() { return get().user },
 
       setUser: (user) => set({ user, isAuthenticated: true }),
       
@@ -31,6 +36,8 @@ export const useAuthStore = create<AuthState>()(
           set({ user: { ...user, ...updates } })
         }
       },
+
+      setLoading: (loading) => set({ isLoading: loading }),
     }),
     {
       name: 'auth-storage',

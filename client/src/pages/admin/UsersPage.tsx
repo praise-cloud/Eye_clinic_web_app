@@ -1,20 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, UserCheck, UserX, Trash2, AlertTriangle, Pencil, Loader2 } from 'lucide-react'
-import { usersAPI } from '@/services/api'
-import { useAuthStore } from '@/store/authStore'
-import { notify } from '@/store/notificationStore'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Plus, UserCheck, UserX, Trash2, AlertTriangle, Pencil } from 'lucide-react'
+import { usersAPI } from '../../services/services'
+import { useAuthStore } from '../../store/authStore'
+import { notify } from '../../store/notificationStore'
+import { Button } from '../../components/ui/button'
+import { Badge } from '../../components/ui/badge'
+import { Input } from '../../components/ui/input'
+import { Skeleton } from '../../components/ui/skeleton'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '../../components/ui/modal'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getRoleColor, getRoleAccent, getInitials, formatDate } from '@/lib/utils'
-import type { Profile, UserFormData } from '@/types'
+import { getRoleColor, getRoleAccent, getInitials } from '../../lib/utils'
+import type { Profile } from '../../types'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Required'),
@@ -57,7 +57,7 @@ export function UsersPage() {
   }
 
   // Set form values when editing
-  useState(() => {
+  useEffect(() => {
     if (editTarget) {
       form.setValue('full_name', editTarget.full_name || '')
       form.setValue('email', editTarget.email || '')
@@ -150,25 +150,25 @@ export function UsersPage() {
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-2xl" />)}</div>
       ) : (
         <div className="space-y-2">
-          {users.map(u => (
-            <div key={u.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all p-4">
+          {users.map((user: Profile) => (
+            <div key={user.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all p-4">
               <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-sm ${getRoleAccent(u.role)}`}>
-                  {getInitials(u.full_name)}
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-sm ${getRoleAccent(user.role)}`}>
+                  {getInitials(user.full_name)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{u.full_name}</h3>
-                      <p className="text-sm text-gray-500 truncate">{u.email}</p>
-                      {u.phone && <p className="text-xs text-gray-400">{u.phone}</p>}
+                      <h3 className="font-semibold text-gray-900 truncate">{user.full_name}</h3>
+                      <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                      {user.phone && <p className="text-xs text-gray-400">{user.phone}</p>}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className={`${getRoleColor(u.role)} text-xs font-medium`}>
-                        {u.role}
+                      <Badge className={`${getRoleColor(user.role)} text-xs font-medium`}>
+                        {user.role}
                       </Badge>
-                      <Badge variant={u.is_active ? 'default' : 'destructive'} className="text-xs">
-                        {u.is_active ? 'Active' : 'Inactive'}
+                      <Badge variant={user.is_active ? 'default' : 'destructive'} className="text-xs">
+                        {user.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
                   </div>
@@ -177,7 +177,7 @@ export function UsersPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setEditTarget(u)}
+                    onClick={() => setEditTarget(user)}
                     disabled={!currentUser?.is_active}
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -185,15 +185,17 @@ export function UsersPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => toggleActiveMutation.mutate(u.id)}
+                                        onClick={() => {
+  toggleActiveMutation.mutate(user.id)
+}}
                     disabled={!currentUser?.is_active}
                   >
-                    {u.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                    {user.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => setDeleteTarget(u)}
+                    onClick={() => setDeleteTarget(user)}
                     disabled={!currentUser?.is_active}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -208,7 +210,7 @@ export function UsersPage() {
 
       {/* Create/Edit User Modal */}
       <Modal open={open} onOpenChange={setOpen}>
-        <ModalContent size="sm">
+        <ModalContent>
           <ModalHeader>
             <ModalTitle>{editTarget ? 'Edit Staff' : 'Add New Staff'}</ModalTitle>
             <ModalDescription>
@@ -275,7 +277,7 @@ export function UsersPage() {
                 <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
                   Role
                 </label>
-                <Select value={form.watch('role')} onValueChange={(value) => form.setValue('role', value)}>
+                <Select value={form.watch('role')} onValueChange={(value: 'doctor' | 'frontdesk' | 'admin' | 'manager') => form.setValue('role', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -323,7 +325,7 @@ export function UsersPage() {
 
       {/* Delete Confirm Modal */}
       <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <ModalContent size="sm">
+        <ModalContent>
           <ModalHeader>
             <ModalTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="w-5 h-5" />Delete Account
@@ -339,7 +341,7 @@ export function UsersPage() {
             <Button 
               variant="destructive" 
               loading={deleteMutation.isPending}
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+                            onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
             >
               Delete Permanently
             </Button>

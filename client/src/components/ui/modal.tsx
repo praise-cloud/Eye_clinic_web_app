@@ -84,6 +84,16 @@ const ModalDescription = React.forwardRef<
 ))
 ModalDescription.displayName = DialogPrimitive.Description.displayName
 
+const ModalBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      'flex flex-col space-y-4',
+      className
+    )}
+    {...props}
+  />
+)
+
 const ModalFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
@@ -119,6 +129,7 @@ export {
   ModalTrigger,
   ModalContent,
   ModalHeader,
+  ModalBody,
   ModalFooter,
   ModalTitle,
   ModalDescription,
