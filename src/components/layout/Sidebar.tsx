@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Calendar, FileText, Pill,
   Package, DollarSign, MessageSquare, Settings, LogOut,
-  ClipboardList, UserCog, BarChart3, Send, ChevronRight, Package2
+  ClipboardList, UserCog, BarChart3, Send, ChevronRight
 } from 'lucide-react'
 import { cn, getInitials, getRoleAccent, getRoleColor } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -14,46 +14,42 @@ interface NavItem { label: string; href: string; icon: React.ElementType; badge?
 
 const navByRole: Record<UserRole, NavItem[]> = {
   doctor: [
-    { label: 'Dashboard', href: '/doctor', icon: LayoutDashboard },
-    { label: 'Patients', href: '/doctor/patients', icon: Users },
+    { label: 'Home', href: '/doctor', icon: LayoutDashboard },
     { label: 'Appointments', href: '/doctor/appointments', icon: Calendar },
-    { label: 'Calendar', href: '/doctor/calendar', icon: Calendar },
     { label: 'Case Notes', href: '/doctor/case-notes', icon: FileText },
+    { label: 'Calendar', href: '/doctor/calendar', icon: Calendar },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
   frontdesk: [
-    { label: 'Dashboard', href: '/frontdesk', icon: LayoutDashboard },
+    { label: 'Home', href: '/frontdesk', icon: LayoutDashboard },
     { label: 'Patients', href: '/frontdesk/patients', icon: Users },
-    { label: 'Appointments', href: '/frontdesk/appointments', icon: Calendar },
     { label: 'Calendar', href: '/frontdesk/calendar', icon: Calendar },
-    { label: 'Drug Dispensing', href: '/frontdesk/dispensing', icon: Pill },
-     { label: 'Glasses Orders', href: '/frontdesk/glasses-orders', icon: Package },
-     { label: 'Item Dispensing', href: '/frontdesk/item-orders', icon: Package2 },
-     { label: 'Outreach', href: '/frontdesk/outreach', icon: Send },
+    { label: 'Inventory', href: '/frontdesk/inventory', icon: Package },
+    { label: 'Dispense Logs', href: '/frontdesk/dispense-logs', icon: ClipboardList },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
+    { label: 'Outreach', href: '/frontdesk/outreach', icon: Send },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
   admin: [
-    { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { label: 'Home', href: '/admin', icon: LayoutDashboard },
     { label: 'Patients', href: '/admin/patients', icon: Users },
     { label: 'Calendar', href: '/admin/calendar', icon: Calendar },
-    { label: 'Inventory', href: '/admin/inventory', icon: Package },
     { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { label: 'Payments', href: '/admin/payments', icon: DollarSign },
-    { label: 'Daily Summary', href: '/admin/summary', icon: BarChart3 },
-    { label: 'Subscriptions', href: '/admin/subscriptions', icon: ClipboardList },
+    { label: 'Subscription', href: '/admin/subscription', icon: ClipboardList },
+    { label: 'Inventory', href: '/admin/inventory', icon: Package },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
   manager: [
-    { label: 'Dashboard', href: '/manager', icon: LayoutDashboard },
+    { label: 'Home', href: '/manager', icon: LayoutDashboard },
     { label: 'Calendar', href: '/manager/calendar', icon: Calendar },
-    { label: 'Patients', href: '/manager/patients', icon: Users },
     { label: 'Users', href: '/manager/users', icon: UserCog },
-    { label: 'Transaction History', href: '/manager/reports', icon: DollarSign },
+    { label: 'Transaction History', href: '/manager/transaction-history', icon: DollarSign },
+    { label: 'Patient History', href: '/manager/patient-history', icon: Users },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
-    { label: 'aduit', href: '/manager/audit', icon: ClipboardList },  
+    { label: 'Audit Log', href: '/manager/audit-log', icon: ClipboardList },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
 }

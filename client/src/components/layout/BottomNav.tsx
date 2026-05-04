@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, Pill, Package, DollarSign, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, Pill, Package, DollarSign, BarChart3, LogOut } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { getRoleAccent } from '../../lib/utils'
 import type { UserRole } from '../../types'
@@ -15,6 +15,8 @@ const bottomNavByRole: Record<UserRole, { label: string; href: string; icon: Rea
     frontdesk: [
         { label: 'Home', href: '/frontdesk', icon: LayoutDashboard },
         { label: 'Patients', href: '/frontdesk/patients', icon: Users },
+        { label: 'Calendar', href: '/frontdesk/calendar', icon: Calendar },
+        { label: 'Inventory', href: '/frontdesk/inventory', icon: Package },
         { label: 'Dispense', href: '/frontdesk/dispensing', icon: Pill },
         { label: 'Chat', href: '/chat', icon: MessageSquare },
         { label: 'Settings', href: '/settings', icon: Settings },
@@ -22,6 +24,7 @@ const bottomNavByRole: Record<UserRole, { label: string; href: string; icon: Rea
     admin: [
         { label: 'Home', href: '/admin', icon: LayoutDashboard },
         { label: 'Patients', href: '/admin/patients', icon: Users },
+        { label: 'Transactions', href: '/admin/transactions', icon: DollarSign },
         { label: 'Inventory', href: '/admin/inventory', icon: Package },
         { label: 'Chat', href: '/chat', icon: MessageSquare },
     ],
@@ -66,6 +69,14 @@ export function BottomNav({ onLogout }: BottomNavProps) {
                     )}
                 </NavLink>
             ))}
+            <button
+                onClick={onLogout}
+                className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-0 flex-1 transition-colors text-muted-foreground hover:text-destructive"
+                title="Sign out"
+            >
+                <LogOut className="w-5 h-5 flex-shrink-0" />
+                <span className="text-[10px] font-medium">Logout</span>
+            </button>
         </nav>
     )
 }

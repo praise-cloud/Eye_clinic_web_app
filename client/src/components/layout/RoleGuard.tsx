@@ -2,7 +2,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useEffect } from 'react'
 import type { Profile } from '../../types'
-import { getRoleDashboardPath, normalizeUserRole } from '../../lib/auth'
+import { getRoleDashboardPath } from '../../lib/auth'
 
 interface RoleGuardProps {
     children: React.ReactNode
