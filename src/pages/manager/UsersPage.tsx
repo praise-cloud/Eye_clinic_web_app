@@ -118,20 +118,17 @@ const toggleActive = useMutation({
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            // Delete profile (RLS policy allows manager to delete)
-            // Note: This removes the profile but not the auth user
-            // For complete deletion including auth user, a Supabase Edge Function is needed
-            const { error, count } = await supabase
-                .from('profiles')
-                .delete({ count: 'exact' })
-                .eq('id', userId)
-            if (error) throw error
-            if (count === 0) throw new Error('Profile not found or you do not have permission to delete it.')
+            // Call Edge Function to delete user (uses service role key on server)
+            const { data, error } = await supabase.functions.invoke('delete-user', {
+                body: { userId }
+            })
+            if (error) throw new Error(`Edge function error: ${error.message}`)
+            if (data?.error) throw new Error(data.error)
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
-            notify({ type: 'system', title: 'Account Deleted', message: 'Staff profile has been permanently deleted.' })
+            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted (profile and auth).' })
         },
         onError: (e: Error) => {
             console.error('Delete staff error:', e)
