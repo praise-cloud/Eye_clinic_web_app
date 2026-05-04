@@ -1017,7 +1017,9 @@ CREATE POLICY "profiles_manager_manage" ON public.profiles FOR ALL TO authentica
 CREATE POLICY "read_case_notes" ON public.case_notes FOR SELECT TO authenticated USING (true);
 CREATE POLICY "insert_case_notes" ON public.case_notes FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "update_case_notes" ON public.case_notes FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "delete_case_notes" ON public.case_notes FOR DELETE TO authenticated USING (get_user_role() = 'admin');
+CREATE POLICY "delete_case_notes" ON public.case_notes FOR DELETE TO authenticated USING (
+    get_user_role() = 'admin' OR doctor_id = auth.uid()
+);
 
 -- Messages policies
 CREATE POLICY "read_own_messages" ON public.messages FOR SELECT TO authenticated USING (sender_id = auth.uid() OR receiver_id = auth.uid());
@@ -1028,7 +1030,9 @@ CREATE POLICY "delete_own_messages" ON public.messages FOR DELETE TO authenticat
 CREATE POLICY "read_appointments" ON public.appointments FOR SELECT TO authenticated USING (true);
 CREATE POLICY "insert_appointments" ON public.appointments FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "update_appointments" ON public.appointments FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "delete_appointments" ON public.appointments FOR DELETE TO authenticated USING (get_user_role() = 'admin');
+CREATE POLICY "delete_appointments" ON public.appointments FOR DELETE TO authenticated USING (
+    get_user_role() = 'admin' OR doctor_id = auth.uid()
+);
 
 -- Patients policies
 CREATE POLICY "read_patients" ON public.patients FOR SELECT TO authenticated USING (true);
