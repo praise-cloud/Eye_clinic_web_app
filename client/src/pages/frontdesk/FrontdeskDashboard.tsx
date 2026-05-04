@@ -85,42 +85,46 @@ export function FrontdeskDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Frontdesk Dashboard</h1>
-          <p className="text-gray-500">Manage patient registrations and appointments</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link to="/frontdesk/patients/register">
-              <Plus className="w-4 h-4 mr-2" />
-              Register Patient
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/frontdesk/appointments/new">
-              <Calendar className="w-4 h-4 mr-2" />
-              Book Appointment
-            </Link>
-          </Button>
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Frontdesk Dashboard</h1>
+            <p className="page-description">Manage patient registrations and appointments</p>
+          </div>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/frontdesk/patients/register">
+                <Plus className="w-4 h-4 mr-2" />
+                Register Patient
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/frontdesk/appointments/new">
+                <Calendar className="w-4 h-4 mr-2" />
+                Book Appointment
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Patients</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalPatients || 0}</p>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <Card className="card-elevated">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">Total Patients</p>
+                  <p className="stat-value">{stats?.totalPatients || 0}</p>
+                </div>
+                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 text-primary" />
+                </div>
               </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-4 h-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardContent className="p-6">

@@ -1,8 +1,25 @@
 import { authAPI } from './api.js';
 
+interface LoginResponse {
+  success: boolean;
+  user?: any;
+  token?: string;
+  error?: string;
+}
+
+interface VerifyTokenResponse {
+  success: boolean;
+  user?: any;
+  error?: string;
+}
+
+interface LogoutResponse {
+  success: boolean;
+}
+
 export class AuthService {
   // Login user
-  static async login(email, password) {
+  static async login(email: string, password: string): Promise<LoginResponse> {
     try {
       const response = await authAPI.login(email, password);
       
@@ -19,7 +36,7 @@ export class AuthService {
       }
       
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       return {
         success: false,
@@ -29,11 +46,11 @@ export class AuthService {
   }
 
   // Register user
-  static async register(userData) {
+  static async register(userData: any): Promise<any> {
     try {
       const response = await authAPI.register(userData);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Register error:', error);
       return {
         success: false,
@@ -43,7 +60,7 @@ export class AuthService {
   }
 
   // Verify token and get current user
-  static async verifyToken() {
+  static async verifyToken(): Promise<VerifyTokenResponse> {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -62,7 +79,7 @@ export class AuthService {
       }
       
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Token verification error:', error);
       // Clear invalid token
       this.logout();
@@ -74,10 +91,10 @@ export class AuthService {
   }
 
   // Logout user
-  static async logout() {
+  static async logout(): Promise<LogoutResponse> {
     try {
       await authAPI.logout();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Logout error:', error);
     } finally {
       // Clear local storage regardless of API call success
@@ -110,13 +127,13 @@ export class AuthService {
   }
 
   // Check user role
-  static hasRole(role) {
+  static hasRole(role: string): boolean {
     const user = this.getCurrentUser();
     return user?.role === role;
   }
 
   // Check if user has any of the specified roles
-  static hasAnyRole(roles) {
+  static hasAnyRole(roles: string[]): boolean {
     const user = this.getCurrentUser();
     return user && roles.includes(user.role);
   }
@@ -158,14 +175,14 @@ export class AuthService {
     const currentUser = user || this.getCurrentUser();
     if (!currentUser) return '/login';
     
-    const rolePaths = {
+    const rolePaths: Record<string, string> = {
       admin: '/admin',
       doctor: '/doctor',
       frontdesk: '/frontdesk',
       manager: '/manager'
     };
     
-    return rolePaths[currentUser.role] || '/login';
+    return rolePaths[currentUser.role as string] || '/login';
   }
 }
 

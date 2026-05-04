@@ -101,88 +101,98 @@ export function DoctorDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Doctor Dashboard</h1>
-          <p className="text-gray-500">Manage patient appointments and prescriptions</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link to="/doctor/prescriptions/new">
-              <Pill className="w-4 h-4 mr-2" />
-              New Prescription
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/doctor/patients">
-              <Users className="w-4 h-4 mr-2" />
-              View Patients
-            </Link>
-          </Button>
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Doctor Dashboard</h1>
+            <p className="page-description">Manage patient appointments and prescriptions</p>
+          </div>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/doctor/prescriptions/new">
+                <Pill className="w-4 h-4 mr-2" />
+                New Prescription
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/doctor/patients">
+                <Users className="w-4 h-4 mr-2" />
+                View Patients
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.todayAppointments || 0}</p>
-                <p className="text-xs text-gray-500">{stats?.completedToday || 0} completed</p>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <Card className="card-elevated">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">Today's Appointments</p>
+                  <p className="stat-value">{stats?.todayAppointments || 0}</p>
+                  <p className="text-xs text-muted-foreground">{stats?.completedToday || 0} completed</p>
+                </div>
+                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-primary" />
+                </div>
               </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pending Prescriptions</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.pendingPrescriptions || 0}</p>
-                <p className="text-xs text-gray-500">Awaiting dispensing</p>
+        <div className="stat-card">
+          <Card className="card-elevated">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">Pending Prescriptions</p>
+                  <p className="stat-value">{stats?.pendingPrescriptions || 0}</p>
+                  <p className="text-xs text-muted-foreground">Awaiting dispensing</p>
+                </div>
+                <div className="w-8 h-8 bg-secondary/50 rounded-lg flex items-center justify-center">
+                  <Pill className="w-4 h-4 text-secondary-foreground" />
+                </div>
               </div>
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Pill className="w-4 h-4 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Patients</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalPatients || 0}</p>
-                <p className="text-xs text-gray-500">In clinic database</p>
+        <div className="stat-card">
+          <Card className="card-elevated">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">Total Patients</p>
+                  <p className="stat-value">{stats?.totalPatients || 0}</p>
+                  <p className="text-xs text-muted-foreground">In clinic database</p>
+                </div>
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 text-green-600" />
+                </div>
               </div>
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Users className="w-4 h-4 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Upcoming</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.upcomingAppointments || 0}</p>
-                <p className="text-xs text-gray-500">Waiting for you</p>
+        <div className="stat-card">
+          <Card className="card-elevated">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="stat-label">Upcoming</p>
+                  <p className="stat-value">{stats?.upcomingAppointments || 0}</p>
+                  <p className="text-xs text-muted-foreground">Waiting for you</p>
+                </div>
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-orange-600" />
+                </div>
               </div>
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-4 h-4 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -118,13 +118,13 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600">Manage your account and application settings</p>
+      <div className="page-header">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-description">Manage your account and application settings</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-muted p-1 rounded-lg">
         {tabs.map(tab => {
           const Icon = tab.icon
           return (
@@ -133,8 +133,8 @@ export function SettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -148,31 +148,31 @@ export function SettingsPage() {
       {activeTab === 'profile' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <Card>
+            <Card className="card-elevated">
               <CardHeader>
                 <CardTitle>Personal Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit(handleProfileSubmit)} className="space-y-4">
+                <form onSubmit={handleSubmit(handleProfileSubmit)} className="form-section">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <div className="form-field">
+                      <label className="form-label">Full Name</label>
                       <Input {...register('full_name')} />
                       {errors.full_name && (
                         <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <div className="form-field">
+                      <label className="form-label">Email</label>
                       <Input type="email" {...register('email')} disabled />
-                      <p className="text-gray-500 text-xs mt-1">Email cannot be changed here</p>
+                      <p className="text-muted-foreground text-xs mt-1">Email cannot be changed here</p>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <div className="form-field">
+                    <label className="form-label">Phone Number</label>
                     <Input type="tel" {...register('phone')} />
                     {errors.phone && (
-                      <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>
+                      <p className="text-destructive text-xs mt-1">{errors.phone.message}</p>
                     )}
                   </div>
                   <Button type="submit" loading={isSubmitting || updateProfileMutation.isPending}>

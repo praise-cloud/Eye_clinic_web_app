@@ -1,9 +1,5 @@
-// TypeScript wrapper for JavaScript services
-// This file provides proper TypeScript types for the JavaScript API services
-
-// Import the actual JavaScript modules
-const apiModule = require('./api.js');
-const authServiceModule = require('./authService.js');
+import * as apiModule from './api.js';
+import * as authServiceModule from './authService';
 
 // Re-export with proper types
 export const usersAPI: {

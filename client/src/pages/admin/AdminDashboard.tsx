@@ -110,24 +110,26 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500">System overview and administration</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link to="/admin/users">
-              <Users className="w-4 h-4 mr-2" />
-              Manage Users
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/admin/settings">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Link>
-          </Button>
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Admin Dashboard</h1>
+            <p className="page-description">System overview and administration</p>
+          </div>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/admin/users">
+                <Users className="w-4 h-4 mr-2" />
+                Manage Users
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/admin/settings">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -170,66 +172,58 @@ export function AdminDashboard() {
       </Card>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.totalUsers || 0}</p>
-                <p className="text-xs text-gray-500">{stats?.activeUsers || 0} active</p>
-              </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-4 h-4 text-blue-600" />
-              </div>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="stat-label">Total Users</p>
+              <p className="stat-value">{stats?.totalUsers || 0}</p>
+              <p className="text-xs text-muted-foreground">{stats?.activeUsers || 0} active</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.todayAppointments || 0}</p>
-                <p className="text-xs text-gray-500">{stats?.completedToday || 0} completed</p>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-green-600" />
-              </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="stat-label">Today's Appointments</p>
+              <p className="stat-value">{stats?.todayAppointments || 0}</p>
+              <p className="text-xs text-muted-foreground">{stats?.completedToday || 0} completed</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Daily Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats?.dailyRevenue || 0)}</p>
-                <p className="text-xs text-gray-500">Today's earnings</p>
-              </div>
-              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-yellow-600" />
-              </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="stat-label">Daily Revenue</p>
+              <p className="stat-value">{formatCurrency(stats?.dailyRevenue || 0)}</p>
+              <p className="text-xs text-muted-foreground">Today's earnings</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.lowStockItems || 0}</p>
-                <p className="text-xs text-gray-500">Need restocking</p>
-              </div>
-              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
-              </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="stat-label">Low Stock Items</p>
+              <p className="stat-value">{stats?.lowStockItems || 0}</p>
+              <p className="text-xs text-muted-foreground">Need restocking</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

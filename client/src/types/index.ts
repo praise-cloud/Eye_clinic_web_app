@@ -235,6 +235,24 @@ export interface LowStockItem {
   total: number
 }
 
+// Message types
+export interface Message {
+  id: string
+  sender_id: string
+  receiver_id: string
+  content: string
+  is_read: boolean
+  read_at?: string
+  attachment_type?: 'image' | 'document'
+  attachment_url?: string
+  attachment_name?: string
+  message_type: 'text' | 'system' | 'notification'
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+  reply_to_id?: string
+  created_at: string
+  updated_at: string
+}
+
 // Notification types
 export interface AppNotification {
   id: string

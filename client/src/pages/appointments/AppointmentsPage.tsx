@@ -73,27 +73,29 @@ export function AppointmentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
-          <p className="text-gray-600">Manage patient appointments and schedules</p>
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Appointments</h1>
+            <p className="page-description">Manage patient appointments and schedules</p>
+          </div>
+          {canCreateAppointment && (
+            <Button asChild>
+              <Link to="/appointments/new">
+                <Plus className="w-4 h-4 mr-2" />
+                New Appointment
+              </Link>
+            </Button>
+          )}
         </div>
-        {canCreateAppointment && (
-          <Button asChild>
-            <Link to="/appointments/new">
-              <Plus className="w-4 h-4 mr-2" />
-              New Appointment
-            </Link>
-          </Button>
-        )}
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="card-elevated">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search patients..."
                 value={search}

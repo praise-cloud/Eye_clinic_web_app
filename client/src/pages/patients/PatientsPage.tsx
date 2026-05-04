@@ -47,26 +47,28 @@ export function PatientsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
-          <p className="text-gray-600">Manage patient records and information</p>
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Patients</h1>
+            <p className="page-description">Manage patient records and information</p>
+          </div>
+          {canCreatePatient && (
+            <Button asChild>
+              <Link to="/patients/new">
+                <Plus className="w-4 h-4 mr-2" />
+                New Patient
+              </Link>
+            </Button>
+          )}
         </div>
-        {canCreatePatient && (
-          <Button asChild>
-            <Link to="/patients/new">
-              <Plus className="w-4 h-4 mr-2" />
-              New Patient
-            </Link>
-          </Button>
-        )}
       </div>
 
       {/* Search */}
-      <Card>
+      <Card className="card-elevated">
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Search patients by name or ID..."
               value={search}
@@ -78,7 +80,7 @@ export function PatientsPage() {
       </Card>
 
       {/* Patients List */}
-      <Card>
+      <Card className="card-elevated">
         <CardHeader>
           <CardTitle>All Patients</CardTitle>
         </CardHeader>
@@ -86,7 +88,7 @@ export function PatientsPage() {
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                <div key={i} className="flex items-center space-x-4 p-4 border border-border rounded-lg">
                   <Skeleton className="w-12 h-12 rounded-full" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/4" />
@@ -98,9 +100,9 @@ export function PatientsPage() {
             </div>
           ) : patients.length === 0 ? (
             <div className="text-center py-12">
-              <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No patients found</h3>
-              <p className="text-gray-600">
+              <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No patients found</h3>
+              <p className="text-muted-foreground">
                 {search ? 'Try adjusting your search terms' : 'Get started by adding your first patient'}
               </p>
               {canCreatePatient && !search && (
@@ -115,20 +117,20 @@ export function PatientsPage() {
           ) : (
             <div className="space-y-2">
               {patients.map(patient => (
-                <div key={patient.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={patient.id} className="flex items-center justify-between p-4 border border-border rounded-lg card-hover">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-primary font-semibold">
                         {patient.first_name[0]}{patient.last_name[0]}
                       </span>
                     </div>
                     <div>
-                      <h3 className="font-medium text-gray-900">
+                      <h3 className="font-medium text-foreground">
                         {patient.first_name} {patient.last_name}
                       </h3>
-                      <p className="text-sm text-gray-600">{patient.patient_number}</p>
+                      <p className="text-sm text-muted-foreground">{patient.patient_number}</p>
                       <div className="flex items-center space-x-4 mt-1">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           {patient.phone}
                         </span>
                         {patient.subscription_type && patient.subscription_type !== 'none' && (

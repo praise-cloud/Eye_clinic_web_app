@@ -4,11 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { AuthService } from '@/services/authService'
+import AuthService from '@/services/authService'
 import { useAuthStore } from '@/store/authStore'
 import { useClinicStore } from '@/hooks/useClinicSettings'
-import type { Profile } from '@/types'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { buildFallbackProfile, getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
 import { getAutoSecureErrorMessage } from '@/lib/errors'
 import { logError } from '@/lib/logger'
@@ -77,89 +78,85 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full space-y-8 p-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome to {clinicName}</h1>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
-        </div>
-
-        {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-            {successMessage}
-          </div>
-        )}
-
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              {...form.register('email')}
-              disabled={isLoading}
-            />
-            {form.formState.errors.email && (
-              <p className="mt-1 text-sm text-red-600">{form.formState.errors.email.message}</p>
-            )}
+    <div className="min-h-screen gradient-bg flex items-center justify-center">
+      <div className="max-w-md w-full">
+        <Card className="p-8 space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-foreground">Welcome to {clinicName}</h1>
+            <p className="mt-2 text-muted-foreground">Sign in to your account</p>
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
-                {...form.register('password')}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {form.formState.errors.password && (
-              <p className="mt-1 text-sm text-red-600">{form.formState.errors.password.message}</p>
-            )}
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-              {error}
+          {successMessage && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+              {successMessage}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </button>
-        </form>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="form-section">
+            <div className="form-field">
+              <label htmlFor="email" className="form-label">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                {...form.register('email')}
+                disabled={isLoading}
+              />
+              {form.formState.errors.email && (
+                <p className="mt-1 text-sm text-destructive">{form.formState.errors.email.message}</p>
+              )}
+            </div>
 
-        <div className="text-center">
-          <Link to="/register" className="text-blue-600 hover:text-blue-800 text-sm">
-            Don't have an account? Sign up
-          </Link>
-        </div>
+            <div className="form-field">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  {...form.register('password')}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {form.formState.errors.password && (
+                <p className="mt-1 text-sm text-destructive">{form.formState.errors.password.message}</p>
+              )}
+            </div>
+
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full"
+              loading={isLoading}
+            >
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </form>
+
+          <div className="text-center">
+            <Link to="/register" className="text-primary hover:text-primary/80 text-sm transition-colors">
+              Don't have an account? Sign up
+            </Link>
+          </div>
+        </Card>
       </div>
     </div>
   )

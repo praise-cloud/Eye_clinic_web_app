@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+  root: './client/src',
+  publicDir: '../../public',
   plugins: [
     react(),
     VitePWA({
@@ -82,7 +84,7 @@ export default defineConfig({
     })
   ],
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') }
+    alias: { '@': path.resolve(__dirname, './client/src') }
   },
   server: {
     port: 5173,
@@ -95,7 +97,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist',
+    outDir: '../../dist',
     sourcemap: true,
     rollupOptions: {
       output: {

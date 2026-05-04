@@ -35,6 +35,28 @@ export function formatTime(time: string | Date): string {
   })
 }
 
+// Format date and time
+export function formatDateTime(date: string | Date): string {
+  const d = new Date(date)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  
+  if (isToday) {
+    return d.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+  
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  }) + ' ' + d.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 // Format currency
 export function formatCurrency(amount: number, currency: string = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
