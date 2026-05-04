@@ -107,9 +107,9 @@ class RateLimiter {
 
 // Pre-configured rate limiters for different use cases
 export const loginRateLimiter = new RateLimiter({
-  maxAttempts: 5,
+  maxAttempts: 10,          // Increased from 5 to 10
   windowMs: 15 * 60 * 1000, // 15 minutes
-  blockDurationMs: 30 * 60 * 1000 // 30 minutes block
+  blockDurationMs: 10 * 60 * 1000 // Reduced from 30 to 10 minutes
 });
 
 export const registrationRateLimiter = new RateLimiter({
