@@ -87,16 +87,10 @@ export function LoginPage() {
                 return
             }
 
-            const raceResult = await Promise.race([
-                supabase.auth.signInWithPassword({
-                    email: data.email,
-                    password: data.password,
-                }),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Login timeout')), 30000))
-            ])
-
-            const authData = raceResult as any
-            const authError = (authData as any)?.error
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: data.email,
+                password: data.password,
+            })
 
             if (authError) {
                 setError(getAutoSecureErrorMessage(authError))
@@ -107,15 +101,14 @@ export function LoginPage() {
             if (authData.user) {
                 useAuthStore.getState().setUser(authData.user)
 
-                // Profile with timeout
+                // Profile fetch
                 try {
-                    const profilePromise = Promise.race([
-                        supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 10000))
-                    ])
+                    const { data: profileData, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', authData.user.id)
+                        .maybeSingle()
 
-                    const profileData = await profilePromise as any
-                    const profileError = profileData?.error
                     if (profileError) console.error('Profile error:', profileError)
 
                     const resolvedProfile = (profileData?.data as Profile | null) ?? buildFallbackProfile(authData.user)

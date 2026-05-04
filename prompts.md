@@ -354,6 +354,11 @@ import { FrontdeskDashboard } from './pages/frontdesk/FrontdeskDashboard'
 | Auth Guard | `src/components/layout/RoleGuard.tsx` |
 | Sidebar | `src/components/layout/Sidebar.tsx` |
 
+### Entry Point
+| File | Path |
+|------|------|
+| Main Entry | `src/main.tsx` — includes env validation for VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY |
+
 ---
 
 ## Quick Checklist Before Committing
@@ -367,6 +372,7 @@ import { FrontdeskDashboard } from './pages/frontdesk/FrontdeskDashboard'
 - [ ] Ensure `WITH CHECK` not `USING` for INSERT policies
 - [ ] Test appointment booking — no 403 errors
 - [ ] Verify dashboard stats show correct metrics
+- [ ] Verify `.env` file exists with required vars (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
 
 ---
 
