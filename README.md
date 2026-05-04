@@ -1,25 +1,29 @@
-# Eye Clinic Management System - Web PWA
+# Eye Clinic Management System
 
-A modern, mobile-responsive Progressive Web Application for eye clinic management built with React, TailwindCSS, Node.js/Express, and Supabase.
+A comprehensive, modern eye clinic management system with separated React frontend and Express.js backend, using Supabase as the database.
 
-## Project Structure
+## 🏗️ Architecture
 
 ```
 eye-clinic-web/
-├── client/           # React frontend (Vite + PWA)
+├── client/                 # React frontend application
 │   ├── src/
-│   │   ├── components/   # UI components
-│   │   ├── pages/      # Page components
-│   │   ├── hooks/     # Custom React hooks
-│   │   ├── services/  # API services
-│   │   ├── stores/   # Zustand stores
-│   │   └── types/    # TypeScript types
-│   └── public/      # Static assets
-├── server/          # Express backend
-│   └── src/
-│       ├── routes/   # API routes
-│       └── services/ # Services
-└── supabase/       # Database schema
+│   │   ├── components/    # Reusable UI components
+│   │   ├── pages/        # Page components by role/feature
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── lib/          # Utilities and configurations
+│   │   ├── store/        # State management (Zustand)
+│   │   └── types/        # TypeScript definitions
+│   ├── public/            # Static assets and PWA files
+│   └── package.json
+├── server/                # Express.js backend API
+│   ├── src/
+│   │   ├── routes/       # API route handlers
+│   │   └── lib/          # Server utilities and Supabase client
+│   └── package.json
+├── supabase/              # Database schema and setup
+│   └── 00-complete-setup.sql  # Complete database setup with fixes
+└── README.md
 ```
 
 ## Features
