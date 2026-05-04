@@ -50,7 +50,7 @@ function AuthProvider() {
       try {
         if (session?.user) {
           setUser(session.user)
-          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
           if (error) throw error
           if (data) {
             setProfile(data as Profile)
@@ -58,7 +58,7 @@ function AuthProvider() {
             const meta = session.user.user_metadata
             const role = (meta?.role ?? 'frontdesk') as Profile['role']
             const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
-            const { data: np, error: upsertError } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().single()
+            const { data: np, error: upsertError } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().maybeSingle()
             if (upsertError) throw upsertError
             if (np) setProfile(np as Profile)
           }
@@ -77,7 +77,7 @@ function AuthProvider() {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
         try {
-          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
           if (error) throw error
           if (data) {
             setProfile(data as Profile); setLoading(false)
@@ -86,7 +86,7 @@ function AuthProvider() {
             const meta = session.user.user_metadata
             const role = (meta?.role ?? 'frontdesk') as Profile['role']
             const full_name = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0] ?? 'User'
-            const { data: np, error: upsertError } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().single()
+            const { data: np, error: upsertError } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().maybeSingle()
             if (upsertError) throw upsertError
             setProfile((np ?? { id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' }) as Profile)
             setLoading(false)
