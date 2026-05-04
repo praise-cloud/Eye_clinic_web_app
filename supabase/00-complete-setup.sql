@@ -806,8 +806,6 @@ CREATE TRIGGER payment_update_daily_summary
 -- Update daily summary when appointment status changes
 CREATE OR REPLACE FUNCTION update_daily_summary_on_appointment()
 RETURNS TRIGGER
-SECURITY DEFINER
-SET search_path = public
 AS $$
 BEGIN
     INSERT INTO public.daily_summary (summary_date)
@@ -832,7 +830,7 @@ BEGIN
 
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER appointment_update_daily_summary 
     AFTER INSERT OR UPDATE ON public.appointments 
@@ -847,8 +845,6 @@ SELECT 'Payment triggers created' as status;
 -- Audit trigger function (FIXED: dynamic PK detection)
 CREATE OR REPLACE FUNCTION public.audit_trigger_function()
 RETURNS TRIGGER
-SECURITY DEFINER
-SET search_path = public
 AS $$
 DECLARE
     target_id TEXT;
@@ -880,7 +876,7 @@ BEGIN
 
     RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Apply audit triggers
 CREATE TRIGGER audit_profiles AFTER INSERT OR UPDATE OR DELETE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
@@ -1029,7 +1025,7 @@ CREATE POLICY "delete_appointments" ON public.appointments FOR DELETE TO authent
 CREATE POLICY "read_patients" ON public.patients FOR SELECT TO authenticated USING (true);
 CREATE POLICY "insert_patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "update_patients" ON public.patients FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "delete_patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('admin', 'frontdesk'));
+CREATE POLICY "delete_patients" ON public.patients FOR DELETE TO authenticated USING (true);
 
 -- Prescriptions policies
 CREATE POLICY "read_prescriptions" ON public.prescriptions FOR SELECT TO authenticated USING (true);
