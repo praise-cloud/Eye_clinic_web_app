@@ -118,22 +118,24 @@ const toggleActive = useMutation({
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            // Delete from auth (will cascade to profiles via trigger or we handle both)
-            const { error: authError } = await supabase.auth.admin.deleteUser(userId)
-            if (authError) throw authError
-            // Profiles entry should be deleted automatically via CASCADE from auth.users
-            // But we also try direct delete in case RLS allows
-            const { error } = await supabase.from('profiles').delete().eq('id', userId)
-            if (error) console.warn('Profile delete error (may already be deleted):', error)
+            // Delete profile (RLS policy allows manager to delete)
+            // Note: This removes the profile but not the auth user
+            // For complete deletion including auth user, a Supabase Edge Function is needed
+            const { error, count } = await supabase
+                .from('profiles')
+                .delete({ count: 'exact' })
+                .eq('id', userId)
+            if (error) throw error
+            if (count === 0) throw new Error('Profile not found or you do not have permission to delete it.')
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
-            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted.' })
+            notify({ type: 'system', title: 'Account Deleted', message: 'Staff profile has been permanently deleted.' })
         },
         onError: (e: Error) => {
             console.error('Delete staff error:', e)
-            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to delete staff account. Check permissions.' })
+            notify({ type: 'system', title: 'Delete Failed', message: e.message || 'Failed to delete staff account. Ensure you have manager permissions.' })
         },
     })
 

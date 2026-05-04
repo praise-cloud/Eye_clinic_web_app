@@ -1012,8 +1012,10 @@ CREATE POLICY "profiles_insert_trigger" ON public.profiles FOR INSERT TO authent
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
 CREATE POLICY "profiles_admin_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin');
 CREATE POLICY "profiles_manager_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'manager');
--- Allow service role to delete profiles (for admin delete operations)
-CREATE POLICY "profiles_delete_service" ON public.profiles FOR DELETE TO service_role USING (true);
+CREATE POLICY "profiles_delete_own_or_admin" ON public.profiles FOR DELETE TO authenticated USING (
+    id = auth.uid() OR 
+    get_user_role() IN ('admin', 'manager')
+);
 
 -- Case notes policies
 CREATE POLICY "read_case_notes" ON public.case_notes FOR SELECT TO authenticated USING (true);
