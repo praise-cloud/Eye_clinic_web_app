@@ -42,10 +42,10 @@ export function LoginPage() {
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
-                        .single()
+                        .maybeSingle()
 
                     if (profileError) throw profileError
-
+                    
                     const resolvedProfile = (profile as Profile) ?? buildFallbackProfile(session.user)
                     if (resolvedProfile) {
                         const { setProfile, setUser } = useAuthStore.getState()
@@ -92,7 +92,7 @@ export function LoginPage() {
                     email: data.email,
                     password: data.password,
                 }),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Login timeout')), 10000))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Login timeout')), 30000))
             ])
 
             const authData = raceResult as any
@@ -110,8 +110,8 @@ export function LoginPage() {
                 // Profile with timeout
                 try {
                     const profilePromise = Promise.race([
-                        supabase.from('profiles').select('*').eq('id', authData.user.id).single(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))
+                        supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 10000))
                     ])
 
                     const profileData = await profilePromise as any
