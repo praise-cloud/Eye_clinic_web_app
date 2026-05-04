@@ -116,19 +116,24 @@ const toggleActive = useMutation({
         },
     })
 
-const deleteMutation = useMutation({
+    const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
-            if (error) throw error
+            // Delete from auth (will cascade to profiles via trigger or we handle both)
+            const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+            if (authError) throw authError
+            // Profiles entry should be deleted automatically via CASCADE from auth.users
+            // But we also try direct delete in case RLS allows
+            const { error } = await supabase.from('profiles').delete().eq('id', userId)
+            if (error) console.warn('Profile delete error (may already be deleted):', error)
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
-            notify({ type: 'system', title: 'Account Deactivated', message: 'Staff account has been deactivated.' })
+            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted.' })
         },
         onError: (e: Error) => {
             console.error('Delete staff error:', e)
-            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to deactivate staff account. Check RLS policies.' })
+            notify({ type: 'system', title: 'Error', message: e.message || 'Failed to delete staff account. Check permissions.' })
         },
     })
 

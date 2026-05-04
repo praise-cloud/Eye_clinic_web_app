@@ -1012,6 +1012,8 @@ CREATE POLICY "profiles_insert_trigger" ON public.profiles FOR INSERT TO authent
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
 CREATE POLICY "profiles_admin_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin');
 CREATE POLICY "profiles_manager_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'manager');
+-- Allow service role to delete profiles (for admin delete operations)
+CREATE POLICY "profiles_delete_service" ON public.profiles FOR DELETE TO service_role USING (true);
 
 -- Case notes policies
 CREATE POLICY "read_case_notes" ON public.case_notes FOR SELECT TO authenticated USING (true);
@@ -1039,6 +1041,8 @@ CREATE POLICY "read_patients" ON public.patients FOR SELECT TO authenticated USI
 CREATE POLICY "insert_patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "update_patients" ON public.patients FOR UPDATE TO authenticated USING (true);
 CREATE POLICY "delete_patients" ON public.patients FOR DELETE TO authenticated USING (true);
+-- Allow service role to delete patients (for admin operations)
+CREATE POLICY "delete_patients_service" ON public.patients FOR DELETE TO service_role USING (true);
 
 -- Prescriptions policies
 CREATE POLICY "read_prescriptions" ON public.prescriptions FOR SELECT TO authenticated USING (true);
