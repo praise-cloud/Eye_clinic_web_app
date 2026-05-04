@@ -59,13 +59,18 @@ export function SettingsPage() {
 
     const updateProfile = useMutation({
         mutationFn: async (data: ProfileForm) => {
-            const { data: updated } = await supabase.from('profiles').update(data).eq('id', profile!.id).select().single()
+            const { data: updated, error } = await supabase.from('profiles').update(data).eq('id', profile!.id).select().maybeSingle()
+            if (error) throw error
             return updated as Profile
         },
         onSuccess: (updated) => {
             setProfile(updated)
             setIsEditingProfile(false)
             notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been updated successfully.', link: '/settings' })
+        },
+        onError: (error) => {
+            console.error('Profile update failed:', error)
+            notify({ type: 'system', title: 'Update Failed', message: 'Failed to update profile. Please try again.', link: '/settings' })
         },
     })
 

@@ -81,8 +81,7 @@ export function RegisterPage() {
         password: data.password,
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
+            full_name: data.full_name, // Send full_name directly for trigger
             role: data.role, // Use role selected in the form
           },
         },

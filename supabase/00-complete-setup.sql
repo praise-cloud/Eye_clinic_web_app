@@ -693,7 +693,16 @@ BEGIN
     INSERT INTO public.profiles (id, full_name, role)
     VALUES (
         NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+        COALESCE(
+            NEW.raw_user_meta_data->>'full_name',
+            CASE 
+                WHEN NEW.raw_user_meta_data->>'first_name' IS NOT NULL 
+                THEN CONCAT(NEW.raw_user_meta_data->>'first_name', ' ', NEW.raw_user_meta_data->>'last_name')
+                ELSE NULL
+            END,
+            NEW.raw_user_meta_data->>'name',
+            split_part(NEW.email, '@', 1)
+        ),
         COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk')
     );
     RETURN NEW;
