@@ -107,15 +107,15 @@ class RateLimiter {
 
 // Pre-configured rate limiters for different use cases
 export const loginRateLimiter = new RateLimiter({
-  maxAttempts: 10,          // 10 attempts allowed
+  maxAttempts: 20,          // 20 attempts allowed (increased for clinic use)
   windowMs: 15 * 60 * 1000, // Within 15 minutes
-  blockDurationMs: 15 * 60 * 1000 // Block for 15 minutes after exceeding
+  blockDurationMs: 5 * 60 * 1000 // Block for 5 minutes after exceeding (reduced)
 });
 
 export const registrationRateLimiter = new RateLimiter({
-  maxAttempts: 3,
+  maxAttempts: 10,          // Increased for clinic operations
   windowMs: 60 * 60 * 1000, // 1 hour
-  blockDurationMs: 60 * 60 * 1000 // 1 hour block
+  blockDurationMs: 30 * 60 * 1000 // 30 minutes block (reduced)
 });
 
 export const passwordResetRateLimiter = new RateLimiter({

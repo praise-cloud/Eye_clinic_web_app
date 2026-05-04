@@ -48,12 +48,12 @@ const navByRole: Record<UserRole, NavItem[]> = {
   ],
   manager: [
     { label: 'Dashboard', href: '/manager', icon: LayoutDashboard },
-    { label: 'Appointments', href: '/manager/appointments', icon: Calendar },
     { label: 'Calendar', href: '/manager/calendar', icon: Calendar },
     { label: 'Patients', href: '/manager/patients', icon: Users },
     { label: 'Users', href: '/manager/users', icon: UserCog },
     { label: 'Transaction History', href: '/manager/reports', icon: DollarSign },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
+    { label: 'aduit', href: '/manager/audit', icon: ClipboardList },  
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
 }

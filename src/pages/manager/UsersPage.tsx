@@ -13,6 +13,8 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getRoleColor, getRoleAccent, getInitials, formatDate } from '@/lib/utils'
 import { notify } from '@/store/notificationStore'
+import { getAutoSecureErrorMessage } from '@/lib/errors'
+import { logError } from '@/lib/logger'
 import type { Profile } from '@/types'
 
 const schema = z.object({
@@ -74,8 +76,8 @@ const createMutation = useMutation({
             notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/manager/users' })
         },
         onError: (e: Error) => {
-            console.error('Create staff error:', e)
-            setError(e.message || 'Failed to create staff account')
+            logError('Create staff error', e)
+            setError(getAutoSecureErrorMessage(e))
         },
     })
 
@@ -96,8 +98,8 @@ const updateMutation = useMutation({
             notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' })
         },
         onError: (e: Error) => {
-            console.error('Update staff error:', e)
-            setError(e.message || 'Failed to update staff account')
+            logError('Update staff error', e)
+            setError(getAutoSecureErrorMessage(e))
         },
     })
 

@@ -120,17 +120,23 @@ const updateMutation = useMutation({
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            const { error } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
-            if (error) throw error
+            // First delete from Supabase Auth (this will cascade to delete the profile)
+            const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+            if (authError) {
+                // If admin deletion fails, try to just deactivate as fallback
+                const { error: profileError } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
+                if (profileError) throw profileError
+                throw new Error('User deactivated but could not be permanently deleted. Check service role permissions.')
+            }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
-            notify({ type: 'system', title: 'Account Disabled', message: 'Staff account has been disabled.' })
+            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted.' })
         },
         onError: (e: Error) => {
             logError('Delete staff error', e)
-            notify({ type: 'system', title: 'Error', message: getAutoSecureErrorMessage(e) })
+            setError(getAutoSecureErrorMessage(e))
         },
     })
 
@@ -265,7 +271,7 @@ const updateMutation = useMutation({
                             <AlertTriangle className="w-5 h-5" />Delete Account
                         </ModalTitle>
                         <ModalDescription>
-                            This will permanently delete <strong>{deleteTarget?.full_name}</strong>'s account and all their records. This cannot be undone.
+                            This will permanently delete <strong>{deleteTarget?.full_name}</strong>'s account and remove all their data from the system. This action cannot be undone.
                         </ModalDescription>
                     </ModalHeader>
                     <ModalFooter>

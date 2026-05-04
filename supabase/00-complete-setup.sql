@@ -478,7 +478,7 @@ CREATE TABLE public.settings (
   key TEXT PRIMARY KEY,
   value TEXT,
   description TEXT,
-  category TEXT DEFAULT 'general' CHECK (category IN ('general', 'notifications', 'messaging', 'appointments', 'inventory', 'payments')),
+  category TEXT DEFAULT 'general' CHECK (category IN ('general', 'notifications', 'messaging', 'appointments', 'inventory', 'payments', 'security')),
   is_public BOOLEAN DEFAULT FALSE,
   updated_by UUID REFERENCES auth.users(id),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -687,24 +687,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Profile creation trigger function
+-- Profile creation trigger function (FIXED: Better error handling)
 CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (id, full_name, role)
+    INSERT INTO public.profiles (id, full_name, role, is_active)
     VALUES (
         NEW.id,
         COALESCE(
             NEW.raw_user_meta_data->>'full_name',
-            CASE 
-                WHEN NEW.raw_user_meta_data->>'first_name' IS NOT NULL 
-                THEN CONCAT(NEW.raw_user_meta_data->>'first_name', ' ', NEW.raw_user_meta_data->>'last_name')
-                ELSE NULL
-            END,
             NEW.raw_user_meta_data->>'name',
             split_part(NEW.email, '@', 1)
         ),
-        COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk')
+        COALESCE(NEW.raw_user_meta_data->>'role', 'frontdesk'),
+        TRUE
     );
+    RETURN NEW;
+EXCEPTION WHEN unique_violation THEN
+    -- Profile already exists, just return
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -1006,15 +1005,15 @@ DROP POLICY IF EXISTS "inventory_dispensing_insert" ON public.inventory_dispensi
 DROP POLICY IF EXISTS "inventory_dispensing_update" ON public.inventory_dispensing;
 DROP POLICY IF EXISTS "inventory_dispensing_delete" ON public.inventory_dispensing;
 
--- Profiles policies
-CREATE POLICY "profiles_select_all_active" ON public.profiles FOR SELECT TO authenticated USING (is_active = true);
-CREATE POLICY "profiles_insert_trigger" ON public.profiles FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
-CREATE POLICY "profiles_admin_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin');
-CREATE POLICY "profiles_manager_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'manager');
-CREATE POLICY "profiles_delete_own_or_admin" ON public.profiles FOR DELETE TO authenticated USING (
+-- Profiles policies (FIXED: Allow proper user management)
+CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT TO authenticated USING (true);
+CREATE POLICY "profiles_insert" ON public.profiles FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "profiles_update_own_or_admin" ON public.profiles FOR UPDATE TO authenticated USING (
     id = auth.uid() OR 
     get_user_role() IN ('admin', 'manager')
+);
+CREATE POLICY "profiles_delete_admin_only" ON public.profiles FOR DELETE TO authenticated USING (
+    get_user_role() = 'admin'
 );
 
 -- Case notes policies
@@ -1038,11 +1037,13 @@ CREATE POLICY "delete_appointments" ON public.appointments FOR DELETE TO authent
     get_user_role() = 'admin' OR doctor_id = auth.uid()
 );
 
--- Patients policies
+-- Patients policies (FIXED: Allow admin and frontdesk to delete patients)
 CREATE POLICY "read_patients" ON public.patients FOR SELECT TO authenticated USING (true);
 CREATE POLICY "insert_patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "update_patients" ON public.patients FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "delete_patients" ON public.patients FOR DELETE TO authenticated USING (true);
+CREATE POLICY "delete_patients_admin_frontdesk" ON public.patients FOR DELETE TO authenticated USING (
+    get_user_role() IN ('admin', 'frontdesk')
+);
 -- Allow service role to delete patients (for admin operations)
 CREATE POLICY "delete_patients_service" ON public.patients FOR DELETE TO service_role USING (true);
 
@@ -1154,7 +1155,57 @@ ON CONFLICT (key) DO NOTHING;
 SELECT 'Default settings inserted' as status;
 
 -- =============================================
--- STEP 16: SEED DATA (Optional - for testing)
+-- STEP 16: SERVICE ROLE PERMISSIONS & RATE LIMITING FIXES
+-- =============================================
+
+-- Grant service role necessary permissions for admin operations (FIXED: User deletion)
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+
+-- Create function to check if user is staff (for rate limiting bypass)
+CREATE OR REPLACE FUNCTION public.is_staff_account(user_email TEXT) RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles p
+        JOIN auth.users u ON u.id = p.id
+        WHERE u.email = user_email AND p.is_active = TRUE
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Enhanced settings for rate limiting and authentication (FIXED: Limit exceeded errors)
+INSERT INTO public.settings (key, value, description, category, is_public) VALUES
+('max_concurrent_users', '100', 'Maximum concurrent users allowed', 'general', false),
+('session_timeout_minutes', '480', 'Session timeout in minutes (8 hours)', 'general', false),
+('enable_staff_bypass_rate_limit', 'true', 'Allow staff to bypass rate limits', 'general', false),
+('max_login_attempts', '20', 'Maximum login attempts before rate limit', 'security', false),
+('login_block_duration_minutes', '5', 'Duration to block after too many attempts', 'security', false),
+('max_registration_attempts', '10', 'Maximum registration attempts per hour', 'security', false),
+('registration_block_duration_minutes', '30', 'Duration to block registration after limit', 'security', false)
+ON CONFLICT (key) DO UPDATE SET
+    value = EXCLUDED.value,
+    updated_at = NOW();
+
+-- Create rate limiting table if it doesn't exist (for future use)
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    identifier TEXT NOT NULL,
+    attempt_count INTEGER DEFAULT 1,
+    first_attempt TIMESTAMPTZ DEFAULT NOW(),
+    last_attempt TIMESTAMPTZ DEFAULT NOW(),
+    blocked_until TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for rate_limits table
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "rate_limits_service_only" ON public.rate_limits FOR ALL TO service_role USING (true);
+
+SELECT 'Service role permissions and rate limiting fixes applied' as status;
+
+-- =============================================
+-- STEP 17: SEED DATA (Optional - for testing)
 -- =============================================
 
 -- Sample patients
@@ -1203,4 +1254,5 @@ SELECT 'Seed data inserted' as status;
 -- COMPLETION MESSAGE
 -- =============================================
 
-SELECT 'DATABASE SETUP COMPLETE! All tables, policies, triggers, and seed data have been created successfully.' as status;
+SELECT 'DATABASE SETUP COMPLETE! All tables, policies, triggers, seed data, and CRITICAL FIXES have been applied successfully.' as status;
+SELECT 'FIXES APPLIED: User deletion, RLS policies, rate limiting, authentication, and service role permissions.' as summary;
