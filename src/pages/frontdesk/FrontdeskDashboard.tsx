@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Users, Pill, Package, Calendar, ChevronRight, Clock } from 'lucide-react'
+import { Users, Pill, Package, Calendar, ChevronRight, Clock, DollarSign } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,12 +21,26 @@ export function FrontdeskDashboard() {
         queryKey: ['frontdesk-dashboard'],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
-            const [p, a, l] = await Promise.all([
-                supabase.from('patients').select('id', { count: 'exact' }).gte('created_at', `${today}T00:00:00`),
-                supabase.from('appointments').select('id', { count: 'exact' }).gte('scheduled_at', `${today}T00:00:00`).lte('scheduled_at', `${today}T23:59:59`),
+            const todayStart = `${today}T00:00:00`
+            const todayEnd = `${today}T23:59:59`
+
+            const [p, a, l, paymentsResult, drugsResult] = await Promise.all([
+                supabase.from('patients').select('id', { count: 'exact' }).gte('created_at', todayStart),
+                supabase.from('appointments').select('id', { count: 'exact' }).gte('scheduled_at', todayStart).lte('scheduled_at', todayEnd),
                 supabase.from('drugs').select('id', { count: 'exact' }).lte('quantity', 10),
+                supabase.from('payments').select('amount').gte('paid_at', todayStart).lte('paid_at', todayEnd),
+                supabase.from('drugs').select('quantity, reorder_level'),
             ])
-            return { newPatients: p.count ?? 0, appointments: a.count ?? 0, lowStock: l.count ?? 0 }
+
+            const dailyRevenue = (paymentsResult.data ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
+            const lowStockCount = (drugsResult.data ?? []).filter(d => Number(d.quantity ?? 0) <= Number(d.reorder_level ?? 10)).length
+
+            return {
+                newPatients: p.count ?? 0,
+                appointments: a.count ?? 0,
+                lowStock: lowStockCount,
+                dailyRevenue: dailyRevenue,
+            }
         },
         refetchInterval: 30000,
     })
@@ -63,8 +77,9 @@ export function FrontdeskDashboard() {
 
     const statCards = [
         { label: 'New Patients', value: stats?.newPatients ?? 0, icon: Users, color: 'text-teal-600 bg-teal-50', href: '/frontdesk/patients' },
-        { label: 'Appointments', value: stats?.appointments ?? 0, icon: Calendar, color: 'text-blue-600 bg-blue-50', href: '/frontdesk/appointments' },
-        { label: 'Low Stock', value: stats?.lowStock ?? 0, icon: Package, color: 'text-red-600 bg-red-50', href: '' },
+        { label: "Today's Appointments", value: stats?.appointments ?? 0, icon: Calendar, color: 'text-blue-600 bg-blue-50', href: '/frontdesk/appointments' },
+        { label: "Today's Revenue", value: `₦${(stats?.dailyRevenue ?? 0).toLocaleString()}`, icon: DollarSign, color: 'text-emerald-600 bg-emerald-50', href: '/frontdesk/appointments' },
+        { label: 'Low Stock', value: stats?.lowStock ?? 0, icon: Package, color: 'text-red-600 bg-red-50', href: '/frontdesk/inventory' },
     ]
 
     return (

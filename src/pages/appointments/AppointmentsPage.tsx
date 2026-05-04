@@ -173,8 +173,7 @@ export function AppointmentsPage() {
         mutationFn: async (data: FormData) => {
             const { error } = await supabase.from('appointments').insert({
                 ...data,
-                // Don't send requested_by if it's causing 403 errors
-                // requested_by: profile?.id
+                requested_by: profile?.id,
             })
             if (error) throw error
         },

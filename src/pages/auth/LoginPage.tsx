@@ -74,7 +74,7 @@ export function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
     const onSubmit = async (data: FormData) => {
-
+        setError('')
         setIsLoading(true)
 
         try {
@@ -87,18 +87,18 @@ export function LoginPage() {
                 return
             }
 
-            const { data: authData, error: authError } = await Promise.race([
+            const raceResult = await Promise.race([
                 supabase.auth.signInWithPassword({
                     email: data.email,
                     password: data.password,
                 }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Login timeout')), 10000))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Login timeout')), 10000))
             ])
 
-            console.log('Login authData:', authData, 'authError:', authError)
+            const authData = raceResult as any
+            const authError = (authData as any)?.error
 
             if (authError) {
-                console.error('Auth error details:', authError)
                 setError(getAutoSecureErrorMessage(authError))
                 setIsLoading(false)
                 return
@@ -108,27 +108,29 @@ export function LoginPage() {
                 useAuthStore.getState().setUser(authData.user)
 
                 // Profile with timeout
-                const profilePromise = Promise.race([
-                    supabase.from('profiles').select('*').eq('id', authData.user.id).single(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))
-                ])
-
-                let profileData
                 try {
-                    profileData = await profilePromise
+                    const profilePromise = Promise.race([
+                        supabase.from('profiles').select('*').eq('id', authData.user.id).single(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))
+                    ])
+
+                    const profileData = await profilePromise as any
+                    const profileError = profileData?.error
+                    if (profileError) console.error('Profile error:', profileError)
+
+                    const resolvedProfile = (profileData?.data as Profile | null) ?? buildFallbackProfile(authData.user)
+                    useAuthStore.getState().setProfile(resolvedProfile)
+
+                    const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
+                    console.log('Navigating to role dashboard:', role)
+                    navigate(getRoleDashboardPath(role), { replace: true })
                 } catch (e) {
                     console.warn('Profile timeout, using fallback:', e)
+                    const resolvedProfile = buildFallbackProfile(authData.user)
+                    useAuthStore.getState().setProfile(resolvedProfile)
+                    const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
+                    navigate(getRoleDashboardPath(role), { replace: true })
                 }
-
-                const profileError = profileData?.error
-                if (profileError) console.error('Profile error:', profileError)
-
-                const resolvedProfile = (profileData?.data as Profile | null) ?? buildFallbackProfile(authData.user)
-                useAuthStore.getState().setProfile(resolvedProfile)
-
-                const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
-                console.log('Navigating to role dashboard:', role)
-                navigate(getRoleDashboardPath(role), { replace: true })
             }
         } catch (err: any) {
             console.error('Login catch:', err)
@@ -137,142 +139,143 @@ export function LoginPage() {
             setIsLoading(false)
         }
     }
+
   return (
-        <div className="min-h-screen flex bg-background">
-            {/* Left branding panel — desktop only */}
-            <div className="hidden lg:flex flex-col justify-between w-[420px] bg-slate-900 dark:bg-slate-950 p-10 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 rounded-2xl bg-blue-500 flex items-center justify-center overflow-hidden shadow-lg">
-                        <img src="/icons/logo.png" alt="Logo" className="w-14 h-14 object-contain" />
-                    </div>
-                    <div>
-                        <p className="text-white font-bold text-lg">{clinicName}</p>
-                        <p className="text-slate-400 text-sm">Eye Clinic</p>
-                    </div>
+    <div className="min-h-screen flex bg-background">
+        {/* Left branding panel — desktop only */}
+        <div className="hidden lg:flex flex-col justify-between w-[420px] bg-slate-900 dark:bg-slate-950 p-10 flex-shrink-0">
+            <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-2xl bg-blue-500 flex items-center justify-center overflow-hidden shadow-lg">
+                    <img src="/icons/logo.png" alt="Logo" className="w-14 h-14 object-contain" />
                 </div>
-                <div className="relative">
-                    <div className="absolute -top-20 -left-10 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl -z-10" />
-                    <h2 className="text-3xl font-bold text-white leading-tight mb-4">
-                        Complete clinic<br />management<br />in one place.
-                    </h2>
-                    <p className="text-slate-400 text-sm leading-relaxed">
-                        Patients, appointments, prescriptions, pharmacy, and finances — all in one platform.
-                    </p>
-                </div>
-                <div className="space-y-3">
-                    {['Patient records & history', 'Real-time appointments', 'Drug & glasses inventory', 'Financial reports'].map(f => (
-                        <div key={f} className="flex items-center gap-2.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
-                            <span className="text-slate-400 text-sm">{f}</span>
-                        </div>
-                    ))}
+                <div>
+                    <p className="text-white font-bold text-lg">{clinicName}</p>
+                    <p className="text-slate-400 text-sm">Eye Clinic</p>
                 </div>
             </div>
-
-            {/* Right form panel */}
-            <div className="flex-1 flex items-center justify-center px-4 py-8">
-                <div className="w-full max-w-sm">
-                    {/* Mobile logo */}
-                    <div className="lg:hidden text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-blue-500 mb-4 overflow-hidden shadow-lg">
-                            <img src="/icons/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
-                        </div>
-                        <h1 className="text-xl font-bold text-foreground">{clinicName} Eye Clinic</h1>
+            <div className="relative">
+                <div className="absolute -top-20 -left-10 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl -z-10" />
+                <h2 className="text-3xl font-bold text-white leading-tight mb-4">
+                    Complete clinic<br />management<br />in one place.
+                </h2>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                    Patients, appointments, prescriptions, pharmacy, and finances — all in one platform.
+                </p>
+            </div>
+            <div className="space-y-3">
+                {['Patient records & history', 'Real-time appointments', 'Drug & glasses inventory', 'Financial reports'].map(f => (
+                    <div key={f} className="flex items-center gap-2.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                        <span className="text-slate-400 text-sm">{f}</span>
                     </div>
+                ))}
+            </div>
+        </div>
 
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
-                        <p className="text-sm text-muted-foreground mt-1">Sign in to your account to continue</p>
+        {/* Right form panel */}
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+            <div className="w-full max-w-sm">
+                {/* Mobile logo */}
+                <div className="lg:hidden text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-blue-500 mb-4 overflow-hidden shadow-lg">
+                        <img src="/icons/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
                     </div>
+                    <h1 className="text-xl font-bold text-foreground">{clinicName} Eye Clinic</h1>
+                </div>
 
-                    {successMessage && (
-                        <div
-                            className="mb-5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 text-sm"
-                            role="alert"
-                            aria-live="polite"
-                        >
-                            {successMessage}
-                        </div>
-                    )}
-                    {error && (
-                        <div
-                            id="login-error"
-                            className="mb-5 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm"
-                            role="alert"
-                            aria-live="assertive"
-                        >
-                            {error}
-                        </div>
-                    )}
+                <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Sign in to your account to continue</p>
+                </div>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+                {successMessage && (
+                    <div
+                        className="mb-5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 text-sm"
+                        role="alert"
+                        aria-live="polite"
+                    >
+                        {successMessage}
+                    </div>
+                )}
+                {error && (
+                    <div
+                        id="login-error"
+                        className="mb-5 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm"
+                        role="alert"
+                        aria-live="assertive"
+                    >
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+                    <Input
+                        label="Email Address"
+                        type="email"
+                        placeholder="you@clinic.com"
+                        error={errors.email?.message}
+                        autoComplete="email"
+                        disabled={isLoading}
+                        required
+                        aria-required="true"
+                        {...register('email')}
+                    />
+                    <div className="relative">
                         <Input
-                            label="Email Address"
-                            type="email"
-                            placeholder="you@clinic.com"
-                            error={errors.email?.message}
-                            autoComplete="email"
+                            label="Password"
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Enter your password"
+                            error={errors.password?.message}
+                            autoComplete="current-password"
                             disabled={isLoading}
                             required
                             aria-required="true"
-                            {...register('email')}
+                            pattern=".*"
+                            {...register('password')}
                         />
-                        <div className="relative">
-                            <Input
-                                label="Password"
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="Enter your password"
-                                error={errors.password?.message}
-                                autoComplete="current-password"
-                                disabled={isLoading}
-                                required
-                                aria-required="true"
-                                pattern=".*"
-                                {...register('password')}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-7 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded"
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                aria-pressed={showPassword}
-                                disabled={isLoading}
-                            >
-                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                        </div>
-
                         <button
-                            type="submit"
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-7 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            aria-pressed={showPassword}
                             disabled={isLoading}
-                            className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-ring"
-                            aria-describedby={error ? 'login-error' : undefined}
                         >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                                    <span>Signing in...</span>
-                                </>
-                            ) : (
-                                'Sign In'
-                            )}
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
-                    </form>
+                    </div>
 
-                    <p className="mt-6 text-center text-sm text-muted-foreground">
-                        Don't have an account?{' '}
-                        <Link to="/register" className="text-primary hover:underline font-medium">
-                            Create Account
-                        </Link>
-                    </p>
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                        aria-describedby={error ? 'login-error' : undefined}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                <span>Signing in...</span>
+                            </>
+                        ) : (
+                            'Sign In'
+                        )}
+                    </button>
+                </form>
 
-                    <p className="mt-8 text-center text-xs text-muted-foreground">
-                        © {new Date().getFullYear()} {clinicName} Eye Clinic. All rights reserved.
-                    </p>
-                </div>
+                <p className="mt-6 text-center text-sm text-muted-foreground">
+                    Don't have an account?{' '}
+                    <Link to="/register" className="text-primary hover:underline font-medium">
+                        Create Account
+                    </Link>
+                </p>
+
+                <p className="mt-8 text-center text-xs text-muted-foreground">
+                    © {new Date().getFullYear()} {clinicName} Eye Clinic. All rights reserved.
+                </p>
             </div>
         </div>
-    )
+    </div>
+  )
 }
 
 function EyeIcon({ className = 'w-5 h-5' }: { className?: string }) {

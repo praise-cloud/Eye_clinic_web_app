@@ -13,7 +13,7 @@ import { SplashScreen } from './pages/SplashScreen'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard'
-import { AssistantDashboard } from './pages/frontdesk/AssistantDashboard'
+import { FrontdeskDashboard } from './pages/frontdesk/FrontdeskDashboard'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
 import { ManagerDashboard } from './pages/manager/ManagerDashboard'
 import { PatientsPage } from './pages/patients/PatientsPage'
@@ -47,19 +47,29 @@ function AuthProvider() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-        if (data) {
-          setProfile(data as Profile)
-        } else {
-          const meta = session.user.user_metadata
-          const role = (meta?.role ?? 'frontdesk') as Profile['role']
-          const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
-          const { data: np } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().single()
-          if (np) setProfile(np as Profile)
+      try {
+        if (session?.user) {
+          setUser(session.user)
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          if (error) throw error
+          if (data) {
+            setProfile(data as Profile)
+          } else {
+            const meta = session.user.user_metadata
+            const role = (meta?.role ?? 'frontdesk') as Profile['role']
+            const full_name = meta?.full_name ?? session.user.email?.split('@')[0] ?? 'User'
+            const { data: np, error: upsertError } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().single()
+            if (upsertError) throw upsertError
+            if (np) setProfile(np as Profile)
+          }
         }
+      } catch (err) {
+        console.error('AuthProvider getSession error:', err)
+      } finally {
+        setLoading(false)
       }
+    }).catch((err) => {
+      console.error('AuthProvider getSession failed:', err)
       setLoading(false)
     })
 
@@ -67,7 +77,8 @@ function AuthProvider() {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
         try {
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          if (error) throw error
           if (data) {
             setProfile(data as Profile); setLoading(false)
             navigate(`/${data.role}`, { replace: true })
@@ -75,12 +86,17 @@ function AuthProvider() {
             const meta = session.user.user_metadata
             const role = (meta?.role ?? 'frontdesk') as Profile['role']
             const full_name = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0] ?? 'User'
-            const { data: np } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().single()
+            const { data: np, error: upsertError } = await supabase.from('profiles').upsert({ id: session.user.id, full_name, role, is_active: true }, { onConflict: 'id' }).select().single()
+            if (upsertError) throw upsertError
             setProfile((np ?? { id: session.user.id, full_name, role, is_active: true, created_at: '', updated_at: '' }) as Profile)
             setLoading(false)
             navigate(`/${role}`, { replace: true })
           }
-        } catch { setLoading(false); navigate('/login', { replace: true }) }
+        } catch (err) {
+          console.error('AuthProvider SIGNED_IN error:', err)
+          setLoading(false)
+          navigate('/login', { replace: true })
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null); setProfile(null); signOut()
         navigate('/login', { replace: true })
@@ -127,8 +143,8 @@ function App() {
           <Route path="/doctor/case-notes" element={<P roles={['doctor']}><CaseNotesPage /></P>} />
           <Route path="/doctor/prescriptions" element={<P roles={['doctor']}><DoctorPrescriptionsPage /></P>} />
           
-          {/* Frontdesk */}
-          <Route path="/frontdesk" element={<P roles={['frontdesk']}><AssistantDashboard /></P>} />
+           {/* Frontdesk */}
+           <Route path="/frontdesk" element={<P roles={['frontdesk']}><FrontdeskDashboard /></P>} />
           <Route path="/frontdesk/patients" element={<P roles={['frontdesk']}><PatientsPage /></P>} />
           <Route path="/frontdesk/appointments" element={<P roles={['frontdesk']}><AppointmentsPage /></P>} />
           <Route path="/frontdesk/calendar" element={<P roles={['frontdesk']}><CalendarPage /></P>} />
@@ -141,6 +157,7 @@ function App() {
 
           {/* Legacy assistant aliases */}
           <Route path="/assistant" element={<Navigate to="/frontdesk" replace />} />
+          <Route path="/assistant/patients" element={<Navigate to="/frontdesk/patients" replace />} />
           <Route path="/assistant/dispensing" element={<Navigate to="/frontdesk/dispensing" replace />} />
           <Route path="/assistant/glasses-orders" element={<Navigate to="/frontdesk/glasses-orders" replace />} />
           <Route path="/assistant/glasses-prescription" element={<Navigate to="/frontdesk/prescriptions" replace />} />

@@ -348,8 +348,22 @@ export function CaseNotesPage() {
         mutationFn: async (data: FormData) => {
             try {
                 const insertData = await buildInsertData(data)
-                const { error } = await supabase.from('case_notes').insert(insertData)
+                const { data: noteData, error } = await supabase.from('case_notes').insert(insertData).select().single()
                 if (error) throw error
+
+                // If prescription data exists, save to prescriptions table
+                if ((data.final_rx_od || data.final_rx_os) && noteData) {
+                    const { error: rxError } = await supabase.from('prescriptions').insert({
+                        patient_id: data.patient_id,
+                        doctor_id: profile!.id,
+                        case_note_id: noteData.id,
+                        od_sphere: data.final_rx_od || null,
+                        os_sphere: data.final_rx_os || null,
+                        lens_type: data.lens_type || null,
+                        status: 'pending',
+                    })
+                    if (rxError) throw rxError
+                }
             } catch (err: any) {
                 console.error('Case note save error:', err)
                 throw new Error(err.message || 'Failed to save case note. Please try again.')

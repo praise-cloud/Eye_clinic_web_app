@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Calendar, FileText, Pill, Users } from 'lucide-react'
+import { Calendar, FileText, Pill, Users, DollarSign } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
@@ -15,14 +15,31 @@ export function DoctorDashboard() {
         queryKey: ['appointments', 'today', profile?.id],
         queryFn: async () => {
             const today = new Date().toISOString().split('T')[0]
+            const todayStart = `${today}T00:00:00`
+            const todayEnd = `${today}T23:59:59`
             const { data } = await supabase
                 .from('appointments')
                 .select('*, patient:patients(first_name,last_name,patient_number)')
                 .eq('doctor_id', profile!.id)
-                .gte('scheduled_at', `${today}T00:00:00`)
-                .lte('scheduled_at', `${today}T23:59:59`)
+                .gte('scheduled_at', todayStart)
+                .lte('scheduled_at', todayEnd)
                 .order('scheduled_at')
             return data ?? []
+        },
+        enabled: !!profile,
+    })
+
+    // Get dispensed drugs count for today
+    const { data: dispensedToday = [] } = useQuery({
+        queryKey: ['doctor', 'dispensed-today', profile?.id],
+        queryFn: async () => {
+            const today = new Date().toISOString().split('T')[0]
+            const { data } = await supabase
+                .from('drug_dispensing')
+                .select('id', { count: 'exact' })
+                .gte('dispensed_at', `${today}T00:00:00`)
+                .lte('dispensed_at', `${today}T23:59:59`)
+            return (data ?? []).length
         },
         enabled: !!profile,
     })
@@ -61,7 +78,8 @@ export function DoctorDashboard() {
         { label: "Today's Appts", value: appointments.length, icon: Calendar, color: 'text-blue-600 bg-blue-50' },
         { label: 'Pending/Awaiting', value: appointments.filter(a => ['pending', 'confirmed', 'arrived'].includes(a.status)).length, icon: Users, color: 'text-amber-600 bg-amber-50' },
         { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, icon: FileText, color: 'text-emerald-600 bg-emerald-50' },
-        { label: 'Pending Notes', value: pendingCount, icon: Pill, color: 'text-purple-600 bg-purple-50', sub: pendingNotesData ? `${pendingNotesData.total} completed appts` : undefined },
+        { label: 'Dispensed Drugs', value: dispensedToday, icon: Pill, color: 'text-purple-600 bg-purple-50' },
+        { label: 'Pending Notes', value: pendingCount, icon: Pill, color: 'text-orange-600 bg-orange-50', sub: pendingNotesData ? `${pendingNotesData.total} completed appts` : undefined },
     ]
 
     return (

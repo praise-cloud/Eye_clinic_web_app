@@ -805,7 +805,10 @@ CREATE TRIGGER payment_update_daily_summary
 
 -- Update daily summary when appointment status changes
 CREATE OR REPLACE FUNCTION update_daily_summary_on_appointment()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     INSERT INTO public.daily_summary (summary_date)
     VALUES (DATE(NEW.created_at))
@@ -842,7 +845,11 @@ SELECT 'Payment triggers created' as status;
 -- =============================================
 
 -- Audit trigger function (FIXED: dynamic PK detection)
-CREATE OR REPLACE FUNCTION public.audit_trigger_function() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION public.audit_trigger_function()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     target_id TEXT;
     pk_column TEXT;
@@ -999,6 +1006,7 @@ CREATE POLICY "profiles_select_all_active" ON public.profiles FOR SELECT TO auth
 CREATE POLICY "profiles_insert_trigger" ON public.profiles FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE TO authenticated USING (id = auth.uid());
 CREATE POLICY "profiles_admin_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'admin');
+CREATE POLICY "profiles_manager_manage" ON public.profiles FOR ALL TO authenticated USING (get_user_role() = 'manager');
 
 -- Case notes policies
 CREATE POLICY "read_case_notes" ON public.case_notes FOR SELECT TO authenticated USING (true);
@@ -1021,7 +1029,7 @@ CREATE POLICY "delete_appointments" ON public.appointments FOR DELETE TO authent
 CREATE POLICY "read_patients" ON public.patients FOR SELECT TO authenticated USING (true);
 CREATE POLICY "insert_patients" ON public.patients FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "update_patients" ON public.patients FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "delete_patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() = 'admin');
+CREATE POLICY "delete_patients" ON public.patients FOR DELETE TO authenticated USING (get_user_role() IN ('admin', 'frontdesk'));
 
 -- Prescriptions policies
 CREATE POLICY "read_prescriptions" ON public.prescriptions FOR SELECT TO authenticated USING (true);
@@ -1070,6 +1078,15 @@ CREATE POLICY "inventory_dispensing_select" ON public.inventory_dispensing FOR S
 CREATE POLICY "inventory_dispensing_insert" ON public.inventory_dispensing FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "inventory_dispensing_update" ON public.inventory_dispensing FOR UPDATE TO authenticated USING (true);
 CREATE POLICY "inventory_dispensing_delete" ON public.inventory_dispensing FOR DELETE TO authenticated USING (get_user_role() = 'admin');
+
+-- Daily summary policies (for triggers)
+CREATE POLICY "daily_summary_select" ON public.daily_summary FOR SELECT TO authenticated USING (true);
+CREATE POLICY "daily_summary_insert" ON public.daily_summary FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "daily_summary_update" ON public.daily_summary FOR UPDATE TO authenticated USING (true);
+
+-- Audit logs policies (for triggers)
+CREATE POLICY "audit_logs_insert" ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "audit_logs_select" ON public.audit_logs FOR SELECT TO authenticated USING (get_user_role() = 'admin');
 
 SELECT 'RLS policies created' as status;
 

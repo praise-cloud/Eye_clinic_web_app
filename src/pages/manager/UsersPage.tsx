@@ -54,19 +54,19 @@ export function UsersPage() {
 const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
             if (!data.password) throw new Error('Password is required')
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: data.email,
-                    password: data.password,
-                    full_name: data.full_name,
-                    role: data.role,
-                    phone: data.phone || '',
-                }),
+            // Create user with Supabase auth
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: data.email,
+                password: data.password,
+                options: {
+                    data: {
+                        full_name: data.full_name,
+                        role: data.role,
+                    },
+                },
             })
-            const result = await response.json()
-            if (!response.ok || !result.success) throw new Error(result.error || 'Failed to create account')
+            if (authError) throw authError
+            return authData
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })

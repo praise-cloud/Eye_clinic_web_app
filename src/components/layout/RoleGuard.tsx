@@ -1,5 +1,6 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useEffect } from 'react'
 import type { UserRole } from '@/types'
 import { getRoleDashboardPath, normalizeUserRole } from '@/lib/auth'
 
@@ -10,6 +11,14 @@ interface RoleGuardProps {
 
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     const { isAuthenticated, isLoading, profile } = useAuthStore()
+    const navigate = useNavigate()
+
+    // Safety check: redirect to login if not authenticated (handles browser back button)
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            navigate('/login', { replace: true })
+        }
+    }, [isAuthenticated, isLoading, navigate])
 
     // Show nothing while auth is resolving
     if (isLoading) {
