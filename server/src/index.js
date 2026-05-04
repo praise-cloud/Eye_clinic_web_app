@@ -6,11 +6,17 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 
+// Import middleware
+import { authenticateToken } from './middleware/auth.js';
+
 // Import routes
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import patientsRoutes from './routes/patients.js';
 import appointmentsRoutes from './routes/appointments.js';
+import prescriptionsRoutes from './routes/prescriptions.js';
+import paymentsRoutes from './routes/payments.js';
+import inventoryRoutes from './routes/inventory.js';
 import { supabase } from './lib/supabase.js';
 
 // Load environment variables
@@ -55,9 +61,14 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/patients', patientsRoutes);
-app.use('/api/appointments', appointmentsRoutes);
+
+// Protected routes (require authentication)
+app.use('/api/users', authenticateToken, usersRoutes);
+app.use('/api/patients', authenticateToken, patientsRoutes);
+app.use('/api/appointments', authenticateToken, appointmentsRoutes);
+app.use('/api/prescriptions', authenticateToken, prescriptionsRoutes);
+app.use('/api/payments', authenticateToken, paymentsRoutes);
+app.use('/api/inventory', authenticateToken, inventoryRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

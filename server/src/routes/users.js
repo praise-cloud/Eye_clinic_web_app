@@ -1,28 +1,17 @@
 import express from 'express';
-import { supabase, handleSupabaseError, createSuccessResponse } from '../lib/supabase.js';
+import { UserService } from '../services/userService.js';
+import { requireAdmin, requireAdminOrManager } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all users (admin/manager only)
-router.get('/', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      return res.status(500).json(handleSupabaseError(error));
-    }
-
-    res.json(createSuccessResponse(data, 'Users retrieved successfully'));
-
-  } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
+router.get('/', requireAdminOrManager, async (req, res) => {
+  const result = await UserService.getAllUsers();
+  
+  if (result.success) {
+    res.json(result);
+  } else {
+    res.status(500).json(result.error);
   }
 });
 
