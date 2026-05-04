@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2, Trash2 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
-import { useAuthStore } from '../../store/authStore'
-import { Card, CardContent } from '../../components/ui/card'
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
-import { Skeleton } from '../../components/ui/skeleton'
-import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '../../components/ui/modal'
-import { Input } from '../../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { formatDate, formatCurrency, formatDateTime } from '../../lib/utils'
-import { decryptText } from '../../lib/crypto'
+import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, Calendar, Clock, FileText, Phone, User, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { formatDateTime } from '@/lib/utils'
+import type { Patient, Appointment, Prescription } from '../../types'
+import { getPatient, updatePatient, deletePatient } from '../../services/patientService'
+import { getAppointments } from '../../services/appointmentService'
+import { getPrescriptions } from '../../services/prescriptionService'
+import { useAuthStore } from '@/store/authStore'
 import type { Patient, Appointment, CaseNote, Prescription, Payment } from '../../types'
 
 const statusColor: Record<string, 'default' | 'warning' | 'success' | 'destructive' | 'info'> = {
@@ -363,7 +363,7 @@ export function PatientDetailPage() {
                                             <div key={a.id} className="flex items-center justify-between px-5 py-3">
                                                 <div>
                                                     <p className="text-sm font-medium text-foreground900 capitalize">{a.appointment_type.replace('_', ' ')}</p>
-                                                    <p className="text-xs text-foreground400">{formatDateTime(a.scheduled_at)} · Dr. {(a.doctor as any)?.full_name}</p>
+                                                    <p className="text-xs text-foreground400">{formatDateTime(a.scheduled_at)} · Dr. {a.profiles?.full_name || 'Unknown'}</p>
                                                 </div>
                                                 <Badge variant={statusColor[a.status] ?? 'default'} className="text-xs">{a.status.replace('_', ' ')}</Badge>
                                             </div>
@@ -463,7 +463,7 @@ export function PatientDetailPage() {
 
             {/* Edit Patient Modal */}
             <Modal open={editOpen} onOpenChange={setEditOpen}>
-                <ModalContent size="lg">
+                <ModalContent>
                     <ModalHeader>
                         <ModalTitle>Edit Patient</ModalTitle>
                         <ModalDescription>Update patient information</ModalDescription>
@@ -502,7 +502,7 @@ export function PatientDetailPage() {
 
             {/* Delete Patient Confirmation Modal */}
             <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-                <ModalContent size="sm">
+                <ModalContent>
                     <ModalHeader>
                         <ModalTitle className="text-red-600 flex items-center gap-2">
                             <Trash2 className="w-5 h-5" />Delete Patient

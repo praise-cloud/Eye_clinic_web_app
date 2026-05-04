@@ -133,12 +133,7 @@ export function PatientsPage() {
                         <span className="text-xs text-muted-foreground">
                           {patient.phone}
                         </span>
-                        {patient.subscription_type && patient.subscription_type !== 'none' && (
-                          <Badge variant="success" className="text-xs">
-                            {patient.subscription_type}
-                          </Badge>
-                        )}
-                      </div>
+                                              </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

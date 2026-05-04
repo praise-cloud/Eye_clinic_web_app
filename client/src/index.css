@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Basic test styles */
+body {
+  background-color: black !important;
+  color: white !important;
+}
+
+.test-style {
+  background-color: purple !important;
+  color: white !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+}
+
+
 @layer base {
   :root {
     --background: 0 0% 100%;

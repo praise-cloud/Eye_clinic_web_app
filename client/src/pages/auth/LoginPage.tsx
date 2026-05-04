@@ -78,86 +78,259 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg flex items-center justify-center">
-      <div className="max-w-md w-full">
-        <Card className="p-8 space-y-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-foreground">Welcome to {clinicName}</h1>
-            <p className="mt-2 text-muted-foreground">Sign in to your account</p>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#000000',
+      color: '#ffffff',
+      position: 'relative',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px'
+    }}>
+      {/* Large circular graphic element - Supabase inspired */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '384px',
+        height: '384px',
+        background: 'linear-gradient(to bottom right, #9333ea, #2563eb)',
+        borderRadius: '50%',
+        filter: 'blur(96px)',
+        opacity: 0.2,
+        transform: 'translate(-50%, -50%)'
+      }}></div>
+      <div style={{
+        position: 'absolute',
+        top: '80px',
+        right: 0,
+        width: '256px',
+        height: '256px',
+        background: 'linear-gradient(to bottom right, #16a34a, #2563eb)',
+        borderRadius: '50%',
+        filter: 'blur(64px)',
+        opacity: 0.1
+      }}></div>
+      
+      {/* Content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        width: '100%',
+        maxWidth: '448px',
+        margin: '0 auto'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(to bottom right, #9333ea, #2563eb)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px'
+          }}>
+            <svg style={{ width: '40px', height: '40px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
           </div>
+          <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>Welcome to {clinicName}</h2>
+          <p style={{ fontSize: '18px', color: '#9ca3af' }}>Sign in to your account</p>
+        </div>
 
-          {successMessage && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
-              {successMessage}
-            </div>
-          )}
-
-          <form onSubmit={form.handleSubmit(onSubmit)} className="form-section">
-            <div className="form-field">
-              <label htmlFor="email" className="form-label">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                {...form.register('email')}
-                disabled={isLoading}
-              />
-              {form.formState.errors.email && (
-                <p className="mt-1 text-sm text-destructive">{form.formState.errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  {...form.register('password')}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {form.formState.errors.password && (
-                <p className="mt-1 text-sm text-destructive">{form.formState.errors.password.message}</p>
-              )}
-            </div>
-
-            {error && (
-              <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
-                {error}
+        <div style={{
+          backgroundColor: 'rgba(17, 24, 39, 0.5)',
+          backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(55, 65, 81, 1)',
+          borderRadius: '16px',
+          padding: '32px'
+        }}>
+            {successMessage && (
+              <div style={{
+                backgroundColor: 'rgba(20, 83, 45, 0.5)',
+                border: '1px solid rgba(34, 197, 94, 0.5)',
+                color: '#86efac',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {successMessage}
               </div>
             )}
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full"
-              loading={isLoading}
-            >
-              {isLoading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
+            <form onSubmit={form.handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div>
+                <label htmlFor="email" style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#d1d5db',
+                  marginBottom: '8px'
+                }}>
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                    border: '1px solid rgba(55, 65, 81, 1)',
+                    borderRadius: '8px',
+                    color: 'white',
+                    padding: '0 16px',
+                    fontSize: '16px'
+                  }}
+                  {...form.register('email')}
+                  disabled={isLoading}
+                />
+                {form.formState.errors.email && (
+                  <p style={{
+                    marginTop: '8px',
+                    fontSize: '14px',
+                    color: '#f87171',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {form.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
 
-          <div className="text-center">
-            <Link to="/register" className="text-primary hover:text-primary/80 text-sm transition-colors">
-              Don't have an account? Sign up
-            </Link>
+              <div>
+                <label htmlFor="password" style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#d1d5db',
+                  marginBottom: '8px'
+                }}>
+                  Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    style={{
+                      width: '100%',
+                      height: '48px',
+                      backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                      border: '1px solid rgba(55, 65, 81, 1)',
+                      borderRadius: '8px',
+                      color: 'white',
+                      padding: '0 48px 0 16px',
+                      fontSize: '16px'
+                    }}
+                    {...form.register('password')}
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#9ca3af',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      padding: '4px'
+                    }}
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
+                  >
+                    {showPassword ? <EyeOff style={{ width: '16px', height: '16px' }} /> : <Eye style={{ width: '16px', height: '16px' }} />}
+                  </button>
+                </div>
+                {form.formState.errors.password && (
+                  <p style={{
+                    marginTop: '8px',
+                    fontSize: '14px',
+                    color: '#f87171',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {form.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <div style={{
+                  backgroundColor: 'rgba(127, 29, 29, 0.5)',
+                  border: '1px solid rgba(239, 68, 68, 0.5)',
+                  color: '#fca5a5',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  background: 'linear-gradient(to right, #9333ea, #2563eb)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.7 : 1,
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  transition: 'all 0.2s'
+                }}
+                loading={isLoading}
+              >
+                {isLoading ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+
+            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+              <Link to="/register" style={{
+                color: '#a78bfa',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'color 0.2s'
+              }}>
+                Don't have an account? <span style={{ textDecoration: 'underline' }}>Sign up</span>
+              </Link>
+            </div>
           </div>
-        </Card>
+        </div>
       </div>
-    </div>
   )
 }

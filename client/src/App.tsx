@@ -180,7 +180,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen">
           <AppRoutes />
           <ToastContainer />
         </div>
