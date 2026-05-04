@@ -43,9 +43,9 @@ export function LoginPage() {
                         .select('*')
                         .eq('id', session.user.id)
                         .single()
-                    
+
                     if (profileError) throw profileError
-                    
+
                     const resolvedProfile = (profile as Profile) ?? buildFallbackProfile(session.user)
                     if (resolvedProfile) {
                         const { setProfile, setUser } = useAuthStore.getState()
@@ -74,7 +74,7 @@ export function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) })
 
     const onSubmit = async (data: FormData) => {
-        setError('')
+
         setIsLoading(true)
 
         try {
@@ -87,46 +87,56 @@ export function LoginPage() {
                 return
             }
 
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                email: data.email,
-                password: data.password,
-            })
+            const { data: authData, error: authError } = await Promise.race([
+                supabase.auth.signInWithPassword({
+                    email: data.email,
+                    password: data.password,
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Login timeout')), 10000))
+            ])
+
+            console.log('Login authData:', authData, 'authError:', authError)
 
             if (authError) {
+                console.error('Auth error details:', authError)
                 setError(getAutoSecureErrorMessage(authError))
                 setIsLoading(false)
                 return
             }
 
             if (authData.user) {
-                // Set user in store BEFORE navigating to ensure auth state is ready
                 useAuthStore.getState().setUser(authData.user)
-        
-                // Get profile
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', authData.user.id)
-                    .single()
 
-                if (profileError) {
-                    logError('Profile fetch failed', profileError)
-                    // Still proceed with fallback profile
+                // Profile with timeout
+                const profilePromise = Promise.race([
+                    supabase.from('profiles').select('*').eq('id', authData.user.id).single(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Profile timeout')), 5000))
+                ])
+
+                let profileData
+                try {
+                    profileData = await profilePromise
+                } catch (e) {
+                    console.warn('Profile timeout, using fallback:', e)
                 }
 
-                const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(authData.user)
+                const profileError = profileData?.error
+                if (profileError) console.error('Profile error:', profileError)
+
+                const resolvedProfile = (profileData?.data as Profile | null) ?? buildFallbackProfile(authData.user)
                 useAuthStore.getState().setProfile(resolvedProfile)
 
                 const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
+                console.log('Navigating to role dashboard:', role)
                 navigate(getRoleDashboardPath(role), { replace: true })
             }
         } catch (err: any) {
+            console.error('Login catch:', err)
             setError(getAutoSecureErrorMessage(err))
         } finally {
             setIsLoading(false)
         }
     }
-
   return (
         <div className="min-h-screen flex bg-background">
             {/* Left branding panel — desktop only */}
@@ -176,7 +186,7 @@ export function LoginPage() {
                     </div>
 
                     {successMessage && (
-                        <div 
+                        <div
                             className="mb-5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 text-sm"
                             role="alert"
                             aria-live="polite"
@@ -185,7 +195,7 @@ export function LoginPage() {
                         </div>
                     )}
                     {error && (
-                        <div 
+                        <div
                             id="login-error"
                             className="mb-5 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm"
                             role="alert"
