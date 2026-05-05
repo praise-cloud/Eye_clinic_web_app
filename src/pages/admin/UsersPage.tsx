@@ -123,13 +123,23 @@ const updateMutation = useMutation({
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            // First delete from Supabase Auth (this will cascade to delete the profile)
-            const { error: authError } = await supabase.auth.admin.deleteUser(userId)
-            if (authError) {
-                // If admin deletion fails, try to just deactivate as fallback
-                const { error: profileError } = await supabase.from('profiles').update({ is_active: false }).eq('id', userId)
-                if (profileError) throw profileError
-                throw new Error('User deactivated but could not be permanently deleted. Check service role permissions.')
+            // Call backend endpoint to delete user (uses service role key)
+            const response = await fetch(`/api/auth/users/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            
+            // Check if response has body
+            const text = await response.text()
+            if (!text) {
+                // Success with no body
+                if (response.ok) return
+                throw new Error('Failed to delete user')
+            }
+            
+            const result = JSON.parse(text)
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to delete user')
             }
         },
         onSuccess: () => {

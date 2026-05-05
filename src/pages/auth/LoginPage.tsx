@@ -92,14 +92,42 @@ export function LoginPage() {
                 return
             }
 
-            // Login successful - App.tsx will handle navigation via onAuthStateChange
-            // Set timeout to stop spinner if navigation doesn't happen
-            setTimeout(() => {
-                if (isLoading) {
-                    setIsLoading(false)
+            // Login successful - fetch profile and navigate
+            try {
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', authData.user!.id)
+                    .single()
+
+                if (profileError && profileError.code === 'PGRST116') {
+                    // No profile found, use fallback
+                    console.warn('[Login] No profile found, using fallback')
+                    const resolvedProfile = buildFallbackProfile(authData.user!)
+                    useAuthStore.getState().setProfile(resolvedProfile)
+                    const role = normalizeUserRole(resolvedProfile.role || authData.user!.user_metadata?.role)
+                    console.log('[Login] Navigating to:', `/${role}`)
+                    navigate(getRoleDashboardPath(role), { replace: true })
+                } else if (profileError) {
+                    throw profileError
+                } else {
+                    const resolvedProfile = (profileData as Profile | null) ?? buildFallbackProfile(authData.user!)
+                    useAuthStore.getState().setProfile(resolvedProfile)
+                    const role = normalizeUserRole(resolvedProfile.role || authData.user!.user_metadata?.role)
+                    console.log('[Login] Navigating to role dashboard:', role)
+                    navigate(getRoleDashboardPath(role), { replace: true })
                 }
-            }, 5000)
+            } catch (profileErr: any) {
+                console.error('[Login] Profile error, using fallback:', profileErr)
+                const resolvedProfile = buildFallbackProfile(authData.user!)
+                useAuthStore.getState().setProfile(resolvedProfile)
+                const role = normalizeUserRole(resolvedProfile.role || authData.user!.user_metadata?.role)
+                navigate(getRoleDashboardPath(role), { replace: true })
+            } finally {
+                setIsLoading(false)
+            }
         } catch (err: any) {
+            console.error('[Login] Catch error:', err)
             setError(getAutoSecureErrorMessage(err))
             setIsLoading(false)
         }

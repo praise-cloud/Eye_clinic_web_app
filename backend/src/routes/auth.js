@@ -27,10 +27,10 @@ let supabaseAdmin = null
 
 function getSupabaseAdmin() {
   if (supabaseAdmin) return supabaseAdmin
-  
+
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
+
   if (!supabaseUrl || !supabaseKey) {
     console.error('[auth] Missing environment variables:', { 
       hasUrl: !!supabaseUrl, 
@@ -129,6 +129,45 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'This email is already registered.' })
     }
     res.status(400).json({ success: false, error: msg })
+  }
+})
+
+// DELETE /api/auth/users/:id — deletes a user (requires service role)
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'User ID is required' })
+    }
+
+    console.log('[auth/delete] Deleting user:', id)
+    
+    // Delete from Supabase Auth (this will cascade to profiles due to FK constraint)
+    const { error } = await getSupabaseAdmin().auth.admin.deleteUser(id)
+    
+    if (error) {
+      console.error('[auth/delete] Supabase error:', error.message)
+      // If already deleted from auth, try to just clean up profile
+      const { error: profileError } = await getSupabaseAdmin()
+        .from('profiles')
+        .delete()
+        .eq('id', id)
+      
+      if (profileError) {
+        throw new Error(`Failed to delete user: ${error.message}`)
+      }
+      return res.json({ success: true, message: 'User cleaned up' })
+    }
+
+    console.log('[auth/delete] User deleted successfully:', id)
+    res.json({ success: true, message: 'User deleted successfully' })
+  } catch (error) {
+    console.error('[auth/delete] failed:', error)
+    const msg = error.message || 'Failed to delete user'
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: msg })
+    }
   }
 })
 
