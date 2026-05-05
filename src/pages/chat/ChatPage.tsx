@@ -232,8 +232,8 @@ export function ChatPage() {
             await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
                 .eq('receiver_id', profile!.id).eq('sender_id', otherUserId).eq('is_read', false)
             // Also mark related notifications as read
-            await supabase.from('notifications').update({ read: true })
-                .eq('user_id', profile!.id).eq('link', '/chat').eq('read', false)
+            await supabase.from('notifications').update({ is_read: true })
+                .eq('user_id', profile!.id).eq('link', '/chat').eq('is_read', false)
         },
     })
 
