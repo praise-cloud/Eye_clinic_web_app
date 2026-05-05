@@ -18,8 +18,8 @@ import authRoutes from './routes/auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// Load environment variables from root .env
-dotenv.config({ path: resolve(__dirname, '../../.env') })
+// Load environment variables from backend .env
+dotenv.config({ path: resolve(__dirname, '../.env') })
 
 const app = express()
 const PORT = process.env.PORT || 3001

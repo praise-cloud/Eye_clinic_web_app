@@ -6,8 +6,8 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export const supabase = (() => {
-  // Force reload environment variables from .env file
-  const result = dotenv.config({ path: resolve(__dirname, '../../.env'), override: true })
+  // Force reload environment variables from backend .env file
+  const result = dotenv.config({ path: resolve(__dirname, '../.env'), override: true })
   if (result.error) {
     console.error('Error loading .env file in services:', result.error)
   }

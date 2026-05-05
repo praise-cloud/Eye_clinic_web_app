@@ -82,74 +82,73 @@ export function RegisterPage() {
     setIsLoading(true)
 
     try {
-        // Sign up with Supabase directly
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: data.email,
-            password: data.password,
-            options: {
-                data: {
-                    full_name: data.full_name,
-                    role: data.role,
-                    phone: data.phone || null,
-                }
-            }
+        // Use the backend which calls admin.createUser() — no confirmation email sent
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                full_name: data.full_name,
+                email: data.email,
+                password: data.password,
+                phone: data.phone,
+                role: data.role,
+            }),
         })
 
-        if (signUpError) {
-            if (signUpError.message.includes('already registered')) {
+        const result = await response.json()
+
+        if (!response.ok) {
+            if (result.error?.includes('already registered') || result.error?.includes('already been registered')) {
                 setServerError('This email is already registered. Try signing in instead.')
             } else {
-                setServerError(signUpError.message || 'Registration failed.')
+                setServerError(result.error || 'Registration failed.')
             }
             return
         }
 
-        // Check if email confirmation is required
-        if (!signUpData.session) {
-            // Email confirmation required
-            navigate('/login', {
-                state: { message: 'Account created! Please check your email to confirm your account.' }
-            })
+        // Account created — now sign in immediately (admin.createUser auto-confirms)
+        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password,
+        })
+
+        if (signInError || !authData.user) {
+            // Account created but sign-in failed — redirect to login
+            navigate('/login', { state: { message: 'Account created! Please sign in.' } })
             return
         }
 
-        // User is signed in (email confirmation disabled or auto-confirmed)
-        const user = signUpData.user
-        if (!user) {
-            setServerError('Registration failed. Please try again.')
-            return
-        }
+        useAuthStore.getState().setUser(authData.user)
 
-        // Update profile with phone number if provided
-        if (data.phone) {
-            await supabase
+        // Profile fetch after successful registration
+        try {
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .update({ phone: data.phone })
-                .eq('id', user.id)
-        }
+                .select('*')
+                .eq('id', authData.user.id)
+                .single()
 
-        // Set user in auth store
-        useAuthStore.getState().setUser(user)
+            if (profileError && profileError.code === 'PGRST116') {
+                // No profile found, use fallback
+                console.warn('No profile found after registration, using fallback')
+                const resolvedProfile = buildFallbackProfile(authData.user)
+                useAuthStore.getState().setProfile(resolvedProfile)
+                navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
+                return
+            } else if (profileError) {
+                throw profileError
+            }
 
-        // Fetch profile
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-
-        if (profileError && profileError.code === 'PGRST116') {
-            const resolvedProfile = buildFallbackProfile(user)
+            const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(authData.user)
             useAuthStore.getState().setProfile(resolvedProfile)
             navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
-            return
-        } else if (profileError) {
-            throw profileError
+        } catch (profileErr) {
+            console.error('Profile fetch error after registration:', profileErr)
+            // Continue with fallback profile
+            const resolvedProfile = buildFallbackProfile(authData.user)
+            useAuthStore.getState().setProfile(resolvedProfile)
+            navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
         }
-
-        const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(user)
-        useAuthStore.getState().setProfile(resolvedProfile)
-        navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
 
     } catch (err) {
         const msg = err instanceof Error ? err.message : 'Registration failed.'
