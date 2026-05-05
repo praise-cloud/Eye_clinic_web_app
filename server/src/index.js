@@ -5,6 +5,10 @@ import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+
+// Load environment variables FIRST
+dotenv.config();
 
 // Import middleware
 import { authenticateToken } from './middleware/auth.js';
@@ -19,9 +23,6 @@ import paymentsRoutes from './routes/payments.js';
 import inventoryRoutes from './routes/inventory.js';
 import { supabase } from './lib/supabase.js';
 
-// Load environment variables
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -32,21 +33,22 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    error: 'Too many requests from this IP, please try again later.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
+// Rate limiting - disabled for development
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // limit each IP to 100 requests per windowMs
+//   message: {
+//     error: 'Too many requests from this IP, please try again later.'
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
+// app.use('/api/', limiter);
 
 // General middleware
 app.use(compression());
 app.use(morgan('combined'));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

@@ -1,6 +1,8 @@
 import express from 'express';
-import { supabase, handleSupabaseError, createSuccessResponse } from '../lib/supabase.js';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase, createSuccessResponse } from '../lib/supabase.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -18,6 +20,16 @@ const generateToken = (user) => {
   );
 };
 
+// Set HTTP-only cookie
+const setAuthCookie = (res, token) => {
+  res.cookie('auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  });
+};
+
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
@@ -30,20 +42,21 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Authenticate with Supabase
+    // Use Supabase Auth to sign in
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (authError) {
+      console.error('Supabase auth error:', authError);
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials'
       });
     }
 
-    // Get user profile
+    // Get user profile from profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
@@ -64,19 +77,28 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generate JWT
-    const token = generateToken(profile);
+    // Generate JWT for our app (using Supabase session)
+    const token = generateToken({
+      id: authData.user.id,
+      email: authData.user.email,
+      role: profile.role
+    });
+    
+    setAuthCookie(res, token);
 
     res.json(createSuccessResponse({
       user: {
         id: profile.id,
-        email: profile.email || authData.user.email,
+        email: profile.email,
         full_name: profile.full_name,
         role: profile.role,
         is_active: profile.is_active
       },
-      token,
-      expires_in: '24h'
+      session: {
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
+        expires_in: authData.session.expires_in
+      }
     }, 'Login successful'));
 
   } catch (error) {
@@ -100,7 +122,21 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Create user with Supabase
+    // Check if user already exists in profiles table
+    const { data: existingUser, error: checkError } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('email', email)
+      .single();
+
+    if (existingUser && !checkError) {
+      return res.status(400).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    // Create user using Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -113,18 +149,35 @@ router.post('/register', async (req, res) => {
     });
 
     if (authError) {
-      return res.status(400).json({
+      console.error('Auth creation error:', authError);
+      return res.status(500).json({
         success: false,
-        error: authError.message
+        error: 'Failed to create user account'
+      });
+    }
+
+    // Get the created profile (should be auto-created by trigger)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Profile retrieval error:', profileError);
+      return res.status(500).json({
+        success: false,
+        error: 'User created but profile setup failed'
       });
     }
 
     res.status(201).json(createSuccessResponse({
       user: {
-        id: authData.user.id,
-        email: authData.user.email,
-        full_name,
-        role
+        id: profile.id,
+        email: profile.email,
+        full_name: profile.full_name,
+        role: profile.role,
+        is_active: profile.is_active
       }
     }, 'Registration successful'));
 
@@ -149,9 +202,20 @@ router.get('/verify', async (req, res) => {
       });
     }
 
+    // First verify JWT
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Get fresh user data
+    // Optionally verify with Supabase as well
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid Supabase token'
+      });
+    }
+    
+    // Get fresh user profile data
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
@@ -166,7 +230,8 @@ router.get('/verify', async (req, res) => {
     }
 
     res.json(createSuccessResponse({
-      user: profile
+      user: profile,
+      auth_user: userData.user
     }, 'Token valid'));
 
   } catch (error) {

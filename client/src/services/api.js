@@ -24,6 +24,9 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
     
+    // Include credentials for cookies
+    headers['credentials'] = 'include';
+    
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
@@ -36,6 +39,7 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
     const config = {
       headers: this.getAuthHeaders(),
+      credentials: 'include',
       ...options,
     };
 

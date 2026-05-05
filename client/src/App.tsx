@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { RoleGuard } from './components/layout/RoleGuard'
 import { ToastContainer } from './components/layout/ToastContainer'
 import { LoginPage } from './pages/auth/LoginPage'
+import { RegisterPage } from './pages/auth/RegisterPage'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
 import { UsersPage } from './pages/admin/UsersPage'
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard'
@@ -33,6 +34,13 @@ function AppRoutes() {
         path="/login" 
         element={
           isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+        } 
+      />
+      
+      <Route 
+        path="/register" 
+        element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />
         } 
       />
 

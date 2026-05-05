@@ -1,13 +1,4 @@
--- =============================================
--- EYE CLINIC DATABASE - COMPLETE SETUP
--- Run this ONCE in Supabase SQL Editor to fix all issues
--- =============================================
 
--- =============================================
--- STEP 1: CLEAN SLATE (Drop everything)
--- =============================================
-
--- Use a DO block to dynamically drop ALL policies and objects
 DO $$
 DECLARE
     pol RECORD;
@@ -108,8 +99,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- PROFILES (extends Supabase Auth)
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
   full_name TEXT,
   role TEXT NOT NULL CHECK (role IN ('frontdesk', 'doctor', 'admin', 'manager')),
+  password_hash TEXT,
   phone TEXT,
   avatar_url TEXT,
   is_active BOOLEAN DEFAULT TRUE,
@@ -519,6 +512,7 @@ SELECT 'Communication tables created' as status;
 
 -- Profiles indexes
 CREATE INDEX idx_profiles_role ON public.profiles(role);
+CREATE INDEX idx_profiles_email ON public.profiles(email);
 CREATE INDEX idx_profiles_is_active ON public.profiles(is_active);
 CREATE INDEX idx_profiles_created_at ON public.profiles(created_at DESC);
 

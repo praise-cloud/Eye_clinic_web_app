@@ -12,22 +12,30 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.0",
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "dotenv": "^16.4.5",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "express-rate-limit": "^7.4.1",
     "compression": "^1.7.4",
-    "morgan": "^1.10.0"
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.0",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4",
     "jest": "^29.7.0",
+    "nodemon": "^3.1.4",
     "supertest": "^7.0.0"
   },
-  "keywords": ["eye-clinic", "medical", "express", "supabase"],
+  "keywords": [
+    "eye-clinic",
+    "medical",
+    "express",
+    "supabase"
+  ],
   "author": "KORENE Eye Clinic",
   "license": "MIT"
 }

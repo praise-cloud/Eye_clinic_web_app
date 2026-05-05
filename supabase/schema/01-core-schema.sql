@@ -56,8 +56,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- PROFILES (extends Supabase Auth)
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
   full_name TEXT,
   role TEXT NOT NULL CHECK (role IN ('frontdesk', 'doctor', 'admin', 'manager')),
+  password_hash TEXT,
   phone TEXT,
   avatar_url TEXT,
   is_active BOOLEAN DEFAULT TRUE,
