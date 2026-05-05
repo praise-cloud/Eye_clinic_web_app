@@ -29,10 +29,10 @@ import { ItemOrdersPage } from './pages/frontdesk/ItemOrdersPage'
 import { InventoryPage } from './pages/admin/InventoryPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
-import { AuditPage } from './pages/admin/AuditPage'
 import { PaymentsPage } from './pages/admin/AccountantPaymentsPage'
 import { DailySummaryPage } from './pages/admin/DailySummaryPage'
 import { SubscriptionsPage } from './pages/admin/AccountantSubscriptionsPage'
+import { AuditPage } from './pages/manager/AuditPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ChatPage } from './pages/chat/ChatPage'
 import { OutreachPage } from './pages/frontdesk/OutreachPage'
@@ -187,7 +187,6 @@ function App() {
           <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
           <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
           <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
-          <Route path="/admin/audit" element={<P roles={['admin']}><AuditPage /></P>} />
           <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
           <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />
           <Route path="/admin/subscriptions" element={<P roles={['admin']}><SubscriptionsPage /></P>} />

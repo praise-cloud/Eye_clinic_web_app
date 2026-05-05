@@ -43,6 +43,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Payments', href: '/admin/payments', icon: DollarSign },
     { label: 'Daily Summary', href: '/admin/summary', icon: BarChart3 },
     { label: 'Subscriptions', href: '/admin/subscriptions', icon: ClipboardList },
+    { label: 'Users', href: '/admin/users', icon: UserCog },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
@@ -53,7 +54,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Users', href: '/manager/users', icon: UserCog },
     { label: 'Transaction History', href: '/manager/reports', icon: DollarSign },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
-    { label: 'aduit', href: '/manager/audit', icon: ClipboardList },  
+    { label: 'Audit Logs', href: '/manager/audit', icon: ClipboardList },  
     { label: 'Settings', href: '/settings', icon: Settings },
   ],
 }
