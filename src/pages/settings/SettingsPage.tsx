@@ -59,8 +59,13 @@ export function SettingsPage() {
 
     const updateProfile = useMutation({
         mutationFn: async (data: ProfileForm) => {
+            console.log('[Settings] Updating profile...', data)
             const { data: updated, error } = await supabase.from('profiles').update(data).eq('id', profile!.id).select().maybeSingle()
-            if (error) throw error
+            if (error) {
+                console.error('[Settings] Profile update error:', error)
+                throw error
+            }
+            console.log('[Settings] Profile updated:', updated)
             return updated as Profile
         },
         onSuccess: (updated) => {
@@ -68,9 +73,12 @@ export function SettingsPage() {
             setIsEditingProfile(false)
             notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been updated successfully.', link: '/settings' })
         },
-        onError: (error) => {
-            console.error('Profile update failed:', error)
-            notify({ type: 'system', title: 'Update Failed', message: 'Failed to update profile. Please try again.', link: '/settings' })
+        onError: (error: any) => {
+            console.error('[Settings] Profile update failed:', error?.message || error)
+            const msg = error?.message?.includes('timeout') || error?.message?.includes('timed out')
+                ? 'Request timed out. Please check your connection and try again.'
+                : error?.message || 'Failed to update profile. Please try again.'
+            notify({ type: 'system', title: 'Update Failed', message: msg, link: '/settings' })
         },
     })
 
@@ -81,11 +89,16 @@ export function SettingsPage() {
                 key: `${profile.id}_${n.key}`,
                 value: String(currentNotif[n.key] ?? true),
             }))
-            await supabase.from('settings').upsert(upserts, { onConflict: 'key' })
+            const { error } = await supabase.from('settings').upsert(upserts, { onConflict: 'key' })
+            if (error) throw error
         },
         onSuccess: () => {
             refetchNotif()
             notify({ type: 'system', title: 'Preferences Saved', message: 'Your notification preferences have been saved.', link: '/settings' })
+        },
+        onError: (error: any) => {
+            console.error('Notification save failed:', error?.message || error)
+            notify({ type: 'system', title: 'Save Failed', message: error?.message || 'Failed to save notification preferences.', link: '/settings' })
         },
     })
 
