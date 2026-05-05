@@ -87,17 +87,13 @@ router.post('/login', async (req, res) => {
     setAuthCookie(res, token);
 
     res.json(createSuccessResponse({
+      token,
       user: {
         id: profile.id,
         email: profile.email,
         full_name: profile.full_name,
         role: profile.role,
         is_active: profile.is_active
-      },
-      session: {
-        access_token: authData.session.access_token,
-        refresh_token: authData.session.refresh_token,
-        expires_in: authData.session.expires_in
       }
     }, 'Login successful'));
 
@@ -202,20 +198,10 @@ router.get('/verify', async (req, res) => {
       });
     }
 
-    // First verify JWT
+    // Verify our custom JWT (do NOT pass this to supabase.auth.getUser)
     const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Optionally verify with Supabase as well
-    const { data: userData, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid Supabase token'
-      });
-    }
-    
-    // Get fresh user profile data
+
+    // Get fresh user profile data using the decoded user id
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
@@ -229,9 +215,15 @@ router.get('/verify', async (req, res) => {
       });
     }
 
+    if (!profile.is_active) {
+      return res.status(401).json({
+        success: false,
+        error: 'Account is deactivated'
+      });
+    }
+
     res.json(createSuccessResponse({
-      user: profile,
-      auth_user: userData.user
+      user: profile
     }, 'Token valid'));
 
   } catch (error) {

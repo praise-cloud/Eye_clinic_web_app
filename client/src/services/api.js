@@ -23,14 +23,13 @@ class ApiClient {
     const headers = {
       'Content-Type': 'application/json',
     };
-    
-    // Include credentials for cookies
-    headers['credentials'] = 'include';
-    
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+
+    // Always read the latest token from localStorage (avoids stale constructor value)
+    const token = localStorage.getItem('auth_token') || this.token;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     return headers;
   }
 

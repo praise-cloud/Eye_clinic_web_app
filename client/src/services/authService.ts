@@ -49,7 +49,14 @@ export class AuthService {
   static async register(userData: any): Promise<any> {
     try {
       const response = await authAPI.register(userData);
-      return response;
+      // Server returns { success: true, data: { user } } or { success: false, error }
+      if (response.success) {
+        return { success: true };
+      }
+      return {
+        success: false,
+        error: response.error || 'Registration failed'
+      };
     } catch (error: any) {
       console.error('Register error:', error);
       return {
