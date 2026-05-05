@@ -54,32 +54,35 @@ export function UsersPage() {
     }, [editTarget, setValue])
 
 const createMutation = useMutation({
-        mutationFn: async (data: FormData) => {
-            if (!data.password) throw new Error('Password is required')
-            // Create user with Supabase auth
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+    mutationFn: async (data: FormData) => {
+        if (!data.password) throw new Error('Password is required')
+
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                full_name: data.full_name,
                 email: data.email,
                 password: data.password,
-                options: {
-                    data: {
-                        full_name: data.full_name,
-                        role: data.role,
-                    },
-                },
-            })
-            if (authError) throw authError
-            return authData
-        },
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['staff'] })
-            setOpen(false); reset(); setError('')
-            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/admin/users' })
-        },
-        onError: (e: Error) => {
-            logError('Create staff error', e)
-            setError(getAutoSecureErrorMessage(e))
-        },
-    })
+                role: data.role,
+                phone: data.phone,
+            }),
+        })
+
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Failed to create account')
+        return result
+    },
+    onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ['staff'] })
+        setOpen(false); reset(); setError('')
+        notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/admin/users' })
+    },
+    onError: (e: Error) => {
+        logError('Create staff error', e)
+        setError(getAutoSecureErrorMessage(e))
+    },
+})
 
 const toggleActive = useMutation({
         mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {

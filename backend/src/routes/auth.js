@@ -5,7 +5,7 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: resolve(__dirname, '../../.env') })
+dotenv.config({ path: resolve(__dirname, '../.env') })
 
 const router = express.Router()
 
@@ -33,7 +33,7 @@ async function syncProfile(userId, { full_name, role, phone }) {
   let lastError = null
 
   for (const payload of profilePayloads) {
-    const { error } = await supabaseAdmin.from('profiles').upsert(payload)
+    const { error } = await getSupabaseAdmin().from('profiles').upsert(payload)
     if (!error) return
     lastError = error
   }
@@ -42,11 +42,31 @@ async function syncProfile(userId, { full_name, role, phone }) {
 }
 
 // Admin client — bypasses RLS, creates confirmed users
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+let supabaseAdmin = null
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  console.log('Environment check:', { 
+    supabaseUrl: supabaseUrl ? 'SET' : 'MISSING', 
+    supabaseKey: supabaseKey ? 'SET' : 'MISSING',
+    allEnvKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
+  })
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('Missing environment variables:', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey })
+    throw new Error('Missing Supabase environment variables')
+  }
+  
+  console.log('Creating Supabase client with fresh env vars...')
+  
+  return createClient(
+    supabaseUrl,
+    supabaseKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 // POST /api/auth/register — creates a confirmed user (no email verification needed)
 router.post('/register', async (req, res) => {
@@ -58,19 +78,35 @@ router.post('/register', async (req, res) => {
     }
 
     const normalizedRole = normalizeRole(role)
-    const mappedRole = normalizedRole
 
-    if (!VALID_ROLES.includes(mappedRole)) {
+    if (!VALID_ROLES.includes(normalizedRole)) {
       return res.status(400).json({ success: false, error: 'Invalid role' })
     }
 
-    // Create user with email_confirm: true — skips email confirmation entirely
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name, role: mappedRole, phone: phone || null }
-    })
+    // Try admin auth first, fallback to regular auth if database error
+    let data, error
+    try {
+      const result = await getSupabaseAdmin().auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name, role: normalizedRole, phone: phone || null }
+      })
+      data = result.data
+      error = result.error
+    } catch (adminError) {
+      console.log('Admin auth failed, trying regular auth:', adminError.message)
+      // Fallback to regular auth
+      const result = await getSupabaseAdmin().auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name, role: normalizedRole }
+        }
+      })
+      data = result.data
+      error = result.error
+    }
 
     if (error) {
       throw new Error(`Auth user creation failed: ${error.message}`)
@@ -79,11 +115,11 @@ router.post('/register', async (req, res) => {
     try {
       await syncProfile(data.user.id, {
         full_name,
-        role: mappedRole,
+        role: normalizedRole,
         phone,
       })
     } catch (profileError) {
-      await supabaseAdmin.auth.admin.deleteUser(data.user.id)
+      await getSupabaseAdmin().auth.admin.deleteUser(data.user.id)
       throw new Error(`Profile sync failed: ${profileError.message}`)
     }
 
@@ -94,7 +130,7 @@ router.post('/register', async (req, res) => {
         id: data.user.id,
         email,
         full_name,
-        role: mappedRole,
+        role: normalizedRole,
       },
     })
   } catch (error) {

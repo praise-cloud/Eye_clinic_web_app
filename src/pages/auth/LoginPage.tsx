@@ -42,9 +42,22 @@ export function LoginPage() {
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
-                        .maybeSingle()
+                        .single()
 
-                    if (profileError) throw profileError
+                    if (profileError && profileError.code === 'PGRST116') {
+                        // No profile found, use fallback
+                        const resolvedProfile = buildFallbackProfile(session.user)
+                        const { setProfile, setUser } = useAuthStore.getState()
+                        setProfile(resolvedProfile)
+                        setUser(session.user)
+                        const role = resolvedProfile.role
+                        if (role === 'doctor') navigate('/doctor', { replace: true })
+                        else if (role === 'frontdesk') navigate('/frontdesk', { replace: true })
+                        else if (role === 'admin') navigate('/admin', { replace: true })
+                        else if (role === 'manager') navigate('/manager', { replace: true })
+                    } else if (profileError) {
+                        throw profileError
+                    }
                     
                     const resolvedProfile = (profile as Profile) ?? buildFallbackProfile(session.user)
                     if (resolvedProfile) {
@@ -107,11 +120,20 @@ export function LoginPage() {
                         .from('profiles')
                         .select('*')
                         .eq('id', authData.user.id)
-                        .maybeSingle()
+                        .single()
 
-                    if (profileError) console.error('Profile error:', profileError)
+                    if (profileError && profileError.code === 'PGRST116') {
+                        // No profile found, use fallback
+                        console.warn('No profile found, using fallback')
+                        const resolvedProfile = buildFallbackProfile(authData.user)
+                        useAuthStore.getState().setProfile(resolvedProfile)
+                        const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
+                        navigate(getRoleDashboardPath(role), { replace: true })
+                    } else if (profileError) {
+                        throw profileError
+                    }
 
-                    const resolvedProfile = (profileData?.data as Profile | null) ?? buildFallbackProfile(authData.user)
+                    const resolvedProfile = (profileData as Profile | null) ?? buildFallbackProfile(authData.user)
                     useAuthStore.getState().setProfile(resolvedProfile)
 
                     const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)

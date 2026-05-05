@@ -22,6 +22,7 @@ import { buildFallbackProfile, getRoleDashboardPath } from '@/lib/auth'
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/\d/, 'Password must contain at least one number')
       .regex(/[@$!%*?&]/, 'Password must contain at least one special character (@$!%*?&)'),
+    phone: z.string().optional(),
     role: z.enum(['frontdesk', 'doctor', 'admin', 'manager'], {
       required_error: 'Please select a role' }),
   })
@@ -41,11 +42,22 @@ export function RegisterPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!mounted || !session?.user) return
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .single()
+
+      if (profileError && profileError.code === 'PGRST116') {
+        // No profile found, use fallback
+        const resolvedProfile = buildFallbackProfile(session.user)
+        useAuthStore.getState().setUser(session.user)
+        useAuthStore.getState().setProfile(resolvedProfile)
+        navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
+        return
+      } else if (profileError) {
+        throw profileError
+      }
 
       const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(session.user)
       useAuthStore.getState().setUser(session.user)
@@ -70,62 +82,82 @@ export function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // Split full name into first and last name for the trigger
-      const nameParts = data.full_name.trim().split(' ')
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || ''
+        // Sign up with Supabase directly
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: data.email,
+            password: data.password,
+            options: {
+                data: {
+                    full_name: data.full_name,
+                    role: data.role,
+                    phone: data.phone || null,
+                }
+            }
+        })
 
-      // Step 1: Sign up with Supabase (trigger creates profile automatically)
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.full_name, // Send full_name directly for trigger
-            role: data.role, // Use role selected in the form
-          },
-        },
-      })
+        if (signUpError) {
+            if (signUpError.message.includes('already registered')) {
+                setServerError('This email is already registered. Try signing in instead.')
+            } else {
+                setServerError(signUpError.message || 'Registration failed.')
+            }
+            return
+        }
 
-      if (signUpError) throw signUpError
-      if (!signUpData.user) throw new Error('Sign-up returned no user.')
+        // Check if email confirmation is required
+        if (!signUpData.session) {
+            // Email confirmation required
+            navigate('/login', {
+                state: { message: 'Account created! Please check your email to confirm your account.' }
+            })
+            return
+        }
 
-      // Step 2: If email confirmation is disabled, sign in immediately
-      if (!signUpData.session) {
-        // Email confirmation required
-        setServerError('')
-        setIsLoading(false)
-        navigate('/login', { state: { message: 'Registration successful! Please check your email to confirm your account.' } })
-        return
-      }
+        // User is signed in (email confirmation disabled or auto-confirmed)
+        const user = signUpData.user
+        if (!user) {
+            setServerError('Registration failed. Please try again.')
+            return
+        }
 
-      // Step 3: Set user in store (auto-confirmed)
-      useAuthStore.getState().setUser(signUpData.user)
+        // Update profile with phone number if provided
+        if (data.phone) {
+            await supabase
+                .from('profiles')
+                .update({ phone: data.phone })
+                .eq('id', user.id)
+        }
 
-      // Step 4: Fetch profile (trigger created it)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', signUpData.user.id)
-        .single()
+        // Set user in auth store
+        useAuthStore.getState().setUser(user)
 
-      const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(signUpData.user)
-      useAuthStore.getState().setProfile(resolvedProfile)
+        // Fetch profile
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
 
-      navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
+        if (profileError && profileError.code === 'PGRST116') {
+            const resolvedProfile = buildFallbackProfile(user)
+            useAuthStore.getState().setProfile(resolvedProfile)
+            navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
+            return
+        } else if (profileError) {
+            throw profileError
+        }
+
+        const resolvedProfile = (profile as Profile | null) ?? buildFallbackProfile(user)
+        useAuthStore.getState().setProfile(resolvedProfile)
+        navigate(getRoleDashboardPath(resolvedProfile.role), { replace: true })
 
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Registration failed.'
-      console.error('[RegisterPage] registration failed:', err)
-      if (msg.includes('already registered') || msg.includes('already been registered')) {
-        setServerError('This email is already registered. Try signing in instead.')
-      } else {
+        const msg = err instanceof Error ? err.message : 'Registration failed.'
         setServerError(msg)
-      }
     } finally {
-      setIsLoading(false)
+        setIsLoading(false)
     }
-  }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4 py-8">
@@ -177,6 +209,13 @@ export function RegisterPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <Input
+              label="Phone Number"
+              type="tel"
+              placeholder="+234 800 000 0000"
+              error={errors.phone?.message}
+              {...register('phone')}
+            />
             <Select onValueChange={(value) => setValue('role', value as any)} defaultValue="frontdesk">
               <SelectTrigger label="Role">
                 <SelectValue placeholder="Select your role" />
