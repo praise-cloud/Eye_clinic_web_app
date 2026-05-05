@@ -16,12 +16,24 @@ export function AuditPage() {
     const { data: logs = [], isLoading, error } = useQuery({
         queryKey: ['audit-logs', tableFilter, actionFilter],
         queryFn: async () => {
-            let q = supabase.from('audit_logs').select('*, user:profiles(full_name,role)').order('created_at', { ascending: false }).limit(100)
+            let q = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100)
             if (tableFilter !== 'all') q = q.eq('table_name', tableFilter)
             if (actionFilter !== 'all') q = q.eq('action', actionFilter)
-            const { data, error } = await q
+            const { data: logsData, error } = await q
             if (error) throw error
-            return data ?? []
+            
+            // Manually fetch profiles for user_ids
+            const userIds = [...new Set((logsData ?? []).map(l => l.user_id).filter(Boolean))]
+            let profilesMap: Record<string, any> = {}
+            if (userIds.length > 0) {
+                const { data: profiles } = await supabase.from('profiles').select('id,full_name,role').in('id', userIds)
+                profilesMap = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
+            }
+            
+            return (logsData ?? []).map(log => ({
+                ...log,
+                user: log.user_id ? profilesMap[log.user_id] : null
+            }))
         },
     })
 
