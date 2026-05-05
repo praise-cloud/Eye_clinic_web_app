@@ -37,47 +37,28 @@ export function LoginPage() {
                 const { data: { session }, error } = await supabase.auth.getSession()
                 if (error) throw error
                 if (session?.user && mounted) {
-                    // Get profile from API
                     const { data: profile, error: profileError } = await supabase
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
                         .single()
 
-                    if (profileError && profileError.code === 'PGRST116') {
-                        // No profile found, use fallback
-                        const resolvedProfile = buildFallbackProfile(session.user)
-                        const { setProfile, setUser } = useAuthStore.getState()
-                        setProfile(resolvedProfile)
-                        setUser(session.user)
-                        const role = resolvedProfile.role
-                        if (role === 'doctor') navigate('/doctor', { replace: true })
-                        else if (role === 'frontdesk') navigate('/frontdesk', { replace: true })
-                        else if (role === 'admin') navigate('/admin', { replace: true })
-                        else if (role === 'manager') navigate('/manager', { replace: true })
-                    } else if (profileError) {
-                        throw profileError
-                    }
-                    
                     const resolvedProfile = (profile as Profile) ?? buildFallbackProfile(session.user)
-                    if (resolvedProfile) {
-                        const { setProfile, setUser } = useAuthStore.getState()
-                        setProfile(resolvedProfile)
-                        setUser(session.user)
-                        const role = resolvedProfile.role
-                        if (role === 'doctor') navigate('/doctor', { replace: true })
-                        else if (role === 'frontdesk') navigate('/frontdesk', { replace: true })
-                        else if (role === 'admin') navigate('/admin', { replace: true })
-                        else if (role === 'manager') navigate('/manager', { replace: true })
-                    }
+                    const { setProfile, setUser } = useAuthStore.getState()
+                    setProfile(resolvedProfile)
+                    setUser(session.user)
+                    
+                    const role = resolvedProfile.role
+                    if (role === 'doctor') navigate('/doctor', { replace: true })
+                    else if (role === 'frontdesk') navigate('/frontdesk', { replace: true })
+                    else if (role === 'admin') navigate('/admin', { replace: true })
+                    else if (role === 'manager') navigate('/manager', { replace: true })
                 }
             } catch (err) {
-                // Clear invalid session after deployment or auth reset
                 logError('Session check failed, clearing auth state', err)
                 await supabase.auth.signOut()
                 useAuthStore.getState().setUser(null)
                 useAuthStore.getState().setProfile(null)
-                // Note: Supabase handles session storage automatically
             }
         }
         checkSession()
@@ -111,46 +92,15 @@ export function LoginPage() {
                 return
             }
 
-            if (authData.user) {
-                useAuthStore.getState().setUser(authData.user)
-
-                // Profile fetch
-                try {
-                    const { data: profileData, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', authData.user.id)
-                        .single()
-
-                    if (profileError && profileError.code === 'PGRST116') {
-                        // No profile found, use fallback
-                        console.warn('No profile found, using fallback')
-                        const resolvedProfile = buildFallbackProfile(authData.user)
-                        useAuthStore.getState().setProfile(resolvedProfile)
-                        const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
-                        navigate(getRoleDashboardPath(role), { replace: true })
-                    } else if (profileError) {
-                        throw profileError
-                    }
-
-                    const resolvedProfile = (profileData as Profile | null) ?? buildFallbackProfile(authData.user)
-                    useAuthStore.getState().setProfile(resolvedProfile)
-
-                    const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
-                    console.log('Navigating to role dashboard:', role)
-                    navigate(getRoleDashboardPath(role), { replace: true })
-                } catch (e) {
-                    console.warn('Profile timeout, using fallback:', e)
-                    const resolvedProfile = buildFallbackProfile(authData.user)
-                    useAuthStore.getState().setProfile(resolvedProfile)
-                    const role = normalizeUserRole(resolvedProfile.role || authData.user.user_metadata?.role)
-                    navigate(getRoleDashboardPath(role), { replace: true })
+            // Login successful - App.tsx will handle navigation via onAuthStateChange
+            // Set timeout to stop spinner if navigation doesn't happen
+            setTimeout(() => {
+                if (isLoading) {
+                    setIsLoading(false)
                 }
-            }
+            }, 5000)
         } catch (err: any) {
-            console.error('Login catch:', err)
             setError(getAutoSecureErrorMessage(err))
-        } finally {
             setIsLoading(false)
         }
     }

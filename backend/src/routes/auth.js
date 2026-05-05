@@ -22,55 +22,37 @@ function normalizeRole(role) {
   return VALID_ROLES.includes(normalizedRole) ? normalizedRole : 'frontdesk'
 }
 
-async function syncProfile(userId, { full_name, role, phone }) {
-  const profilePayloads = [
-    { id: userId, full_name, role, phone: phone || null, is_active: true },
-    { id: userId, full_name, role, is_active: true },
-    { id: userId, full_name, role, phone: phone || null },
-    { id: userId, full_name, role },
-  ]
-
-  let lastError = null
-
-  for (const payload of profilePayloads) {
-    const { error } = await getSupabaseAdmin().from('profiles').upsert(payload)
-    if (!error) return
-    lastError = error
-  }
-
-  throw lastError || new Error('Failed to sync profile record')
-}
-
 // Admin client — bypasses RLS, creates confirmed users
 let supabaseAdmin = null
 
 function getSupabaseAdmin() {
+  if (supabaseAdmin) return supabaseAdmin
+  
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   
-  console.log('Environment check:', { 
-    supabaseUrl: supabaseUrl ? 'SET' : 'MISSING', 
-    supabaseKey: supabaseKey ? 'SET' : 'MISSING',
-    allEnvKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
-  })
-  
   if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing environment variables:', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey })
+    console.error('[auth] Missing environment variables:', { 
+      hasUrl: !!supabaseUrl, 
+      hasKey: !!supabaseKey 
+    })
     throw new Error('Missing Supabase environment variables')
   }
   
-  console.log('Creating Supabase client with fresh env vars...')
-  
-  return createClient(
+  console.log('[auth] Creating Supabase admin client...')
+  supabaseAdmin = createClient(
     supabaseUrl,
     supabaseKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
+  
+  return supabaseAdmin
 }
 
 // POST /api/auth/register — creates a confirmed user (no email verification needed)
 router.post('/register', async (req, res) => {
   try {
+    console.log('[auth/register] Request body:', req.body)
     const { email, password, full_name, role, phone } = req.body
 
     if (!email || !password || !full_name || !role) {
@@ -83,44 +65,51 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid role' })
     }
 
-    // Try admin auth first, fallback to regular auth if database error
-    let data, error
-    try {
-      const result = await getSupabaseAdmin().auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name, role: normalizedRole, phone: phone || null }
-      })
-      data = result.data
-      error = result.error
-    } catch (adminError) {
-      console.log('Admin auth failed, trying regular auth:', adminError.message)
-      // Fallback to regular auth
-      const result = await getSupabaseAdmin().auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name, role: normalizedRole }
-        }
-      })
-      data = result.data
-      error = result.error
-    }
+    console.log('[auth/register] Creating user with email:', email)
+    // Step 1: Create user with admin API
+    const { data, error } = await getSupabaseAdmin().auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name, role: normalizedRole, phone: phone || null }
+    })
+    console.log('[auth/register] CreateUser result:', { hasData: !!data, hasError: !!error, errorMessage: error?.message })
 
     if (error) {
+      console.error('[auth/register] Supabase error:', {
+        message: error.message,
+        status: error.status
+      })
       throw new Error(`Auth user creation failed: ${error.message}`)
     }
 
-    try {
-      await syncProfile(data.user.id, {
+    // Step 2: Create profile (don't rely on trigger)
+    const { error: profileError } = await getSupabaseAdmin()
+      .from('profiles')
+      .upsert({
+        id: data.user.id,
         full_name,
         role: normalizedRole,
-        phone,
+        phone: phone || null,
+        is_active: true,
+        email: email  // Add email field
+      }, { onConflict: 'id' })
+
+    if (profileError) {
+      console.error('[auth/register] Profile creation failed:', {
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+        code: profileError.code,
+        user_id: data.user.id
       })
-    } catch (profileError) {
-      await getSupabaseAdmin().auth.admin.deleteUser(data.user.id)
-      throw new Error(`Profile sync failed: ${profileError.message}`)
+      // Rollback: delete the auth user since profile creation failed
+      try {
+        await getSupabaseAdmin().auth.admin.deleteUser(data.user.id)
+      } catch (deleteError) {
+        console.error('[auth/register] Failed to rollback user creation:', deleteError)
+      }
+      throw new Error(`Profile creation failed: ${profileError.message}`)
     }
 
     res.json({

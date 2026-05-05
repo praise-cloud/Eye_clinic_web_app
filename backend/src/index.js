@@ -44,6 +44,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
 })
 
+// Error handling middleware (must have 4 params)
+app.use((err, req, res, next) => {
+  console.error('[Backend] Unhandled error:', err.message)
+  res.status(500).json({ success: false, error: err.message || 'Internal server error' })
+})
+
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`)
 })
