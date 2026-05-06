@@ -117,6 +117,7 @@ const updateMutation = useMutation({
         },
         onError: (e: Error) => {
             logError('Update staff error', e)
+            console.error('[UsersPage] Update failed:', e.message, e)
             setError(getAutoSecureErrorMessage(e))
         },
     })
