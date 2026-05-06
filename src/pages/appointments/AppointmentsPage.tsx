@@ -198,7 +198,11 @@ export function AppointmentsPage() {
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
             const { error } = await supabase.from('appointments').delete().eq('id', id)
-            if (error) throw error
+            if (error) {
+                if (error.code === '42501') throw new Error('You do not have permission to delete appointments.')
+                if (error.code === '23503') throw new Error('Cannot delete appointment: there are related records attached to it.')
+                throw new Error(`Unable to delete appointment: ${error.message}`)
+            }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['appointments'] })
@@ -206,6 +210,9 @@ export function AppointmentsPage() {
             qc.invalidateQueries({ queryKey: ['admin-calendar'] })
             setDeleteId(null)
             notify({ type: 'system', title: 'Appointment Deleted', message: 'The appointment has been permanently deleted.' })
+        },
+        onError: (error: Error) => {
+            alert(error.message)
         },
     })
 

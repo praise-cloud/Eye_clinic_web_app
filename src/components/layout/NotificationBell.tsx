@@ -77,7 +77,11 @@ export function NotificationBell() {
         // Only add if it's for current user
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (user && newNotification.user_id === user.id) {
-            setNotifications([newNotification, ...useNotificationStore.getState().notifications].slice(0, 50))
+            // Use setState callback to get fresh state
+            useNotificationStore.setState(s => ({
+              notifications: [newNotification, ...s.notifications].slice(0, 50),
+              unreadCount: s.unreadCount + (newNotification.is_read ? 0 : 1),
+            }))
           }
         })
       })

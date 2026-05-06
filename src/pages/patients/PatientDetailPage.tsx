@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2, Trash2 } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, User, Calendar, FileText, Pill, CreditCard, Edit, Stethoscope, Package, AlertTriangle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { Card, CardContent } from '@/components/ui/card'
@@ -30,7 +30,6 @@ export function PatientDetailPage() {
     const qc = useQueryClient()
     const [tab, setTab] = useState('overview')
     const [editOpen, setEditOpen] = useState(false)
-    const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
 
     const { data: patient, isLoading, error: patientError } = useQuery({
         queryKey: ['patient', id],
@@ -95,26 +94,6 @@ export function PatientDetailPage() {
             qc.invalidateQueries({ queryKey: ['patient', id] })
             setEditOpen(false)
             reset()
-        },
-    })
-
-    const deleteMutation = useMutation({
-        mutationFn: async (patientId: string) => {
-            if (!patientId) throw new Error('No patient selected')
-            const { error } = await supabase.from('patients').delete().eq('id', patientId)
-            if (error) {
-                if (error.code === '42501') throw new Error('You do not have permission to delete patients.')
-                if (error.code === '23503' || error.code === '235000') throw new Error('Cannot delete patient: they have existing appointments, payments, or other linked records.')
-                throw new Error(`Unable to delete patient: ${error.message}`)
-            }
-        },
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['patients'] })
-            setDeleteTarget(null)
-            navigate('/patients')
-        },
-        onError: (error: Error) => {
-            alert(error.message)
         },
     })
 
@@ -247,11 +226,6 @@ export function PatientDetailPage() {
                             setEditOpen(true)
                         }}>
                             <Edit className="w-3.5 h-3.5" />Edit
-                        </Button>
-                    )}
-                    {['frontdesk', 'admin'].includes(profile?.role ?? '') && (
-                        <Button variant="outline" size="sm" className="gap-1.5 text-red-600 hover:text-red-700" onClick={() => setDeleteTarget(patient)}>
-                            <Trash2 className="w-3.5 h-3.5" />Delete
                         </Button>
                     )}
                 </div>
@@ -505,48 +479,6 @@ export function PatientDetailPage() {
                     <ModalFooter>
                         <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
                         <Button type="submit" form="edit-patient-form" loading={isSubmitting || editMutation.isPending}>Save Changes</Button>
-                    </ModalFooter>
-                </ModalContent>
-            </Modal>
-
-            {/* Delete Patient Confirmation Modal */}
-            <Modal open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-                <ModalContent size="sm">
-                    <ModalHeader>
-                        <ModalTitle className="text-red-600 flex items-center gap-2">
-                            <Trash2 className="w-5 h-5" />Delete Patient
-                        </ModalTitle>
-                        <ModalDescription className="text-red-500/80">
-                            This action is <strong>permanent</strong> and cannot be undone.
-                        </ModalDescription>
-                    </ModalHeader>
-                    <div className="px-6 py-3 bg-red-50 border border-red-100 rounded-xl mx-6 mb-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-red-500 text-white flex items-center justify-center text-sm font-bold">
-                                {deleteTarget?.first_name?.[0]}{deleteTarget?.last_name?.[0]}
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-red-700">{deleteTarget?.first_name} {deleteTarget?.last_name}</p>
-                                <p className="text-xs text-red-500 font-mono">{deleteTarget?.patient_number}</p>
-                            </div>
-                        </div>
-                        <p className="text-xs text-red-400 mt-2">All appointments, prescriptions, and payments for this patient will also be removed.</p>
-                    </div>
-                    {deleteMutation.isError && (
-                        <div className="px-6 pb-2">
-                            <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-100">
-                                {(deleteMutation.error as Error)?.message || 'Delete failed. Contact support.'}
-                            </p>
-                        </div>
-                    )}
-                    <ModalFooter>
-                        <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Cancel</Button>
-                        <Button variant="destructive" loading={deleteMutation.isPending} onClick={() => {
-                            if (!deleteTarget) return
-                            deleteMutation.mutate(deleteTarget.id)
-                        }}>
-                            Yes, Delete Patient
-                        </Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
