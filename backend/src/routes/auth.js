@@ -84,16 +84,29 @@ router.post('/register', async (req, res) => {
     }
 
     // Step 2: Create profile (don't rely on trigger)
+    const profileData = {
+      id: data.user.id,
+      full_name,
+      role: normalizedRole,
+      phone: phone || null,
+      is_active: true,
+    }
+    // Only add email if the column exists (backward compatibility)
+    try {
+      const { error: testError } = await getSupabaseAdmin()
+        .from('profiles')
+        .select('email')
+        .limit(0)
+      if (!testError) {
+        profileData.email = email
+      }
+    } catch (e) {
+      // email column doesn't exist yet, skip it
+    }
+    
     const { error: profileError } = await getSupabaseAdmin()
       .from('profiles')
-      .upsert({
-        id: data.user.id,
-        full_name,
-        role: normalizedRole,
-        phone: phone || null,
-        is_active: true,
-        email: email  // Add email field
-      }, { onConflict: 'id' })
+      .upsert(profileData, { onConflict: 'id' })
 
     if (profileError) {
       console.error('[auth/register] Profile creation failed:', {

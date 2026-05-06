@@ -105,17 +105,18 @@ SELECT 'Cleanup complete' as status;
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- PROFILES (extends Supabase Auth)
-CREATE TABLE public.profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  full_name TEXT,
-  role TEXT NOT NULL CHECK (role IN ('frontdesk', 'doctor', 'admin', 'manager')),
-  phone TEXT,
-  avatar_url TEXT,
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+  -- PROFILES (extends Supabase Auth)
+  CREATE TABLE public.profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    email TEXT,
+    full_name TEXT,
+    role TEXT NOT NULL CHECK (role IN ('frontdesk', 'doctor', 'admin', 'manager')),
+    phone TEXT,
+    avatar_url TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  );
 
 -- PATIENTS
 CREATE TABLE public.patients (
