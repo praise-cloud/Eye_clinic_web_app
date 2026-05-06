@@ -60,7 +60,13 @@ export function SettingsPage() {
     const updateProfile = useMutation({
         mutationFn: async (data: ProfileForm) => {
             console.log('[Settings] Updating profile...', data)
-            const { data: updated, error } = await supabase.from('profiles').update(data).eq('id', profile!.id).select().maybeSingle()
+            // Only send fields that exist in the form
+            const updates: Partial<Profile> = {
+                full_name: data.full_name,
+                phone: data.phone || undefined,
+            }
+            console.log('[Settings] Sending updates:', updates)
+            const { data: updated, error } = await supabase.from('profiles').update(updates).eq('id', profile!.id).select().maybeSingle()
             if (error) {
                 console.error('[Settings] Profile update error:', error)
                 throw error
@@ -74,10 +80,10 @@ export function SettingsPage() {
             notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been updated successfully.', link: '/settings' })
         },
         onError: (error: any) => {
-            console.error('[Settings] Profile update failed:', error?.message || error)
+            console.error('[Settings] Profile update failed:', error?.message || error, error)
             const msg = error?.message?.includes('timeout') || error?.message?.includes('timed out')
                 ? 'Request timed out. Please check your connection and try again.'
-                : error?.message || 'Failed to update profile. Please try again.'
+                : error?.message || error?.error_description || 'Failed to update profile. Please try again.'
             notify({ type: 'system', title: 'Update Failed', message: msg, link: '/settings' })
         },
     })
