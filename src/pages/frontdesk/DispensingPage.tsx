@@ -68,37 +68,52 @@ export function DispensingPage() {
         mutationFn: async (data: FormData) => {
             if (!selectedDrug) throw new Error('No drug selected')
             if (data.quantity > selectedDrug.quantity) throw new Error(`Insufficient stock. Only ${selectedDrug.quantity} ${selectedDrug.unit}(s) available.`)
-            await supabase.from('drug_dispensing').insert({
+            
+            // Insert drug dispensing record
+            const { error: dispenseError } = await supabase.from('drug_dispensing').insert({
                 patient_id: data.patient_id, drug_id: data.drug_id,
                 dispensed_by: profile!.id, quantity: data.quantity,
                 unit_price: selectedDrug.selling_price,
                 prescription_note: data.prescription_note,
             })
+            if (dispenseError) throw dispenseError
+
+            // Create payment record
             const totalAmount = selectedDrug.selling_price * data.quantity
-            await supabase.from('payments').insert({
+            const { error: paymentError } = await supabase.from('payments').insert({
                 patient_id: data.patient_id, payment_type: 'drug',
                 amount: totalAmount, payment_method: 'cash',
                 received_by: profile!.id,
                 notes: `Drug dispensed: ${selectedDrug.name} × ${data.quantity}`,
             })
+            if (paymentError) throw paymentError
+
+            // Reduce drug inventory
+            const { error: updateError } = await supabase.from('drugs').update({ quantity: selectedDrug.quantity - data.quantity }).eq('id', data.drug_id)
+            if (updateError) throw updateError
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['dispensing'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
+            qc.invalidateQueries({ queryKey: ['drugs-all'] })
             setOpen(false); reset(); setSelectedDrug(null); setPatientDisplay('')
             notify({ type: 'dispensing', title: 'Drug Dispensed', message: `${selectedDrug?.name} has been dispensed.`, link: '/frontdesk/dispensing' }, profile?.id || '')
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to dispense drug.' }, profile?.id || '') },
     })
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            await supabase.from('drug_dispensing').delete().eq('id', id)
+            const { error } = await supabase.from('drug_dispensing').delete().eq('id', id)
+            if (error) throw error
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['dispensing'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
+            qc.invalidateQueries({ queryKey: ['drugs-all'] })
             notify({ type: 'system', title: 'Record Deleted', message: 'Dispensing record has been removed.' }, profile?.id || '')
         },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete record.' }, profile?.id || '') },
     })
 
     return (
