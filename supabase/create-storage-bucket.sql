@@ -1,9 +1,15 @@
--- Create storage bucket for chat attachments
--- NOTE: Run this in Supabase Dashboard → Storage → Create bucket
--- Name: files
--- Public bucket: YES (checked)
+-- Storage bucket setup for chat attachments
+-- IMPORTANT: Step 1 MUST be done via Supabase Dashboard (not SQL)
 
--- After creating the bucket via Dashboard, run these policy commands:
+-- STEP 1: Create bucket via Supabase Dashboard
+-- 1. Go to Supabase Dashboard → Storage
+-- 2. Click "New Bucket"
+-- 3. Name: files
+-- 4. Check "Public bucket" (YES)
+-- 5. Click "Create bucket"
+
+-- STEP 2: Run these policy commands in SQL Editor (after creating bucket)
+-- Run EACH statement separately:
 
 -- Policy 1: Authenticated users can upload to 'files' bucket
 CREATE POLICY "files_upload_auth" ON storage.objects 
@@ -26,9 +32,9 @@ CREATE POLICY "files_delete_own" ON storage.objects
     FOR DELETE TO authenticated 
     USING (auth.uid() = owner);
 
--- Verify bucket exists
+-- STEP 3: Verify bucket exists (run in SQL Editor)
 SELECT * FROM storage.buckets WHERE name = 'files';
 
--- Verify policies were created
+-- STEP 4: Verify policies were created (run in SQL Editor)
 SELECT * FROM pg_policies 
 WHERE tablename = 'objects' AND schemaname = 'storage';

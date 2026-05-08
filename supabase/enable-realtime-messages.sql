@@ -1,15 +1,16 @@
 -- Enable Realtime for messages and notifications tables
--- Run this in Supabase SQL Editor
+-- Run EACH statement separately in Supabase SQL Editor
 
--- Add messages table to Realtime publication
+-- 1. Add messages table to Realtime publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
--- If you get "already exists" error, that's fine - it means it's already added
 
--- Add notifications table to Realtime publication  
+-- 2. Add notifications table to Realtime publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
--- If you get "already exists" error, that's fine - it's already added
 
--- Verify tables are in the publication
+-- 3. Verify tables are in the publication (run to check)
 SELECT * FROM pg_publication_tables 
 WHERE pubname = 'supabase_realtime' 
 AND tablename IN ('messages', 'notifications');
+
+-- Note: If you get "already exists" errors, that's fine - it means the table is already added.
+-- Just run step 3 to verify both tables appear in the results.
