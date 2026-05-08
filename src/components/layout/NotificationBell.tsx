@@ -81,7 +81,7 @@ export function NotificationBell() {
             const { notifications } = useNotificationStore.getState()
             if (!notifications.some(n => n.id === newNotification.id)) {
               useNotificationStore.setState(s => ({
-                notifications: [newNotification, ...s.notifications].slice(0, 50),
+                notifications: [newNotification, ...s.notifications.filter(n => n.id !== newNotification.id)].slice(0, 50),
                 unreadCount: s.unreadCount + (newNotification.is_read ? 0 : 1),
               }))
             }

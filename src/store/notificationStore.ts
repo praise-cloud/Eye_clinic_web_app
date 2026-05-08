@@ -29,8 +29,17 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     unreadCount: 0,
 
     add: (n, userId) => {
+        // Prevent duplicates - check if same notification was recently added
+        const { notifications } = get()
+        const isDuplicate = notifications.some(existing => 
+            existing.title === n.title && 
+            existing.message === n.message &&
+            existing.user_id === userId &&
+            (Date.now() - new Date(existing.created_at).getTime()) < 10000 // Within 10 seconds
+        )
+        if (isDuplicate) return
+
         // Save to DB - userId is the person who should receive the notification
-        // Use .select() to return the inserted row so we can update local state
         supabase.from('notifications').insert({
             user_id: userId,
             type: n.type,
@@ -41,13 +50,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         }).select().then(({ data, error }) => {
             if (error) {
                 console.error('Failed to save notification:', error)
+                // Don't update local state if DB insert fails
                 return
             }
             // Update local state immediately for the recipient
             supabase.auth.getUser().then(({ data: { user } }) => {
                 if (user && userId === user.id && data && data[0]) {
                     useNotificationStore.setState(s => ({
-                        notifications: [data[0] as AppNotification, ...s.notifications].slice(0, 50),
+                        notifications: [data[0] as AppNotification, ...s.notifications.filter(n => n.id !== data[0].id)].slice(0, 50),
                         unreadCount: s.unreadCount + 1,
                     }))
                 }

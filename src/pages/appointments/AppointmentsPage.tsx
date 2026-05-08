@@ -194,28 +194,77 @@ export function AppointmentsPage() {
 
     const updateStatus = useMutation({
         mutationFn: async ({ id, status }: { id: string; status: string }) => {
+            // Get appointment details first to get doctor_id and patient_id
+            const { data: apt, error: fetchError } = await supabase
+                .from('appointments')
+                .select('doctor_id, patient_id, patients(first_name, last_name)')
+                .eq('id', id)
+                .single()
+            if (fetchError) throw fetchError
+            
             const { error } = await supabase.from('appointments').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
             if (error) throw error
+            
+            return { status, doctor_id: (apt as any)?.doctor_id, patient_id: (apt as any)?.patient_id }
         },
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+        onSuccess: (data) => {
+            qc.invalidateQueries({ queryKey: ['appointments'] })
+            qc.invalidateQueries({ queryKey: ['appointments-calendar'] })
+            
+            const statusMessages: Record<string, string> = {
+                confirmed: 'Your appointment has been confirmed.',
+                arrived: 'Patient has arrived for their appointment.',
+                in_progress: 'Appointment is now in progress.',
+                completed: 'Your appointment has been completed.',
+                cancelled: 'Your appointment has been cancelled.',
+                no_show: 'Patient did not show up for appointment.',
+            }
+            
+            const message = statusMessages[data.status] || `Appointment status changed to ${data.status}`
+            const link = '/appointments'
+            
+            // Notify doctor
+            if (data.doctor_id) {
+                notify({ type: 'appointment', title: 'Appointment Update', message, link }, data.doctor_id)
+            }
+            // Notify patient (if not cancelled or no_show, or even if cancelled - patient should know)
+            if (data.patient_id) {
+                notify({ type: 'appointment', title: 'Appointment Update', message, link }, data.patient_id)
+            }
+        },
+        onError: (error: Error) => {
+            alert(`Failed to update status: ${error.message}`)
+        },
     })
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
+            // Get doctor_id before deleting
+            const { data: apt } = await supabase
+                .from('appointments')
+                .select('doctor_id')
+                .eq('id', id)
+                .single()
+            
             const { error } = await supabase.from('appointments').delete().eq('id', id)
             if (error) {
                 if (error.code === '42501') throw new Error('You do not have permission to delete appointments.')
                 if (error.code === '23503') throw new Error('Cannot delete appointment: there are related records attached to it.')
                 throw new Error(`Unable to delete appointment: ${error.message}`)
             }
+            return { doctor_id: (apt as any)?.doctor_id }
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             qc.invalidateQueries({ queryKey: ['appointments'] })
             qc.invalidateQueries({ queryKey: ['appointments-calendar'] })
             qc.invalidateQueries({ queryKey: ['admin-calendar'] })
             setDeleteId(null)
             // Notify current user that they deleted the appointment
             notify({ type: 'system', title: 'Appointment Deleted', message: 'The appointment has been permanently deleted.' })
+            // Notify doctor that appointment was deleted
+            if (data?.doctor_id) {
+                notify({ type: 'appointment', title: 'Appointment Cancelled', message: 'An appointment has been cancelled/deleted.', link: '/appointments' }, data.doctor_id)
+            }
         },
         onError: (error: Error) => {
             alert(error.message)
