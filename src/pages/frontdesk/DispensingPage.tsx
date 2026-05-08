@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from '@/components/ui/modal'
 import { PatientSearchField } from '@/components/patients/PatientSearchField'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,7 +31,6 @@ export function DispensingPage() {
     const qc = useQueryClient()
     const [open, setOpen] = useState(false)
     const [patientDisplay, setPatientDisplay] = useState('')
-    const [drugSearch, setDrugSearch] = useState('')
     const [selectedDrug, setSelectedDrug] = useState<Drug | null>(null)
     const [qty, setQty] = useState(1)
 
@@ -53,15 +53,14 @@ export function DispensingPage() {
     })
 
     const { data: drugs = [] } = useQuery({
-        queryKey: ['drugs-search', drugSearch],
+        queryKey: ['drugs-all'],
         queryFn: async () => {
-            const { data } = await supabase.from('drugs').select('*').ilike('name', `%${drugSearch}%`).gt('quantity', 0).limit(10)
+            const { data } = await supabase.from('drugs').select('*').gt('quantity', 0).order('name')
             return (data ?? []) as Drug[]
         },
-        enabled: drugSearch.length > 1,
     })
 
-    const { register, handleSubmit, setValue, reset, formState: { isSubmitting } } = useForm<FormData>({
+    const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
         resolver: zodResolver(schema), defaultValues: { quantity: 1 },
     })
 
@@ -86,7 +85,7 @@ export function DispensingPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['dispensing'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
-            setOpen(false); reset(); setSelectedDrug(null); setPatientDisplay(''); setDrugSearch('')
+            setOpen(false); reset(); setSelectedDrug(null); setPatientDisplay('')
             notify({ type: 'dispensing', title: 'Drug Dispensed', message: `${selectedDrug?.name} has been dispensed.`, link: '/frontdesk/dispensing' }, profile?.id || '')
         },
     })
@@ -109,7 +108,7 @@ export function DispensingPage() {
                     <h1 className="text-xl font-bold text-foreground900">Drug Dispensing</h1>
                     <p className="text-sm text-foreground500">Dispense drugs to patients</p>
                 </div>
-                <Button size="sm" onClick={() => { reset(); setOpen(true); setPatientDisplay(''); setDrugSearch(''); setSelectedDrug(null) }} className="gap-1.5">
+                <Button size="sm" onClick={() => { reset(); setOpen(true); setPatientDisplay(''); setSelectedDrug(null) }} className="gap-1.5">
                     <Pill className="w-3.5 h-3.5" />Dispense Drug
                 </Button>
             </div>
@@ -194,18 +193,26 @@ export function DispensingPage() {
 
                             <div>
                                 <label className="text-xs font-semibold text-foreground600 uppercase tracking-wide">Drug</label>
-                                <input className="mt-1.5 w-full h-10 px-3.5 rounded-xl border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Search drug name..." value={drugSearch} onChange={e => setDrugSearch(e.target.value)} />
-                                {drugs.length > 0 && (
-                                    <div className="mt-1 border border-slate-100 rounded-xl divide-y max-h-40 overflow-y-auto bg-background shadow-card-md">
+                                <Select onValueChange={(value) => {
+                                    setValue('drug_id', value, { shouldValidate: true })
+                                    const drug = drugs.find(d => d.id === value)
+                                    setSelectedDrug(drug || null)
+                                }}>
+                                    <SelectTrigger className="mt-1.5">
+                                        <SelectValue placeholder="Select a drug..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
                                         {drugs.map(d => (
-                                            <button key={d.id} type="button" className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-accent transition-colors"
-                                                onClick={() => { setValue('drug_id', d.id); setSelectedDrug(d); setDrugSearch(`${d.name} (${d.quantity} in stock)`) }}>
-                                                <span className="font-medium">{d.name}</span>
-                                                <span className="text-foreground400 ml-2 text-xs">{d.quantity} {d.unit} · {formatCurrency(d.selling_price)}</span>
-                                            </button>
+                                            <SelectItem key={d.id} value={d.id} disabled={Number(d.quantity) <= 0}>
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span className="font-medium">{d.name}</span>
+                                                    <span className="text-foreground400 ml-2 text-xs">{d.quantity} {d.unit} · {formatCurrency(d.selling_price)}</span>
+                                                </div>
+                                            </SelectItem>
                                         ))}
-                                    </div>
-                                )}
+                                    </SelectContent>
+                                </Select>
+                                {errors.drug_id && <p className="text-xs text-destructive mt-1">{errors.drug_id.message}</p>}
                             </div>
 
                             {selectedDrug && (
