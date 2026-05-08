@@ -202,6 +202,9 @@ export function ChatPage() {
                 }, activeUser.id)
             }
         },
+        onError: (error: Error) => {
+            notify({ type: 'system', title: 'Send Failed', message: error.message }, profile?.id || '')
+        },
     })
 
     const editMutation = useMutation({
@@ -214,6 +217,9 @@ export function ChatPage() {
             setEditText('')
             qc.invalidateQueries({ queryKey: ['messages', profile?.id, activeUser?.id] })
         },
+        onError: (error: Error) => {
+            notify({ type: 'system', title: 'Edit Failed', message: error.message }, profile?.id || '')
+        },
     })
 
     const deleteMutation = useMutation({
@@ -224,6 +230,9 @@ export function ChatPage() {
         onSuccess: () => {
             setHoveredMsg(null)
             setShowOptions(null)
+        },
+        onError: (error: Error) => {
+            notify({ type: 'system', title: 'Delete Failed', message: error.message }, profile?.id || '')
         },
     })
 
@@ -401,7 +410,7 @@ export function ChatPage() {
                                     <p className="text-xs opacity-60">Say hello to {activeUser.full_name.split(' ')[0]}!</p>
                                 </div>
                             ) : (
-                                <>
+                              <>
                                     {messages.map((msg, i) => {
                                         const isOwn = msg.sender_id === profile?.id
                                         const showDate = i === 0 || new Date(msg.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
