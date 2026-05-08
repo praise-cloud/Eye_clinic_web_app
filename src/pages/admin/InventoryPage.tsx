@@ -102,9 +102,9 @@ export function InventoryPage() {
             qc.invalidateQueries({ queryKey: ['drugs'] })
             setDrugDrawer(false)
             drugForm.reset()
-            notify({ type: 'low_stock', title: editDrug ? 'Drug Updated' : 'Drug Added', message: editDrug ? 'Drug inventory item has been updated.' : 'A new drug has been added to inventory.', link: '/admin/inventory' })
+            notify({ type: 'low_stock', title: editDrug ? 'Drug Updated' : 'Drug Added', message: editDrug ? 'Drug inventory item has been updated.' : 'A new drug has been added to inventory.', link: '/admin/inventory' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: `Database error: ${err?.message || 'Failed to save drug.'}. Check RLS policies.`, link: '/admin/inventory' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: `Database error: ${err?.message || 'Failed to save drug.'}. Check RLS policies.`, link: '/admin/inventory' }, profile?.id || '') },
     })
 
     const saveFrame = useMutation({
@@ -119,9 +119,9 @@ export function InventoryPage() {
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
             setFrameDrawer(false)
             frameForm.reset()
-            notify({ type: 'glasses', title: editFrame ? 'Frame Updated' : 'Frame Added', message: editFrame ? 'Glasses frame has been updated.' : 'A new frame has been added to inventory.', link: '/admin/inventory' })
+            notify({ type: 'glasses', title: editFrame ? 'Frame Updated' : 'Frame Added', message: editFrame ? 'Glasses frame has been updated.' : 'A new frame has been added to inventory.', link: '/admin/inventory' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: `Database error: ${err?.message || 'Failed to save frame.'}. Check RLS policies.`, link: '/admin/inventory' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: `Database error: ${err?.message || 'Failed to save frame.'}. Check RLS policies.`, link: '/admin/inventory' }, profile?.id || '') },
     })
 
     const saveOthers = useMutation({
@@ -136,9 +136,9 @@ export function InventoryPage() {
             qc.invalidateQueries({ queryKey: ['others-inventory'] })
             setOthersDrawer(false)
             othersForm.reset()
-            notify({ type: 'system', title: editOthers ? 'Item Updated' : 'Item Added', message: editOthers ? 'Inventory item has been updated.' : 'A new item has been added to inventory.', link: '/admin/inventory' })
+            notify({ type: 'system', title: editOthers ? 'Item Updated' : 'Item Added', message: editOthers ? 'Inventory item has been updated.' : 'A new item has been added to inventory.', link: '/admin/inventory' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: `Database error: ${err?.message || 'Failed to save item.'}. Check RLS policies.`, link: '/admin/inventory' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: `Database error: ${err?.message || 'Failed to save item.'}. Check RLS policies.`, link: '/admin/inventory' }, profile?.id || '') },
     })
 
     const deleteDrug = useMutation({
@@ -149,9 +149,9 @@ export function InventoryPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['drugs'] })
             setDeleteConfirm(null)
-            notify({ type: 'system', title: 'Drug Deleted', message: 'The drug has been removed from inventory.', link: '/admin/inventory' })
+            notify({ type: 'system', title: 'Drug Deleted', message: 'The drug has been removed from inventory.', link: '/admin/inventory' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Check RLS policies.`, link: '/admin/inventory' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Check RLS policies.`, link: '/admin/inventory' }, profile?.id || '') },
     })
 
     const deleteFrame = useMutation({
@@ -162,9 +162,9 @@ export function InventoryPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
             setDeleteConfirm(null)
-            notify({ type: 'system', title: 'Frame Deleted', message: 'The frame has been removed from inventory.', link: '/admin/inventory' })
+            notify({ type: 'system', title: 'Frame Deleted', message: 'The frame has been removed from inventory.', link: '/admin/inventory' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Try running fixes.sql in Supabase.`, link: '/admin/inventory' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Try running fixes.sql in Supabase.`, link: '/admin/inventory' }, profile?.id || '') },
     })
 
     const deleteOthers = useMutation({
@@ -175,9 +175,9 @@ export function InventoryPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['others-inventory'] })
             setDeleteConfirm(null)
-            notify({ type: 'system', title: 'Item Deleted', message: 'The item has been removed from inventory.', link: '/admin/inventory' })
+            notify({ type: 'system', title: 'Item Deleted', message: 'The item has been removed from inventory.', link: '/admin/inventory' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Check RLS policies.`, link: '/admin/inventory' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Check RLS policies.`, link: '/admin/inventory' }, profile?.id || '') },
     })
 
     const openEditDrug = (d: Drug) => {

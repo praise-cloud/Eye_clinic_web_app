@@ -30,7 +30,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     add: (n, userId) => {
         // Save to DB - userId is the person who should receive the notification
-        // The realtime handler in NotificationBell will update local state
+        // Use .select() to return the inserted row so we can update local state
         supabase.from('notifications').insert({
             user_id: userId,
             type: n.type,
@@ -38,10 +38,20 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             message: n.message,
             link: n.link,
             is_read: false,
-        }).then(({ error }) => {
+        }).select().then(({ data, error }) => {
             if (error) {
                 console.error('Failed to save notification:', error)
+                return
             }
+            // Update local state immediately for the recipient
+            supabase.auth.getUser().then(({ data: { user } }) => {
+                if (user && userId === user.id && data && data[0]) {
+                    useNotificationStore.setState(s => ({
+                        notifications: [data[0] as AppNotification, ...s.notifications].slice(0, 50),
+                        unreadCount: s.unreadCount + 1,
+                    }))
+                }
+            })
         })
     },
 

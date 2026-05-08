@@ -87,7 +87,7 @@ export function DispensingPage() {
             qc.invalidateQueries({ queryKey: ['dispensing'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
             setOpen(false); reset(); setSelectedDrug(null); setPatientDisplay(''); setDrugSearch('')
-            notify({ type: 'dispensing', title: 'Drug Dispensed', message: `${selectedDrug?.name} has been dispensed.`, link: '/frontdesk/dispensing' })
+            notify({ type: 'dispensing', title: 'Drug Dispensed', message: `${selectedDrug?.name} has been dispensed.`, link: '/frontdesk/dispensing' }, profile?.id || '')
         },
     })
 
@@ -98,7 +98,7 @@ export function DispensingPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['dispensing'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
-            notify({ type: 'system', title: 'Record Deleted', message: 'Dispensing record has been removed.' })
+            notify({ type: 'system', title: 'Record Deleted', message: 'Dispensing record has been removed.' }, profile?.id || '')
         },
     })
 

@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getRoleColor, getRoleAccent, getInitials, formatDate } from '@/lib/utils'
 import { notify } from '@/store/notificationStore'
+import { useAuthStore } from '@/store/authStore'
 import { getAutoSecureErrorMessage } from '@/lib/errors'
 import { logError } from '@/lib/logger'
 import type { Profile } from '@/types'
@@ -28,6 +29,7 @@ type FormData = z.infer<typeof schema>
 
 export function UsersPage() {
     const qc = useQueryClient()
+    const { profile } = useAuthStore()
     const [open, setOpen] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null)
     const [editTarget, setEditTarget] = useState<Profile | null>(null)
@@ -73,7 +75,7 @@ const createMutation = useMutation({
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setOpen(false); reset(); setError('')
-            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/manager/users' })
+            notify({ type: 'patient', title: 'Staff Account Created', message: 'A new staff account has been created.', link: '/manager/users' }, profile?.id || '')
         },
         onError: (e: Error) => {
             logError('Create staff error', e)
@@ -95,7 +97,7 @@ const updateMutation = useMutation({
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setEditTarget(null); reset(); setError('')
-            notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' })
+            notify({ type: 'system', title: 'Staff Updated', message: 'Staff account has been updated.' }, profile?.id || '')
         },
         onError: (e: Error) => {
             logError('Update staff error', e)
@@ -130,7 +132,7 @@ const toggleActive = useMutation({
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['staff'] })
             setDeleteTarget(null)
-            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted (profile and auth).' })
+            notify({ type: 'system', title: 'Account Deleted', message: 'Staff account has been permanently deleted.' }, profile?.id || '')
         },
         onError: (e: Error) => {
             console.error('Delete staff error:', e)

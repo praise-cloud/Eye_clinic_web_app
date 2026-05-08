@@ -43,7 +43,6 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Payments', href: '/admin/payments', icon: DollarSign },
     { label: 'Daily Summary', href: '/admin/summary', icon: BarChart3 },
     { label: 'Subscriptions', href: '/admin/subscriptions', icon: ClipboardList },
-    { label: 'Users', href: '/admin/users', icon: UserCog },
     { label: 'Messages', href: '/chat', icon: MessageSquare },
     { label: 'Settings', href: '/settings', icon: Settings },
   ],

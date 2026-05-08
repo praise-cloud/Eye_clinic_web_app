@@ -81,7 +81,7 @@ export function PatientsPage() {
                     ? `${editPatient.first_name} ${editPatient.last_name}'s record has been updated.`
                     : 'A new patient has been registered successfully.',
                 link: '/patients',
-            })
+            }, profile?.id || '') // Notify current user (the one who registered/updated)
         },
     })
 
@@ -106,7 +106,7 @@ export function PatientsPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['patients'] })
             setDeleteTarget(null)
-            notify({ type: 'patient', title: 'Patient Deleted', message: 'Patient and all related records permanently deleted.' })
+            notify({ type: 'patient', title: 'Patient Deleted', message: 'Patient and all related records permanently deleted.' }, profile?.id || '')
         },
     })
 

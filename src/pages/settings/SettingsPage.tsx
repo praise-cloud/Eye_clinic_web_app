@@ -77,14 +77,14 @@ export function SettingsPage() {
         onSuccess: (updated) => {
             setProfile(updated)
             setIsEditingProfile(false)
-            notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been updated successfully.', link: '/settings' })
+            notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been updated successfully.', link: '/settings' }, profile?.id || '')
         },
         onError: (error: any) => {
             console.error('[Settings] Profile update failed:', error?.message || error, error)
             const msg = error?.message?.includes('timeout') || error?.message?.includes('timed out')
                 ? 'Request timed out. Please check your connection and try again.'
                 : error?.message || error?.error_description || 'Failed to update profile. Please try again.'
-            notify({ type: 'system', title: 'Update Failed', message: msg, link: '/settings' })
+            notify({ type: 'system', title: 'Update Failed', message: msg, link: '/settings' }, profile?.id || '')
         },
     })
 
@@ -100,11 +100,11 @@ export function SettingsPage() {
         },
         onSuccess: () => {
             refetchNotif()
-            notify({ type: 'system', title: 'Preferences Saved', message: 'Your notification preferences have been saved.', link: '/settings' })
+            notify({ type: 'system', title: 'Preferences Saved', message: 'Your notification preferences have been saved.', link: '/settings' }, profile?.id || '')
         },
         onError: (error: any) => {
             console.error('Notification save failed:', error?.message || error)
-            notify({ type: 'system', title: 'Save Failed', message: error?.message || 'Failed to save notification preferences.', link: '/settings' })
+            notify({ type: 'system', title: 'Save Failed', message: error?.message || 'Failed to save notification preferences.', link: '/settings' }, profile?.id || '')
         },
     })
 
@@ -305,7 +305,6 @@ export function SettingsPage() {
                     <CardContent className="space-y-4">
                         <div className="p-4 rounded-xl border border-border">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Email</p>
-                            <p className="text-sm text-foreground">{user?.email}</p>
                             <p className="text-xs text-muted-foreground mt-1">Contact admin to change email</p>
                         </div>
                         <div className="p-4 rounded-xl border border-border">

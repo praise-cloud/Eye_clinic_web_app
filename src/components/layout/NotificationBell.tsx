@@ -66,6 +66,7 @@ export function NotificationBell() {
     fetchNotifications()
 
     // Subscribe to new notifications via realtime
+    // This handles notifications from OTHER users/sources that the add() function didn't catch
     const channel = supabase
       .channel('notifications-bell')
       .on('postgres_changes', {
@@ -74,14 +75,16 @@ export function NotificationBell() {
         table: 'notifications',
       }, (payload: any) => {
         const newNotification = payload.new as AppNotification
-        // Only add if it's for current user
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (user && newNotification.user_id === user.id) {
-            // Use setState callback to get fresh state
-            useNotificationStore.setState(s => ({
-              notifications: [newNotification, ...s.notifications].slice(0, 50),
-              unreadCount: s.unreadCount + (newNotification.is_read ? 0 : 1),
-            }))
+            // Avoid duplicates - only add if not already in state
+            const { notifications } = useNotificationStore.getState()
+            if (!notifications.some(n => n.id === newNotification.id)) {
+              useNotificationStore.setState(s => ({
+                notifications: [newNotification, ...s.notifications].slice(0, 50),
+                unreadCount: s.unreadCount + (newNotification.is_read ? 0 : 1),
+              }))
+            }
           }
         })
       })

@@ -48,10 +48,10 @@ export function ManagerSettings() {
       setProfile({ ...(profile as Profile), full_name: formData.full_name, phone: formData.phone })
       setIsEditing(false)
       qc.invalidateQueries({ queryKey: ['staff'] })
-      notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been saved.' })
+      notify({ type: 'system', title: 'Profile Updated', message: 'Your profile has been saved.' }, profile?.id || '')
     },
     onError: (error: Error) => {
-      notify({ type: 'system', title: 'Error', message: error.message })
+      notify({ type: 'system', title: 'Error', message: error.message }, profile?.id || '')
     },
   })
 
@@ -60,7 +60,7 @@ export function ManagerSettings() {
       localStorage.setItem('manager-settings', JSON.stringify(managerSettings))
     },
     onSuccess: () => {
-      notify({ type: 'system', title: 'Settings Saved', message: 'Your preferences have been saved.' })
+      notify({ type: 'system', title: 'Settings Saved', message: 'Your preferences have been saved.' }, profile?.id || '')
     },
   })
 

@@ -27,7 +27,7 @@ import { GlassesOrdersPage } from './pages/frontdesk/GlassesOrdersPage'
 import { GlassesPrescriptionPage } from './pages/frontdesk/GlassesPrescriptionPage'
 import { ItemOrdersPage } from './pages/frontdesk/ItemOrdersPage'
 import { InventoryPage } from './pages/admin/InventoryPage'
-import { UsersPage } from './pages/admin/UsersPage'
+import { UsersPage } from './pages/manager/UsersPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
 import { PaymentsPage } from './pages/admin/AccountantPaymentsPage'
 import { DailySummaryPage } from './pages/admin/DailySummaryPage'
@@ -185,7 +185,6 @@ function App() {
           <Route path="/admin/appointments" element={<P roles={['admin']}><AppointmentsPage /></P>} />
           <Route path="/admin/calendar" element={<P roles={['admin']}><CalendarPage /></P>} />
           <Route path="/admin/inventory" element={<P roles={['admin']}><InventoryPage /></P>} />
-          <Route path="/admin/users" element={<P roles={['admin']}><UsersPage /></P>} />
           <Route path="/admin/reports" element={<P roles={['admin']}><ReportsPage /></P>} />
           <Route path="/admin/payments" element={<P roles={['admin']}><PaymentsPage /></P>} />
           <Route path="/admin/summary" element={<P roles={['admin']}><DailySummaryPage /></P>} />

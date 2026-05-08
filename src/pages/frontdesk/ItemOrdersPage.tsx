@@ -93,9 +93,9 @@ export function ItemOrdersPage() {
             reset()
             setSelectedItem(null)
             setPatientSearch('')
-            notify({ type: 'dispensing', title: 'Item Dispensed', message: 'Inventory item has been dispensed to patient.', link: '/frontdesk/item-orders' })
+            notify({ type: 'dispensing', title: 'Item Dispensed', message: 'Inventory item has been dispensed to patient.', link: '/frontdesk/item-orders' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to dispense item.' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to dispense item.' }, profile?.id || '') },
     })
 
     const deleteMutation = useMutation({
@@ -106,9 +106,9 @@ export function ItemOrdersPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['inventory-dispensing'] })
             qc.invalidateQueries({ queryKey: ['others-inventory'] })
-            notify({ type: 'system', title: 'Record Deleted', message: 'Dispensing record has been removed.' })
+            notify({ type: 'system', title: 'Record Deleted', message: 'Dispensing record has been removed.' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete record.' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete record.' }, profile?.id || '') },
     })
 
     return (

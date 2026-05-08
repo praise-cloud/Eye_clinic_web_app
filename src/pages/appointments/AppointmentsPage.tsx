@@ -176,14 +176,19 @@ export function AppointmentsPage() {
                 requested_by: profile?.id,
             })
             if (error) throw error
+            // Return the doctor_id so we can use it in onSuccess
+            return { doctor_id: data.doctor_id }
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             qc.invalidateQueries({ queryKey: ['appointments'] })
             qc.invalidateQueries({ queryKey: ['appointments-calendar'] })
             qc.invalidateQueries({ queryKey: ['admin-calendar'] })
             setOpen(false); reset(); setPatientDisplay('')
             const link = profile?.role === 'doctor' ? '/doctor/appointments' : profile?.role === 'frontdesk' ? '/frontdesk/appointments' : '/admin/patients'
-            notify({ type: 'appointment', title: 'Appointment Booked', message: 'A new appointment has been scheduled.', link })
+            // Notify the doctor that a new appointment was booked for them
+            if (data?.doctor_id) {
+                notify({ type: 'appointment', title: 'New Appointment Booked', message: 'A new appointment has been scheduled for you.', link }, data.doctor_id)
+            }
         },
     })
 
@@ -209,6 +214,7 @@ export function AppointmentsPage() {
             qc.invalidateQueries({ queryKey: ['appointments-calendar'] })
             qc.invalidateQueries({ queryKey: ['admin-calendar'] })
             setDeleteId(null)
+            // Notify current user that they deleted the appointment
             notify({ type: 'system', title: 'Appointment Deleted', message: 'The appointment has been permanently deleted.' })
         },
         onError: (error: Error) => {

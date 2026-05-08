@@ -62,7 +62,7 @@ export function PaymentsPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['payments'] })
             setOpen(false); reset(); setPatientDisplay('')
-            notify({ type: 'payment', title: 'Payment Recorded', message: 'A new payment has been recorded.', link: '/admin/payments' })
+            notify({ type: 'payment', title: 'Payment Recorded', message: 'A new payment has been recorded.', link: '/admin/payments' }, profile?.id || '')
         },
     })
 
@@ -73,9 +73,9 @@ export function PaymentsPage() {
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['payments'] })
-            notify({ type: 'system', title: 'Payment Deleted', message: 'Payment record has been removed.' })
+            notify({ type: 'system', title: 'Payment Deleted', message: 'Payment record has been removed.' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Check RLS policies.` }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Delete Failed', message: `Database error: ${err?.message || 'Unknown error'}. Check RLS policies.` }, profile?.id || '') },
     })
 
     const filtered = payments.filter(p => {

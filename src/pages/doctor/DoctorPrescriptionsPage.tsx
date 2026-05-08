@@ -38,7 +38,7 @@ export function DoctorPrescriptionsPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['doctor-prescriptions'] })
-      notify({ type: 'prescription', title: 'Prescription Deleted', message: 'The prescription has been removed.' })
+      notify({ type: 'prescription', title: 'Prescription Deleted', message: 'The prescription has been removed.' }, profile?.id || '')
     },
   })
 

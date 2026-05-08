@@ -100,7 +100,7 @@ export function GlassesOrdersPage() {
             reset()
             setSelectedFrame(null)
             setPatientSearch('')
-            notify({ type: 'glasses', title: editOrder ? 'Order Updated' : 'Glasses Order Created', message: editOrder ? 'Glasses order has been updated.' : 'A new glasses order has been placed.', link: '/frontdesk/glasses-orders' })
+            notify({ type: 'glasses', title: editOrder ? 'Order Updated' : 'Glasses Order Created', message: editOrder ? 'Glasses order has been updated.' : 'A new glasses order has been placed.', link: '/frontdesk/glasses-orders' }, profile?.id || '')
         },
         onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to save order.' }) },
     })
@@ -150,9 +150,9 @@ export function GlassesOrdersPage() {
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
             qc.invalidateQueries({ queryKey: ['payments'] })
             qc.invalidateQueries({ queryKey: ['daily-summary'] })
-            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order has been dispensed and payment recorded.', link: '/frontdesk/glasses-orders' })
+            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order has been dispensed and payment recorded.', link: '/frontdesk/glasses-orders' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to update order.' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to update order.' }, profile?.id || '') },
     })
 
     const deleteMutation = useMutation({
@@ -162,9 +162,9 @@ export function GlassesOrdersPage() {
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['glasses-orders'] })
-            notify({ type: 'system', title: 'Order Deleted', message: 'Glasses order has been removed.' })
+            notify({ type: 'system', title: 'Order Deleted', message: 'Glasses order has been removed.' }, profile?.id || '')
         },
-        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete order.' }) },
+        onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to delete order.' }, profile?.id || '') },
     })
 
     const openEdit = (order: GlassesOrder) => {

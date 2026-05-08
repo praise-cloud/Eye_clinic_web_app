@@ -375,7 +375,7 @@ export function CaseNotesPage() {
             reset()
             setPatientDisplay('')
             setCvfFile(null)
-            notify({ type: 'prescription', title: 'Case Note Saved', message: 'A new case note has been created and encrypted.', link: '/doctor/case-notes' })
+            notify({ type: 'prescription', title: 'Case Note Saved', message: 'A new case note has been created and encrypted.', link: '/doctor/case-notes' }, profile?.id || '')
         },
         onError: (error: Error) => {
             alert(`Failed to save case note: ${error.message}`)
@@ -387,7 +387,7 @@ const deleteMutation = useMutation({
             const { error } = await supabase.from('case_notes').delete().eq('id', id)
             if (error) throw error
         },
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['case-notes'] }); setDeleteId(null); notify({ type: 'system', title: 'Case Note Deleted', message: 'The case note has been permanently deleted.' }) },
+        onSuccess: () => { qc.invalidateQueries({ queryKey: ['case-notes'] }); setDeleteId(null); notify({ type: 'system', title: 'Case Note Deleted', message: 'The case note has been permanently deleted.' }, profile?.id || '') },
     })
 
     const filtered = notes.filter(n => {
