@@ -153,12 +153,26 @@ export function ChatPage() {
     }, [editingMsg])
 
     const uploadAttachment = async (file: File): Promise<{ url: string; type: 'image' | 'document'; name: string }> => {
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            throw new Error('File too large. Maximum size is 5MB.')
+        }
+
         const fileExt = file.name.split('.').pop()
         const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
         const filePath = `chat/${profile!.id}/${fileName}`
 
-        const { data, error } = await supabase.storage.from('files').upload(filePath, file)
-        if (error) throw error
+        const { data, error } = await supabase.storage.from('files').upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+        })
+        
+        if (error) {
+            if (error.message.includes('bucket')) {
+                throw new Error('Storage bucket "files" not found. Please contact admin.')
+            }
+            throw error
+        }
 
         const { data: { publicUrl } } = supabase.storage.from('files').getPublicUrl(data.path)
 
@@ -254,7 +268,25 @@ export function ChatPage() {
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (!file || !activeUser) return
+        if (!file || !activeUser) {
+            if (!activeUser) notify({ type: 'system', title: 'Error', message: 'Select a user to chat with first.' }, profile?.id || '')
+            return
+        }
+
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            notify({ type: 'system', title: 'File Too Large', message: 'Maximum file size is 5MB.' }, profile?.id || '')
+            e.target.value = ''
+            return
+        }
+
+        // Check file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+        if (!allowedTypes.includes(file.type)) {
+            notify({ type: 'system', title: 'Invalid File Type', message: 'Only images, PDF, DOC, DOCX, and TXT files are allowed.' }, profile?.id || '')
+            e.target.value = ''
+            return
+        }
 
         const type = file.type.startsWith('image/') ? 'image' : 'document'
         const previewUrl = type === 'image' ? URL.createObjectURL(file) : undefined
