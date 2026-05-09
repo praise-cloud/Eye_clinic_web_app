@@ -42,8 +42,8 @@ export function PatientsPage() {
     const [open, setOpen] = useState(false)
     const [editPatient, setEditPatient] = useState<Patient | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
-    // Frontdesk and admin can register/edit/delete patients
-    const canWrite = profile?.role === 'frontdesk' || profile?.role === 'admin'
+    const canEdit = profile?.role === 'frontdesk' || profile?.role === 'admin'
+    const canDelete = profile?.role === 'admin'
 
     const { data: patients = [], isLoading } = useQuery({
         queryKey: ['patients', search],
@@ -135,13 +135,13 @@ export function PatientsPage() {
                     <Button variant="outline" size="sm" onClick={exportCSV} className="hidden sm:flex gap-1.5">
                         <Download className="w-3.5 h-3.5" />Export
                     </Button>
-                    {canWrite && (
-                        <Button size="sm" onClick={openNew} className="gap-1.5">
-                            <Plus className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Register Patient</span>
-                            <span className="sm:hidden">Add</span>
-                        </Button>
-                    )}
+{canEdit && (
+    <Button size="sm" onClick={openNew} className="gap-1.5">
+        <Plus className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Register Patient</span>
+        <span className="sm:hidden">Add</span>
+    </Button>
+)}
                 </div>
             </div>
 
@@ -166,7 +166,7 @@ export function PatientsPage() {
                     </div>
                     <p className="text-muted-foreground font-medium">No patients found</p>
                     <p className="text-muted-foreground text-sm mt-1">Register your first patient to get started</p>
-                    {canWrite && <Button className="mt-5 gap-1.5" onClick={openNew}><Plus className="w-4 h-4" />Register Patient</Button>}
+                    {canEdit && <Button className="mt-5 gap-1.5" onClick={openNew}><Plus className="w-4 h-4" />Register Patient</Button>}
                 </div>
             ) : (
                 <div className="space-y-2">
@@ -190,12 +190,12 @@ export function PatientsPage() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                    {canWrite && (
+                                    {canEdit && (
                                         <Button variant="ghost" size="sm" className="h-8 text-xs px-2.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openEdit(p)}>
                                             Edit
                                         </Button>
                                     )}
-                                    {canWrite && (
+                                    {canDelete && (
                                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950" onClick={() => setDeleteTarget(p)}>
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </Button>

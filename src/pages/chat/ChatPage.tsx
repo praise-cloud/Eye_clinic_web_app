@@ -223,7 +223,7 @@ export function ChatPage() {
 
     const editMutation = useMutation({
         mutationFn: async ({ id, content }: { id: string; content: string }) => {
-            const { error } = await supabase.from('messages').update({ content, updated_at: new Date().toISOString() }).eq('id', id)
+            const { error } = await supabase.from('messages').update({ content, updated_at: new Date().toISOString() }).eq('id', id).eq('sender_id', profile!.id)
             if (error) throw error
         },
         onSuccess: () => {
