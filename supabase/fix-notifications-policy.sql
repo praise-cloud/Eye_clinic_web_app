@@ -2,10 +2,10 @@
 -- Run this in Supabase SQL Editor
 
 -- Drop existing restrictive policies
-DROP POLICY IF EXISTS "notifications_insert" ON public.notifications;
-DROP POLICY IF EXISTS "notifications_select" ON public.notifications;
-DROP POLICY IF EXISTS "notifications_update" ON public.notifications;
-DROP POLICY IF EXISTS "notifications_delete" ON public.notifications;
+DROP POLICY IF EXISTS "notifications_insert_own" ON public.notifications;
+DROP POLICY IF EXISTS "notifications_select_own" ON public.notifications;
+DROP POLICY IF EXISTS "notifications_update_own" ON public.notifications;
+DROP POLICY IF EXISTS "notifications_delete_own" ON public.notifications;
 
 -- Allow any authenticated user to insert notifications (for sending to other users)
 CREATE POLICY "notifications_insert" ON public.notifications 
