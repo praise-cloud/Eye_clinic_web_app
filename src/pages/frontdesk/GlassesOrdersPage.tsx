@@ -89,7 +89,8 @@ export function GlassesOrdersPage() {
                 const { error } = await supabase.from('glasses_orders').update(payload).eq('id', editOrder.id)
                 if (error) throw error
             } else {
-                const { error } = await supabase.from('glasses_orders').insert({ ...payload, created_by: profile!.id })
+                const orderNumber = 'GO-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase()
+                const { error } = await supabase.from('glasses_orders').insert({ ...payload, order_number: orderNumber, created_by: profile!.id })
                 if (error) throw error
             }
         },
@@ -117,40 +118,31 @@ export function GlassesOrdersPage() {
 
             if (status === 'dispensed') {
                 const order = orders.find(o => o.id === id)
-                if (order?.frame_id) {
-                    const { data: frame } = await supabase
-                        .from('glasses_inventory').select('quantity').eq('id', order.frame_id).single()
-                    if (frame && frame.quantity > 0) {
-                        await supabase.from('glasses_inventory')
-                            .update({ quantity: frame.quantity - 1 })
-                            .eq('id', order.frame_id)
-                    }
-                }
 
-                // Create payment record for the glasses
+                // Create payment record for the balance due
                 if (order) {
                     const remainingBalance = (order.total_price ?? 0) - (order.deposit_paid ?? 0)
-                    const totalAmount = order.deposit_paid ?? 0
                     
-                    if (totalAmount > 0) {
+                    if (remainingBalance > 0) {
                         await supabase.from('payments').insert({
                             patient_id: order.patient_id,
-                            payment_type: remainingBalance > 0 ? 'glasses_balance' : 'glasses_deposit',
-                            amount: totalAmount,
+                            payment_type: 'glasses_balance',
+                            amount: remainingBalance,
                             payment_method: 'cash',
                             received_by: profile!.id,
-                            notes: `Glasses order ${order.order_number} - dispensed`,
+                            notes: `Glasses order ${order.order_number} - balance payment`,
                         })
                     }
                 }
             }
         },
-        onSuccess: () => {
+        onSuccess: (_data: any, variables: { id: string; status: string }) => {
             qc.invalidateQueries({ queryKey: ['glasses-orders'] })
             qc.invalidateQueries({ queryKey: ['glasses-inventory'] })
             qc.invalidateQueries({ queryKey: ['payments'] })
             qc.invalidateQueries({ queryKey: ['daily-summary'] })
-            notify({ type: 'glasses', title: 'Order Status Updated', message: 'Glasses order has been dispensed and payment recorded.', link: '/frontdesk/glasses-orders' }, profile?.id || '')
+            const statusLabel = nextLabel[variables.status]?.toLowerCase() || variables.status
+            notify({ type: 'glasses', title: 'Order Status Updated', message: `Glasses order marked as ${statusLabel}.`, link: '/frontdesk/glasses-orders' }, profile?.id || '')
         },
         onError: (err: any) => { notify({ type: 'system', title: 'Error', message: err?.message || 'Failed to update order.' }, profile?.id || '') },
     })

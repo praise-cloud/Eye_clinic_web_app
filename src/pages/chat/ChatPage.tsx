@@ -206,15 +206,7 @@ export function ChatPage() {
             setShowAttachments(false)
             qc.invalidateQueries({ queryKey: ['messages', profile?.id, activeUser?.id] })
             qc.invalidateQueries({ queryKey: ['staff-list'] })
-            // Notify recipient of new message
-            if (profile && activeUser) {
-                notify({
-                    type: 'system',
-                    title: `New message from ${profile.full_name || 'A staff member'}`,
-                    message: text.trim() ? text.trim().slice(0, 50) + (text.trim().length > 50 ? '...' : '') : 'Sent you an attachment',
-                    link: '/chat'
-                }, activeUser.id)
-            }
+            // Notification handled by Realtime subscription
         },
         onError: (error: Error) => {
             notify({ type: 'system', title: 'Send Failed', message: error.message }, profile?.id || '')

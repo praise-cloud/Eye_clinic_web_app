@@ -70,10 +70,12 @@ export function DispensingPage() {
             if (data.quantity > selectedDrug.quantity) throw new Error(`Insufficient stock. Only ${selectedDrug.quantity} ${selectedDrug.unit}(s) available.`)
             
             // Insert drug dispensing record
+            const totalPrice = selectedDrug.selling_price * data.quantity
             const { error: dispenseError } = await supabase.from('drug_dispensing').insert({
                 patient_id: data.patient_id, drug_id: data.drug_id,
                 dispensed_by: profile!.id, quantity: data.quantity,
                 unit_price: selectedDrug.selling_price,
+                total_price: totalPrice,
                 prescription_note: data.prescription_note,
             })
             if (dispenseError) throw dispenseError
@@ -88,12 +90,9 @@ export function DispensingPage() {
             })
             if (paymentError) throw paymentError
 
-            // Reduce drug inventory
-            const { error: updateError } = await supabase.from('drugs').update({ quantity: selectedDrug.quantity - data.quantity }).eq('id', data.drug_id)
-            if (updateError) throw updateError
         },
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['dispensing'] })
+            qc.invalidateQueries({ queryKey: ['dispensing', 'recent'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
             qc.invalidateQueries({ queryKey: ['drugs-all'] })
             setOpen(false); reset(); setSelectedDrug(null); setPatientDisplay('')
@@ -108,7 +107,7 @@ export function DispensingPage() {
             if (error) throw error
         },
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['dispensing'] })
+            qc.invalidateQueries({ queryKey: ['dispensing', 'recent'] })
             qc.invalidateQueries({ queryKey: ['low-stock-drugs'] })
             qc.invalidateQueries({ queryKey: ['drugs-all'] })
             notify({ type: 'system', title: 'Record Deleted', message: 'Dispensing record has been removed.' }, profile?.id || '')

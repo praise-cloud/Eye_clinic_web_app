@@ -53,7 +53,8 @@ export function PaymentsPage() {
 
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const { error } = await supabase.from('payments').insert({ ...data, received_by: profile!.id })
+            const receiptNumber = 'PMT-' + Date.now().toString(36).toUpperCase()
+            const { error } = await supabase.from('payments').insert({ ...data, receipt_number: receiptNumber, received_by: profile!.id })
             if (error) throw error
         },
         onSuccess: () => {

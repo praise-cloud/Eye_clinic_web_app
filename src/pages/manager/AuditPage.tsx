@@ -26,7 +26,8 @@ export function AuditPage() {
             const userIds = [...new Set((logsData ?? []).map(l => l.user_id).filter(Boolean))]
             let profilesMap: Record<string, any> = {}
             if (userIds.length > 0) {
-                const { data: profiles } = await supabase.from('profiles').select('id,full_name,role').in('id', userIds)
+                const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id,full_name,role').in('id', userIds)
+                if (profilesError) throw profilesError
                 profilesMap = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
             }
             
