@@ -90,8 +90,29 @@ export function NotificationBell() {
       })
       .subscribe()
 
+    // Polling fallback — refetches every 10s in case WebSocket is down
+    const pollInterval = setInterval(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (!error && data) {
+        const { notifications: existing } = useNotificationStore.getState()
+        const existingIds = new Set(existing.map(n => n.id))
+        const hasNew = data.some(n => !existingIds.has(n.id))
+        if (hasNew) {
+          setNotifications(data as AppNotification[])
+        }
+      }
+    }, 10000)
+
     return () => {
       supabase.removeChannel(channel)
+      clearInterval(pollInterval)
     }
   }, [setNotifications])
 

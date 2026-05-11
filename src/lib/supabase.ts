@@ -14,5 +14,5 @@ export const supabase = createClient(
             flowType: 'pkce',
             navigatorLock: false,
         },
-    }
+    } as any
 )
