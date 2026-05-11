@@ -82,10 +82,12 @@ export function DispensingPage() {
 
             // Create payment record
             const totalAmount = selectedDrug.selling_price * data.quantity
+            const receiptNumber = 'PMT-' + Date.now().toString(36).toUpperCase()
             const { error: paymentError } = await supabase.from('payments').insert({
                 patient_id: data.patient_id, payment_type: 'drug',
                 amount: totalAmount, payment_method: 'cash',
                 received_by: profile!.id,
+                receipt_number: receiptNumber,
                 notes: `Drug dispensed: ${selectedDrug.name} × ${data.quantity}`,
             })
             if (paymentError) throw paymentError

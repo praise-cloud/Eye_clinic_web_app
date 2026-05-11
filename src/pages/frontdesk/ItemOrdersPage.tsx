@@ -80,11 +80,6 @@ export function ItemOrdersPage() {
                 dispensed_by: profile!.id,
             })
             if (error) throw error
-
-            // Reduce inventory quantity
-            if (item && item.quantity >= quantity) {
-                await supabase.from('inventory_others').update({ quantity: item.quantity - quantity }).eq('id', data.item_id)
-            }
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['inventory-dispensing'] })
