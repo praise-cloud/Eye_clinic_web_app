@@ -101,12 +101,7 @@ export function NotificationBell() {
         .order('created_at', { ascending: false })
         .limit(50)
       if (!error && data) {
-        const { notifications: existing } = useNotificationStore.getState()
-        const existingIds = new Set(existing.map(n => n.id))
-        const hasNew = data.some(n => !existingIds.has(n.id))
-        if (hasNew) {
-          setNotifications(data as AppNotification[])
-        }
+        setNotifications(data as AppNotification[])
       }
     }, 10000)
 

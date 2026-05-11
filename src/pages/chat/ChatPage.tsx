@@ -251,11 +251,12 @@ export function ChatPage() {
 
     const markAsRead = useMutation({
         mutationFn: async (otherUserId: string) => {
-            await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
+            const { error: msgError } = await supabase.from('messages').update({ is_read: true, read_at: new Date().toISOString() })
                 .eq('receiver_id', profile!.id).eq('sender_id', otherUserId).eq('is_read', false)
-            // Also mark related notifications as read
-            await supabase.from('notifications').update({ is_read: true })
+            if (msgError) throw msgError
+            const { error: notifError } = await supabase.from('notifications').update({ is_read: true })
                 .eq('user_id', profile!.id).eq('link', '/chat').eq('is_read', false)
+            if (notifError) throw notifError
         },
     })
 
