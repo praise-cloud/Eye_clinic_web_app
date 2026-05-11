@@ -55,7 +55,7 @@ BEGIN
            CASE WHEN COUNT(*) = 6 THEN 'info' ELSE 'error' END
     FROM information_schema.tables 
     WHERE table_schema = 'public' 
-      AND table_name IN ('messages', 'notifications', 'outreach_log', 'settings', 'push_subscriptions', 'audit_logs');
+      AND table_name IN ('messages', 'notifications', 'settings', 'push_subscriptions', 'audit_logs');
     
     -- Validate RLS is enabled
     RETURN QUERY
@@ -143,7 +143,7 @@ BEGIN
         'profiles', 'patients', 'appointments', 'case_notes', 'prescriptions',
         'drugs', 'glasses_inventory', 'inventory_others', 'drug_dispensing', 'glasses_orders',
         'payments', 'subscriptions', 'invoices', 'daily_summary',
-        'messages', 'notifications', 'outreach_log', 'settings', 'push_subscriptions', 'audit_logs'
+        'messages', 'notifications', 'settings', 'push_subscriptions', 'audit_logs'
       )
     GROUP BY t.table_name
     ORDER BY t.table_name;

@@ -9,7 +9,6 @@
 -- Drop triggers
 DROP TRIGGER IF EXISTS audit_messages ON public.messages;
 DROP TRIGGER IF EXISTS audit_notifications ON public.notifications;
-DROP TRIGGER IF EXISTS audit_outreach_log ON public.outreach_log;
 DROP TRIGGER IF EXISTS audit_settings ON public.settings;
 DROP TRIGGER IF EXISTS message_mark_read ON public.messages;
 DROP TRIGGER IF EXISTS update_messages_updated_at ON public.messages;
@@ -23,7 +22,6 @@ DROP FUNCTION IF EXISTS mark_message_read();
 DROP TABLE IF EXISTS public.audit_logs CASCADE;
 DROP TABLE IF EXISTS public.push_subscriptions CASCADE;
 DROP TABLE IF EXISTS public.settings CASCADE;
-DROP TABLE IF EXISTS public.outreach_log CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
 DROP TABLE IF EXISTS public.messages CASCADE;
 
@@ -79,31 +77,6 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   read_at TIMESTAMPTZ,
   metadata JSONB, -- Additional notification data
   expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- =============================================
--- OUTREACH LOG TABLE
--- =============================================
-
-CREATE TABLE IF NOT EXISTS public.outreach_log (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  patient_id UUID REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
-  sent_by UUID REFERENCES auth.users(id) NOT NULL,
-  channel TEXT NOT NULL CHECK (
-    channel IN ('sms', 'email', 'whatsapp', 'call')
-  ),
-  message_template TEXT,
-  message_body TEXT,
-  recipient_number TEXT,
-  recipient_email TEXT,
-  status TEXT DEFAULT 'pending' CHECK (
-    status IN ('pending', 'sent', 'delivered', 'failed', 'bounced')
-  ),
-  sent_at TIMESTAMPTZ DEFAULT NOW(),
-  delivered_at TIMESTAMPTZ,
-  error_message TEXT,
-  cost NUMERIC,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -177,13 +150,6 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.notifications(is_
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_expires_at ON public.notifications(expires_at);
 
--- Outreach log indexes
-CREATE INDEX IF NOT EXISTS idx_outreach_log_patient_id ON public.outreach_log(patient_id);
-CREATE INDEX IF NOT EXISTS idx_outreach_log_sent_by ON public.outreach_log(sent_by);
-CREATE INDEX IF NOT EXISTS idx_outreach_log_channel ON public.outreach_log(channel);
-CREATE INDEX IF NOT EXISTS idx_outreach_log_status ON public.outreach_log(status);
-CREATE INDEX IF NOT EXISTS idx_outreach_log_sent_at ON public.outreach_log(sent_at DESC);
-
 -- Settings indexes
 CREATE INDEX IF NOT EXISTS idx_settings_category ON public.settings(category);
 CREATE INDEX IF NOT EXISTS idx_settings_is_public ON public.settings(is_public);
@@ -205,7 +171,6 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs(create
 
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.outreach_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
@@ -251,10 +216,6 @@ CREATE TRIGGER audit_messages
 
 CREATE TRIGGER audit_notifications
     AFTER INSERT OR UPDATE OR DELETE ON public.notifications
-    FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
-
-CREATE TRIGGER audit_outreach_log
-    AFTER INSERT OR UPDATE OR DELETE ON public.outreach_log
     FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
 
 CREATE TRIGGER audit_settings

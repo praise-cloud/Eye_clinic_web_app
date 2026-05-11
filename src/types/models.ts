@@ -49,18 +49,6 @@ export interface InventoryDispensing {
   dispenser?: Profile
 }
 
-export interface OutreachLog {
-  id: string
-  patient_id: string
-  sent_by: string
-  channel: 'sms' | 'email' | 'whatsapp'
-  message_template?: string
-  message_body?: string
-  status: 'sent' | 'failed' | 'delivered'
-  sent_at: string
-  patient?: Patient
-}
-
 export interface AuditLog {
   id: string
   user_id?: string

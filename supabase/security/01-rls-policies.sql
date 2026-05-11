@@ -355,29 +355,6 @@ CREATE POLICY "notifications_delete_own" ON public.notifications
     FOR DELETE TO authenticated
     USING (user_id = auth.uid());
 
--- Outreach log policies
-DROP POLICY IF EXISTS "outreach_log_select_all" ON public.outreach_log;
-DROP POLICY IF EXISTS "outreach_log_insert_frontdesk_admin_manager" ON public.outreach_log;
-DROP POLICY IF EXISTS "outreach_log_update_frontdesk_admin_manager" ON public.outreach_log;
-DROP POLICY IF EXISTS "outreach_log_delete_frontdesk_admin" ON public.outreach_log;
-
-CREATE POLICY "outreach_log_select_all" ON public.outreach_log
-    FOR SELECT TO authenticated
-    USING (true);
-
-CREATE POLICY "outreach_log_insert_frontdesk_admin_manager" ON public.outreach_log
-    FOR INSERT TO authenticated
-    WITH CHECK (get_user_role() IN ('frontdesk', 'admin', 'manager'));
-
-CREATE POLICY "outreach_log_update_frontdesk_admin_manager" ON public.outreach_log
-    FOR UPDATE TO authenticated
-    USING (get_user_role() IN ('frontdesk', 'admin', 'manager'))
-    WITH CHECK (get_user_role() IN ('frontdesk', 'admin', 'manager'));
-
-CREATE POLICY "outreach_log_delete_frontdesk_admin" ON public.outreach_log
-    FOR DELETE TO authenticated
-    USING (get_user_role() IN ('frontdesk', 'admin'));
-
 -- Settings policies
 DROP POLICY IF EXISTS "settings_select_public" ON public.settings;
 DROP POLICY IF EXISTS "settings_select_all" ON public.settings;

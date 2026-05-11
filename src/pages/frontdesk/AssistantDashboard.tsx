@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Users, Package, FileText, Calendar, Eye, MessageSquare } from 'lucide-react'
+import { Users, Package, FileText, Calendar, Eye } from 'lucide-react'
 
 export function AssistantDashboard() {
   return (
@@ -28,11 +28,6 @@ export function AssistantDashboard() {
           <p className="text-sm text-slate-500 mt-1">Manage glasses prescriptions</p>
         </Link>
 
-        <Link to="/frontdesk/outreach" className="p-6 bg-card rounded-xl border border-border hover:shadow-md transition-shadow">
-          <MessageSquare className="w-8 h-8 text-primary mb-3" />
-          <h3 className="font-semibold text-foreground">Outreach</h3>
-          <p className="text-sm text-slate-500 mt-1">Patient outreach activities</p>
-        </Link>
 
         <Link to="/frontdesk/appointments" className="p-6 bg-card rounded-xl border border-border hover:shadow-md transition-shadow">
           <Calendar className="w-8 h-8 text-primary mb-3" />

@@ -165,7 +165,7 @@ DECLARE
         'audit_logs',
         'push_subscriptions',
         'settings',
-        'outreach_log',
+
         'notifications',
         'messages',
         'daily_summary',

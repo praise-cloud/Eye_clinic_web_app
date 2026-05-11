@@ -10,8 +10,8 @@ const roles = [
     },
     {
         icon: ClipboardList, title: 'Frontdesk', color: '#0D9488', bg: 'rgba(13,148,136,0.12)', border: 'rgba(13,148,136,0.25)',
-        description: 'Register patients, manage appointments, dispense drugs, and handle outreach.',
-        features: ['Patient registration', 'Drug dispensing', 'Glasses orders', 'Patient outreach']
+        description: 'Register patients, manage appointments, dispense drugs, and handle prescriptions.',
+        features: ['Patient registration', 'Drug dispensing', 'Glasses orders', 'Appointments']
     },
     {
         icon: ShieldCheck, title: 'Admin/Accounts', color: '#4F46E5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(79,70,229,0.25)',
@@ -27,7 +27,7 @@ const roles = [
 
 const features = [
     'Patient records', 'Appointments', 'Drug inventory', 'Encrypted notes',
-    'Staff chat', 'Revenue reports', 'Patient outreach', 'Works offline',
+    'Staff chat', 'Revenue reports', 'Data security', 'Works offline',
 ]
 
 export function SplashScreen() {

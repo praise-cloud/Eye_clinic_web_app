@@ -35,7 +35,6 @@ import { SubscriptionsPage } from './pages/admin/AccountantSubscriptionsPage'
 import { AuditPage } from './pages/manager/AuditPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ChatPage } from './pages/chat/ChatPage'
-import { OutreachPage } from './pages/frontdesk/OutreachPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
@@ -159,7 +158,6 @@ function App() {
           <Route path="/frontdesk/prescriptions" element={<P roles={['frontdesk']}><GlassesPrescriptionPage /></P>} />
           <Route path="/frontdesk/inventory" element={<P roles={['frontdesk']}><InventoryPage /></P>} />
           <Route path="/frontdesk/item-orders" element={<P roles={['frontdesk']}><ItemOrdersPage /></P>} />
-          <Route path="/frontdesk/outreach" element={<P roles={['frontdesk']}><OutreachPage /></P>} />
 
           {/* Legacy assistant aliases */}
           <Route path="/assistant" element={<Navigate to="/frontdesk" replace />} />
@@ -168,7 +166,6 @@ function App() {
           <Route path="/assistant/glasses-orders" element={<Navigate to="/frontdesk/glasses-orders" replace />} />
           <Route path="/assistant/glasses-prescription" element={<Navigate to="/frontdesk/prescriptions" replace />} />
           <Route path="/assistant/item-orders" element={<Navigate to="/frontdesk/item-orders" replace />} />
-          <Route path="/assistant/outreach" element={<Navigate to="/frontdesk/outreach" replace />} />
 
           {/* Manager */}
           <Route path="/manager" element={<P roles={['manager']}><ManagerDashboard /></P>} />

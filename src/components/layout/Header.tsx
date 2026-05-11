@@ -22,7 +22,7 @@ function getBreadcrumb(pathname: string): string {
 
     '/frontdesk/dispensing': 'Drug Dispensing', '/frontdesk/glasses-orders': 'Glasses Orders',
 
-    '/frontdesk/outreach': 'Outreach', '/admin/inventory': 'Inventory',
+    '/admin/inventory': 'Inventory',
     '/admin/audit': 'Audit Logs', '/admin/reports': 'Reports',
     '/admin/payments': 'Payments', '/admin/summary': 'Daily Summary',
     '/admin/subscriptions': 'Subscriptions', '/manager/audit': 'Audit Logs',

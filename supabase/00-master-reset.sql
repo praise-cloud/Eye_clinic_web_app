@@ -11,7 +11,6 @@
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS audit_messages ON public.messages;
 DROP TRIGGER IF EXISTS audit_notifications ON public.notifications;
-DROP TRIGGER IF EXISTS audit_outreach_log ON public.outreach_log;
 DROP TRIGGER IF EXISTS audit_settings ON public.settings;
 DROP TRIGGER IF EXISTS audit_push_subscriptions ON public.push_subscriptions;
 DROP TRIGGER IF EXISTS audit_patients ON public.patients;
@@ -69,7 +68,6 @@ DROP FUNCTION IF EXISTS update_daily_summary_on_appointment();
 DROP TABLE IF EXISTS public.audit_logs CASCADE;
 DROP TABLE IF EXISTS public.push_subscriptions CASCADE;
 DROP TABLE IF EXISTS public.settings CASCADE;
-DROP TABLE IF EXISTS public.outreach_log CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
 DROP TABLE IF EXISTS public.messages CASCADE;
 DROP TABLE IF EXISTS public.invoices CASCADE;

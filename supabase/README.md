@@ -64,7 +64,6 @@ When setting up the database, execute the files in this order:
 ### **Communications Schema** (`schema/04-communications-schema.sql`)
 - **Messages**: Internal messaging system
 - **Notifications**: User notifications and alerts
-- **Outreach Log**: Patient communication tracking
 - **Settings**: System configuration and user preferences
 - **Push Subscriptions**: Push notification subscriptions
 - **Audit Logs**: System audit trail
@@ -109,7 +108,6 @@ When setting up the database, execute the files in this order:
 ### **Communication System**
 - Internal messaging
 - Notification system
-- Patient outreach tracking
 - Audit logging
 - System settings
 
@@ -143,7 +141,6 @@ Profiles (Users) ──┐
 Patients ──► Appointments ──► Case Notes ──► Prescriptions
 Patients ──► Payments
 Patients ──► Subscriptions
-Patients ──► Outreach Log
 
 Drugs ──► Drug Dispensing
 Glasses Inventory ──► Glasses Orders

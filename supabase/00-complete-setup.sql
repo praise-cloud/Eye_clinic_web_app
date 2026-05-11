@@ -77,7 +77,6 @@ SELECT 'Cleanup complete' as status;
 DROP TABLE IF EXISTS public.audit_logs CASCADE;
 DROP TABLE IF EXISTS public.push_subscriptions CASCADE;
 DROP TABLE IF EXISTS public.settings CASCADE;
-DROP TABLE IF EXISTS public.outreach_log CASCADE;
 DROP TABLE IF EXISTS public.notifications CASCADE;
 DROP TABLE IF EXISTS public.messages CASCADE;
 DROP TABLE IF EXISTS public.invoices CASCADE;
@@ -456,24 +455,6 @@ CREATE TABLE public.notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- OUTREACH LOG
-CREATE TABLE public.outreach_log (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  patient_id UUID REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
-  sent_by UUID REFERENCES auth.users(id) NOT NULL,
-  channel TEXT NOT NULL CHECK (channel IN ('sms', 'email', 'whatsapp', 'call')),
-  message_template TEXT,
-  message_body TEXT,
-  recipient_number TEXT,
-  recipient_email TEXT,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'delivered', 'failed', 'bounced')),
-  sent_at TIMESTAMPTZ DEFAULT NOW(),
-  delivered_at TIMESTAMPTZ,
-  error_message TEXT,
-  cost NUMERIC,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- SYSTEM SETTINGS
 CREATE TABLE public.settings (
   key TEXT PRIMARY KEY,
@@ -618,13 +599,6 @@ CREATE INDEX idx_notifications_is_read ON public.notifications(is_read);
 CREATE INDEX idx_notifications_created_at ON public.notifications(created_at DESC);
 CREATE INDEX idx_notifications_expires_at ON public.notifications(expires_at);
 
--- Outreach log indexes
-CREATE INDEX idx_outreach_log_patient_id ON public.outreach_log(patient_id);
-CREATE INDEX idx_outreach_log_sent_by ON public.outreach_log(sent_by);
-CREATE INDEX idx_outreach_log_channel ON public.outreach_log(channel);
-CREATE INDEX idx_outreach_log_status ON public.outreach_log(status);
-CREATE INDEX idx_outreach_log_sent_at ON public.outreach_log(sent_at DESC);
-
 -- Settings indexes
 CREATE INDEX idx_settings_category ON public.settings(category);
 CREATE INDEX idx_settings_is_public ON public.settings(is_public);
@@ -663,7 +637,6 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_summary ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.outreach_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
@@ -905,7 +878,6 @@ CREATE TRIGGER audit_invoices AFTER INSERT OR UPDATE OR DELETE ON public.invoice
 CREATE TRIGGER audit_daily_summary AFTER INSERT OR UPDATE OR DELETE ON public.daily_summary FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
 CREATE TRIGGER audit_messages AFTER INSERT OR UPDATE OR DELETE ON public.messages FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
 CREATE TRIGGER audit_notifications AFTER INSERT OR UPDATE OR DELETE ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
-CREATE TRIGGER audit_outreach_log AFTER INSERT OR UPDATE OR DELETE ON public.outreach_log FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
 CREATE TRIGGER audit_settings AFTER INSERT OR UPDATE OR DELETE ON public.settings FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
 CREATE TRIGGER audit_push_subscriptions AFTER INSERT OR UPDATE OR DELETE ON public.push_subscriptions FOR EACH ROW EXECUTE FUNCTION public.audit_trigger_function();
 
